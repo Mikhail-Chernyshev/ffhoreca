@@ -1,0 +1,118 @@
+:root {
+  --text: #5c5566;
+  --text-h: #08060d;
+  --text-muted: #7a7285;
+  --bg: #f6f5f8;
+  --surface: #fff;
+  --surface-elevated: #fff;
+  --border: #e2dfe8;
+  --code-bg: #f0eef5;
+  --accent: #7c3aed;
+  --accent-bg: rgba(124, 58, 237, 0.12);
+  --accent-border: rgba(124, 58, 237, 0.45);
+  --shadow-sm:
+    rgba(15, 23, 42, 0.06) 0 4px 12px,
+    rgba(15, 23, 42, 0.04) 0 2px 4px;
+  --shadow-lg:
+    rgba(15, 23, 42, 0.12) 0 24px 48px -12px,
+    rgba(15, 23, 42, 0.08) 0 12px 24px -8px;
+
+  --map-ocean: #d4e4f4;
+  /* непосещённые: чуть теплее и контрастнее к океану, чем серая «плоская» версия */
+  --map-country-default: #eef4f0;
+  --map-country-hover: #e5ebe7;
+  --map-country-visited: #a5d6a7;
+  --map-country-visited-hover: #81c784;
+  --map-geo-stroke: rgba(255, 255, 255, 0.68);
+  --map-city: #e65100;
+  --map-city-zone-fill: rgba(255, 152, 0, 0.38);
+  --map-city-zone-fill-hover: rgba(255, 152, 0, 0.52);
+  --map-city-zone-stroke: rgba(230, 81, 0, 0.95);
+  /* Опционально для векторных подложек; карта — тайлы OSM (см. WorldMap) */
+  --map-lake-fill: #bcd4f0;
+  --map-lake-stroke: rgba(60, 100, 155, 0.42);
+  --map-river-stroke: rgba(45, 85, 145, 0.78);
+
+  --marker-lodging: #5c6bc0;
+  --marker-food: #e64a19;
+  --marker-bar: #8e24aa;
+  --marker-airport: #00838f;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  font: 17px/145% var(--sans);
+  letter-spacing: 0.01em;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #c4c0d0;
+    --text-h: #f4f2fa;
+    --text-muted: #9d96ad;
+    --bg: #12131a;
+    --surface: #1a1c24;
+    --surface-elevated: #22252f;
+    --border: #343848;
+    --code-bg: #1c1f28;
+    --accent: #a78bfa;
+    --accent-bg: rgba(167, 139, 250, 0.15);
+    --accent-border: rgba(167, 139, 250, 0.45);
+    --shadow-sm:
+      rgba(0, 0, 0, 0.35) 0 4px 12px,
+      rgba(0, 0, 0, 0.2) 0 2px 4px;
+    --shadow-lg:
+      rgba(0, 0, 0, 0.45) 0 24px 48px -12px,
+      rgba(0, 0, 0, 0.3) 0 12px 24px -8px;
+
+    --map-ocean: #1e2a3a;
+    --map-country-default: #2a3140;
+    --map-country-hover: #343c4d;
+    --map-country-visited: #2e6b4a;
+    --map-country-visited-hover: #3d8f60;
+    --map-geo-stroke: rgba(0, 0, 0, 0.52);
+    --map-city: #ffb74d;
+    --map-city-zone-fill: rgba(255, 171, 64, 0.4);
+    --map-city-zone-fill-hover: rgba(255, 171, 64, 0.55);
+    --map-city-zone-stroke: rgba(255, 183, 77, 0.98);
+
+    --map-lake-fill: #2a3d58;
+    --map-lake-stroke: rgba(130, 175, 230, 0.38);
+    --map-river-stroke: rgba(120, 170, 230, 0.82);
+
+    --marker-lodging: #9fa8da;
+    --marker-food: #ff8a65;
+    --marker-bar: #ce93d8;
+    --marker-airport: #4dd0e1;
+  }
+}
+
+#root {
+  min-height: 100svh;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--heading);
+}
+
+p {
+  margin: 0;
+}
