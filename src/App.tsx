@@ -1,22 +1,24 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddPlaceModal } from './components/AddPlaceModal'
 import { CategoryTabs } from './components/CategoryTabs'
 import { CityModal } from './components/CityModal'
 import { MapSearchBar } from './components/MapSearchBar'
 import { PlaceModal } from './components/PlaceModal'
 import { WorldMap, type WorldMapRef } from './components/WorldMap'
-import { catalog } from './data/catalog'
+import { catalog as catalogStatic } from './data/catalog'
 import {
   mergeCatalogWithAdminPlaces,
   placesForFilter,
 } from './data/selectors'
-import type { CategoryFilter, City, Place } from './data/types'
+import type { Catalog, CategoryFilter, City, Place } from './data/types'
 import { useAdminMode } from './hooks/useAdminMode'
+import { apiBaseUrl } from './lib/apiBase'
 import {
   loadAdminPlacesFromStorage,
   saveAdminPlacesToStorage,
 } from './lib/adminLocalPlacesStorage'
 import { parseAdminTokenFromLocation } from './lib/adminToken'
+import { fetchCatalogFromApi } from './lib/fetchCatalog'
 import {
   adminPlacesApiUrlFromEnv,
   submitAdminPlaceToApi,
@@ -30,14 +32,39 @@ function App() {
   const [extraPlaces, setExtraPlaces] = useState<Place[]>(() =>
     loadAdminPlacesFromStorage(),
   )
+  const [remoteCatalog, setRemoteCatalog] = useState<Catalog | null>(null)
+  const [catalogLoadError, setCatalogLoadError] = useState(false)
   const [addPlaceOpen, setAddPlaceOpen] = useState(false)
   const mapRef = useRef<WorldMapRef>(null)
   const adminMode = useAdminMode()
 
-  const catalogMerged = useMemo(
-    () => mergeCatalogWithAdminPlaces(catalog, extraPlaces),
-    [extraPlaces],
-  )
+  const apiConfigured = apiBaseUrl() !== ''
+
+  useEffect(() => {
+    if (!apiConfigured) return
+    let cancelled = false
+    void fetchCatalogFromApi()
+      .then((c) => {
+        if (!cancelled) {
+          setRemoteCatalog(c)
+          setCatalogLoadError(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCatalogLoadError(true)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [apiConfigured])
+
+  const catalogBusy =
+    apiConfigured && remoteCatalog === null && !catalogLoadError
+
+  const catalogMerged = useMemo(() => {
+    if (remoteCatalog) return remoteCatalog
+    return mergeCatalogWithAdminPlaces(catalogStatic, extraPlaces)
+  }, [remoteCatalog, extraPlaces])
 
   const visiblePlaces = useMemo(
     () => placesForFilter(catalogMerged, filter),
@@ -59,25 +86,49 @@ function App() {
   }, [])
 
   const handleAdminPlaceSaved = useCallback(async (place: Place) => {
+    const token = parseAdminTokenFromLocation()
+    const base = apiBaseUrl()
+    const postUrl =
+      adminPlacesApiUrlFromEnv() ||
+      (base ? `${base}/api/places` : '')
+
+    if (postUrl && token) {
+      const r = await submitAdminPlaceToApi(postUrl, token, place)
+      if (r.ok) {
+        if (base) {
+          try {
+            setRemoteCatalog(await fetchCatalogFromApi())
+          } catch {
+            /* оставляем старый remoteCatalog */
+          }
+        }
+        return
+      }
+      window.alert(
+        `Сервер не принял место:\n${r.message}\n\nСохраняю копию в этом браузере (localStorage).`,
+      )
+    }
+
     setExtraPlaces((prev) => {
       const next = [...prev, place]
       saveAdminPlacesToStorage(next)
       return next
     })
-    const api = adminPlacesApiUrlFromEnv()
-    const token = parseAdminTokenFromLocation()
-    if (api && token) {
-      const r = await submitAdminPlaceToApi(api, token, place)
-      if (!r.ok) {
-        window.alert(
-          `Место сохранено в этом браузере (localStorage), но сервер ответил ошибкой:\n${r.message}`,
-        )
-      }
-    }
   }, [])
 
   return (
     <div className="app">
+      {catalogBusy ? (
+        <p className="app-banner" role="status">
+          Загрузка каталога с сервера…
+        </p>
+      ) : null}
+      {catalogLoadError && apiConfigured ? (
+        <p className="app-banner app-banner--warn" role="alert">
+          Не удалось загрузить каталог с API — показан встроенный каталог и локальные дополнения.
+        </p>
+      ) : null}
+
       {adminMode ? (
         <button
           type="button"
