@@ -89,7 +89,7 @@ function App() {
       ) : null}
 
       <header className="app-header">
-        <h1 className="app-title">ffhoreca</h1>
+        <h1 className="app-title">Tips from trips</h1>
         <p className="app-tagline">
           Места, где мы были: отели, гостевые, бары и рестораны по миру
         </p>
