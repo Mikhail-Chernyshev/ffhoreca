@@ -1,0 +1,57 @@
+# Деплой Vite → GitHub Pages (ветка main).
+# Перед первым запуском: Settings → Secrets → Actions — добавь VITE_API_BASE_URL и VITE_ADMIN_TOKEN.
+#
+# Сайт проекта: https://<user>.github.io/<repo>/
+# Если репозиторий называется <user>.github.io (user site), задай в Variables репозитория VITE_BASE_PATH = /
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+          VITE_ADMIN_TOKEN: ${{ secrets.VITE_ADMIN_TOKEN }}
+          # Подкаталог на Pages: /имя-репозитория/ (для user site задай Variables → VITE_BASE_PATH = /)
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || format('/{0}/', github.event.repository.name) }}
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
