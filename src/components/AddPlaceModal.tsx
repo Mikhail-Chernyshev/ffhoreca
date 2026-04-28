@@ -1,6 +1,14 @@
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from 'react';
 import type { Catalog, Place, PlaceCategory } from '../data/types';
-import { cityById } from '../data/selectors';
+import { cityById, catalogCityIdFromPhotonHints } from '../data/selectors';
+import { validateNewPlaceRequired } from '../lib/validateNewPlaceForm';
+import { searchPhotonAddresses, type AddressSuggestion } from '../lib/photonAddressSearch';
 
 type Props = {
   onClose: () => void;
@@ -9,9 +17,6 @@ type Props = {
 };
 
 const CATEGORIES: PlaceCategory[] = ['lodging', 'food', 'bar', 'airport'];
-
-const defaultPhoto = () =>
-  `https://picsum.photos/seed/ffh-admin-${Date.now()}/900/560`;
 
 function buildPlace(form: {
   name: string;
@@ -37,7 +42,7 @@ function buildPlace(form: {
     .split(/\n+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  const photos = lines.length > 0 ? lines : [defaultPhoto()];
+  const photos: string[] | null = lines.length > 0 ? lines : null;
 
   let googleRating: number | null = null;
   if (form.rating.trim() !== '') {
@@ -77,6 +82,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
   const [cityId, setCityId] = useState(catalog.cities[0]?.id ?? '');
   const [cats, setCats] = useState<PlaceCategory[]>(['food']);
   const [address, setAddress] = useState('');
+  const [placeSearchQuery, setPlaceSearchQuery] = useState('');
   const [summary, setSummary] = useState('');
   const [story, setStory] = useState('');
   const [lng, setLng] = useState('');
@@ -85,6 +91,11 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
   const [photosRaw, setPhotosRaw] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [placeSuggestions, setPlaceSuggestions] = useState<AddressSuggestion[]>([]);
+  const [placeSuggestOpen, setPlaceSuggestOpen] = useState(false);
+  const [placeSearchLoading, setPlaceSearchLoading] = useState(false);
+  const [placeSearchDebouncing, setPlaceSearchDebouncing] = useState(false);
+  const [placeNoResults, setPlaceNoResults] = useState(false);
 
   const onKey = useCallback(
     (e: KeyboardEvent) => {
@@ -109,9 +120,86 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     );
   };
 
+  const cityCenter = useMemo(() => {
+    const c = cityById(catalog, cityId);
+    return c ? { lat: c.lat, lng: c.lng } : undefined;
+  }, [catalog, cityId]);
+
+  useEffect(() => {
+    const q = placeSearchQuery.trim();
+    if (q.length < 3) return;
+
+    const ac = new AbortController();
+    const t = window.setTimeout(() => {
+      setPlaceSearchDebouncing(false);
+      setPlaceSearchLoading(true);
+      setPlaceNoResults(false);
+      setPlaceSuggestions([]);
+      void (async () => {
+        try {
+          const list = await searchPhotonAddresses(q, cityCenter, ac.signal);
+          if (!ac.signal.aborted) {
+            setPlaceSuggestions(list);
+            setPlaceNoResults(list.length === 0);
+          }
+        } catch (e) {
+          if ((e as Error).name !== 'AbortError') {
+            setPlaceSuggestions([]);
+            setPlaceNoResults(true);
+          }
+        } finally {
+          if (!ac.signal.aborted) setPlaceSearchLoading(false);
+        }
+      })();
+    }, 400);
+    return () => {
+      clearTimeout(t);
+      ac.abort();
+    };
+  }, [placeSearchQuery, cityCenter]);
+
+  const applyPlaceSuggestion = (s: AddressSuggestion) => {
+    setName(s.placeName);
+    setAddress(s.label);
+    setLng(String(Math.round(s.lng * 1e6) / 1e6));
+    setLat(String(Math.round(s.lat * 1e6) / 1e6));
+    const matchedCityId = catalogCityIdFromPhotonHints(
+      catalog,
+      s.lat,
+      s.lng,
+      s.localityHints,
+      s.countryCodeOsm,
+    );
+    if (matchedCityId) setCityId(matchedCityId);
+    setPlaceSearchQuery(s.placeName);
+    setPlaceSuggestOpen(false);
+    setPlaceSuggestions([]);
+    setPlaceNoResults(false);
+    setPlaceSearchDebouncing(false);
+    setPlaceSearchLoading(false);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+    const city = cityById(catalog, cityId);
+    const err = validateNewPlaceRequired({
+      name,
+      cityId,
+      countryCode: city?.countryCode ?? '',
+      address,
+      summary,
+      story,
+      categories: cats,
+    });
+    if (err) {
+      setError(err);
+      return;
+    }
+    if (!city) {
+      setError('Город не найден в каталоге.');
+      return;
+    }
     const draft = buildPlace({
       name,
       cityId,
@@ -125,12 +213,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
       photosRaw,
     });
     if (!draft) {
-      setError('Заполните обязательные поля и выберите хотя бы одну категорию.');
-      return;
-    }
-    const city = cityById(catalog, draft.cityId);
-    if (!city) {
-      setError('Город не найден в каталоге.');
+      setError('Проверьте корректность опциональных полей (оценка 0–5, координаты).');
       return;
     }
     const place: Place = { ...draft, countryCode: city.countryCode };
@@ -154,7 +237,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
       }}
     >
       <div
-        className="modal-dialog modal-dialog--wide"
+        className="modal-dialog modal-dialog--wide modal-dialog--add-place"
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-place-modal-title"
@@ -173,22 +256,114 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
 
         <form className="add-place-form" onSubmit={handleSubmit}>
           <label className="add-place-form__label">
-            Название
-            <input
-              className="add-place-form__input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoComplete="off"
-            />
+            Найти место
+            <span className="add-place-form__hint">
+              OpenStreetMap (Photon). Выберите объект — подставятся город (если есть в каталоге),
+              название, адрес и координаты.
+            </span>
+            <div className="add-place-form__autocomplete">
+              <input
+                className="add-place-form__input"
+                value={placeSearchQuery}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setPlaceSearchQuery(v);
+                  setPlaceSuggestOpen(true);
+                  if (v.trim().length < 3) {
+                    setPlaceSuggestions([]);
+                    setPlaceSearchLoading(false);
+                    setPlaceSearchDebouncing(false);
+                    setPlaceNoResults(false);
+                  } else {
+                    setPlaceSearchDebouncing(true);
+                  }
+                }}
+                onFocus={() => setPlaceSuggestOpen(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setPlaceSuggestOpen(false), 180);
+                }}
+                autoComplete="off"
+                placeholder="Начните вводить название или адрес…"
+                aria-autocomplete="list"
+                aria-expanded={
+                  placeSuggestOpen &&
+                  placeSearchQuery.trim().length >= 3 &&
+                  (placeSearchDebouncing ||
+                    placeSearchLoading ||
+                    placeSuggestions.length > 0 ||
+                    placeNoResults)
+                }
+                aria-controls="add-place-photon-suggestions"
+              />
+              {placeSuggestOpen &&
+              placeSearchQuery.trim().length >= 3 &&
+              (placeSearchDebouncing ||
+                placeSearchLoading ||
+                placeSuggestions.length > 0 ||
+                placeNoResults) ? (
+                <ul
+                  id="add-place-photon-suggestions"
+                  className="add-place-form__suggestions"
+                  role="listbox"
+                >
+                  {(placeSearchDebouncing ||
+                    (placeSearchLoading && placeSuggestions.length === 0)) &&
+                  !placeNoResults ? (
+                    <li
+                      className="add-place-form__suggestion add-place-form__suggestion--muted"
+                      role="presentation"
+                    >
+                      Поиск…
+                    </li>
+                  ) : null}
+                  {!placeSearchDebouncing &&
+                  !placeSearchLoading &&
+                  placeNoResults ? (
+                    <li
+                      className="add-place-form__suggestion add-place-form__suggestion--muted"
+                      role="presentation"
+                    >
+                      Ничего не найдено
+                    </li>
+                  ) : null}
+                  {placeSuggestions.map((s, i) => (
+                    <li key={`${s.placeName}-${s.label}-${s.lat}-${s.lng}-${i}`} role="none">
+                      <button
+                        type="button"
+                        className="add-place-form__suggestion"
+                        role="option"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          applyPlaceSuggestion(s);
+                        }}
+                      >
+                        <span className="add-place-form__suggestion-title">{s.placeName}</span>
+                        <span className="add-place-form__suggestion-sub">{s.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
           </label>
 
           <label className="add-place-form__label">
             Город
+            <span className="add-place-form__hint">
+              Можно выбрать вручную или он подставится из результата поиска.
+            </span>
             <select
               className="add-place-form__input"
               value={cityId}
-              onChange={(e) => setCityId(e.target.value)}
+              onChange={(e) => {
+                const next = e.target.value;
+                setCityId(next);
+                if (placeSearchQuery.trim().length >= 3) {
+                  setPlaceSearchDebouncing(true);
+                  setPlaceSuggestions([]);
+                  setPlaceNoResults(false);
+                }
+              }}
               required
             >
               {catalog.cities.map((c) => (
@@ -216,12 +391,27 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
           </fieldset>
 
           <label className="add-place-form__label">
+            Название
+            <input
+              className="add-place-form__input"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoComplete="off"
+            />
+          </label>
+
+          <label className="add-place-form__label">
             Адрес
+            <span className="add-place-form__hint">
+              Заполняется из поиска; можно отредактировать вручную.
+            </span>
             <input
               className="add-place-form__input"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               required
+              autoComplete="street-address"
             />
           </label>
 
@@ -281,13 +471,13 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
           </label>
 
           <label className="add-place-form__label">
-            Фото — URL по одному на строку (пусто = placeholder)
+            Фото — URL по одному на строку (необяз.)
             <textarea
               className="add-place-form__textarea add-place-form__textarea--short"
               value={photosRaw}
               onChange={(e) => setPhotosRaw(e.target.value)}
               rows={3}
-              placeholder="https://…"
+              placeholder="Пусто — без фото"
             />
           </label>
 

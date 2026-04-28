@@ -1,0 +1,26 @@
+# Конфигурация Fly.io для ffhoreca API (Docker + SQLite на томе /data).
+#
+# Как использовать:
+# 1) Придумай глобально уникальное имя приложения (латиница, дефисы).
+# 2) Замени значение `app` ниже на это имя.
+# 3) Выполни: fly apps create ИМЯ
+# 4) Выполни: fly deploy
+
+app = "ffhoreca-api-tips-from-trips"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 3001
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[mounts]
+  source = "ffhoreca_data"
+  destination = "/data"
+  initial_size = "1GB"

@@ -5,7 +5,7 @@ import { CityModal } from './components/CityModal'
 import { MapSearchBar } from './components/MapSearchBar'
 import { PlaceModal } from './components/PlaceModal'
 import { WorldMap, type WorldMapRef } from './components/WorldMap'
-import { catalog as catalogStatic } from './data/catalog'
+import { catalog } from './data/catalog'
 import {
   mergeCatalogWithAdminPlaces,
   placesForFilter,
@@ -21,16 +21,28 @@ import { parseAdminTokenFromLocation } from './lib/adminToken'
 import { fetchCatalogFromApi } from './lib/fetchCatalog'
 import {
   adminPlacesApiUrlFromEnv,
+  deleteAdminPlaceFromApi,
   submitAdminPlaceToApi,
 } from './lib/submitAdminPlace'
+import {
+  loadDeletedPlaceIds,
+  saveDeletedPlaceIds,
+} from './lib/adminDeletedPlaceIdsStorage'
 import './App.css'
 
+const EMPTY_CATALOG: Catalog = { cities: [], places: [] }
+
 function App() {
+  const apiConfiguredAtInit = apiBaseUrl() !== ''
+
   const [filter, setFilter] = useState<CategoryFilter>('all')
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null)
   const [selectedCity, setSelectedCity] = useState<City | null>(null)
   const [extraPlaces, setExtraPlaces] = useState<Place[]>(() =>
-    loadAdminPlacesFromStorage(),
+    apiConfiguredAtInit ? [] : loadAdminPlacesFromStorage(),
+  )
+  const [deletedPlaceIds, setDeletedPlaceIds] = useState<Set<string>>(() =>
+    apiConfiguredAtInit ? new Set() : loadDeletedPlaceIds(),
   )
   const [remoteCatalog, setRemoteCatalog] = useState<Catalog | null>(null)
   const [catalogLoadError, setCatalogLoadError] = useState(false)
@@ -61,10 +73,24 @@ function App() {
   const catalogBusy =
     apiConfigured && remoteCatalog === null && !catalogLoadError
 
+  /**
+   * Если задан VITE_API_BASE_URL — единственный источник данных: ответ GET /api/catalog.
+   * Встроенный catalog.ts и localStorage не подмешиваются (ни при загрузке, ни при ошибке).
+   */
   const catalogMerged = useMemo(() => {
+    if (!apiConfigured) {
+      let merged = mergeCatalogWithAdminPlaces(catalog, extraPlaces)
+      if (deletedPlaceIds.size > 0) {
+        merged = {
+          ...merged,
+          places: merged.places.filter((p) => !deletedPlaceIds.has(p.id)),
+        }
+      }
+      return merged
+    }
     if (remoteCatalog) return remoteCatalog
-    return mergeCatalogWithAdminPlaces(catalogStatic, extraPlaces)
-  }, [remoteCatalog, extraPlaces])
+    return EMPTY_CATALOG
+  }, [apiConfigured, remoteCatalog, extraPlaces, deletedPlaceIds])
 
   const visiblePlaces = useMemo(
     () => placesForFilter(catalogMerged, filter),
@@ -85,36 +111,124 @@ function App() {
     setSelectedCity(city)
   }, [])
 
-  const handleAdminPlaceSaved = useCallback(async (place: Place) => {
-    const token = parseAdminTokenFromLocation()
-    const base = apiBaseUrl()
-    const postUrl =
-      adminPlacesApiUrlFromEnv() ||
-      (base ? `${base}/api/places` : '')
+  const persistPlaceToBackendOrStorage = useCallback(
+    async (place: Place): Promise<{ ok: boolean; message?: string }> => {
+      const token = parseAdminTokenFromLocation();
+      const base = apiBaseUrl();
+      const postUrl =
+        adminPlacesApiUrlFromEnv() ||
+        (base ? `${base}/api/places` : '');
 
-    if (postUrl && token) {
-      const r = await submitAdminPlaceToApi(postUrl, token, place)
-      if (r.ok) {
-        if (base) {
-          try {
-            setRemoteCatalog(await fetchCatalogFromApi())
-          } catch {
-            /* оставляем старый remoteCatalog */
+      const mergeLocal = () => {
+        setExtraPlaces((prev) => {
+          const idx = prev.findIndex((x) => x.id === place.id);
+          const next =
+            idx >= 0
+              ? prev.map((x, i) => (i === idx ? place : x))
+              : [...prev, place];
+          saveAdminPlacesToStorage(next);
+          return next;
+        });
+      };
+
+      if (postUrl && token) {
+        const r = await submitAdminPlaceToApi(postUrl, token, place);
+        if (r.ok) {
+          if (base) {
+            try {
+              setRemoteCatalog(await fetchCatalogFromApi());
+            } catch {
+              /* оставляем старый remoteCatalog */
+            }
           }
+          return { ok: true };
         }
-        return
+        window.alert(
+          apiConfigured
+            ? `Сервер не принял место:\n${r.message}`
+            : `Сервер не принял место:\n${r.message}\n\nСохраняю копию в этом браузере (localStorage).`,
+        );
+        if (!apiConfigured) mergeLocal();
+        return { ok: false, message: r.message };
       }
-      window.alert(
-        `Сервер не принял место:\n${r.message}\n\nСохраняю копию в этом браузере (localStorage).`,
-      )
-    }
 
-    setExtraPlaces((prev) => {
-      const next = [...prev, place]
-      saveAdminPlacesToStorage(next)
-      return next
-    })
-  }, [])
+      if (!apiConfigured) {
+        mergeLocal();
+        return { ok: true };
+      }
+
+      return { ok: false, message: 'Нет URL API или токена админа в URL' };
+    },
+    [apiConfigured],
+  );
+
+  const handleAdminPlaceSaved = useCallback(
+    async (place: Place) => {
+      await persistPlaceToBackendOrStorage(place);
+    },
+    [persistPlaceToBackendOrStorage],
+  );
+
+  const handlePlaceDeleted = useCallback(
+    async (placeId: string): Promise<boolean> => {
+      const token = parseAdminTokenFromLocation()
+      const base = apiBaseUrl()
+      const postUrl =
+        adminPlacesApiUrlFromEnv() ||
+        (base ? `${base}/api/places` : '')
+
+      if (postUrl && token) {
+        const r = await deleteAdminPlaceFromApi(postUrl, token, placeId)
+        if (r.ok) {
+          if (base) {
+            try {
+              setRemoteCatalog(await fetchCatalogFromApi())
+            } catch {
+              /* ignore */
+            }
+          }
+          return true
+        }
+        window.alert(
+          apiConfigured
+            ? `Не удалось удалить место:\n${r.message}`
+            : `Не удалось удалить место:\n${r.message}`,
+        )
+        return false
+      }
+
+      if (!apiConfigured) {
+        setDeletedPlaceIds((prev) => {
+          const next = new Set(prev)
+          next.add(placeId)
+          saveDeletedPlaceIds(next)
+          return next
+        })
+        setExtraPlaces((prev) => {
+          const next = prev.filter((p) => p.id !== placeId)
+          saveAdminPlacesToStorage(next)
+          return next
+        })
+        return true
+      }
+
+      window.alert('Нет URL API или токена админа в URL')
+      return false
+    },
+    [apiConfigured],
+  )
+
+  const handlePlaceUpdatedFromModal = useCallback(
+    async (place: Place) => {
+      const r = await persistPlaceToBackendOrStorage(place);
+      if (r.ok) {
+        setSelectedPlace(place);
+      } else if (r.message) {
+        window.alert(r.message);
+      }
+    },
+    [persistPlaceToBackendOrStorage],
+  );
 
   return (
     <div className="app">
@@ -125,7 +239,8 @@ function App() {
       ) : null}
       {catalogLoadError && apiConfigured ? (
         <p className="app-banner app-banner--warn" role="alert">
-          Не удалось загрузить каталог с API — показан встроенный каталог и локальные дополнения.
+          Не удалось загрузить каталог с API. Данные из репозитория не подставляются — проверьте
+          сеть, CORS и URL в VITE_API_BASE_URL.
         </p>
       ) : null}
 
@@ -159,7 +274,14 @@ function App() {
         onCityClick={openCity}
       />
 
-      <PlaceModal place={selectedPlace} onClose={() => setSelectedPlace(null)} />
+      <PlaceModal
+        key={selectedPlace?.id ?? 'closed'}
+        place={selectedPlace}
+        onClose={() => setSelectedPlace(null)}
+        adminMode={adminMode}
+        onPlaceUpdated={adminMode ? handlePlaceUpdatedFromModal : undefined}
+        onPlaceDeleted={adminMode ? handlePlaceDeleted : undefined}
+      />
       <CityModal city={selectedCity} onClose={() => setSelectedCity(null)} />
       {addPlaceOpen ? (
         <AddPlaceModal

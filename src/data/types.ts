@@ -40,8 +40,8 @@ export interface Place {
   summary: string;
   /** null — если нет оценки или не заполняли */
   googleRating: number | null;
-  /** URL картинок (локальные из /public или внешние) */
-  photos: string[];
+  /** URL картинок; null — фото нет (не подставлять заглушки) */
+  photos: string[] | null;
   /** Ваш текст про место */
   story: string;
   /** Если не задано — точка берётся из города (+ лёгкий сдвиг, если точек несколько) */

@@ -3,6 +3,18 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import type { Catalog, City, Place } from '../../src/data/types';
 
+function normalizePlaceRow(raw: unknown): Place {
+  const p = raw as Place;
+  let photos: string[] | null = null;
+  if (Array.isArray(p.photos) && p.photos.length > 0) {
+    const urls = p.photos.filter(
+      (x): x is string => typeof x === 'string' && x.trim().length > 0,
+    );
+    photos = urls.length > 0 ? urls : null;
+  }
+  return { ...p, photos };
+}
+
 export function openDatabase(dbPath: string): Database.Database {
   const dir = path.dirname(dbPath);
   fs.mkdirSync(dir, { recursive: true });
@@ -30,7 +42,7 @@ export function getCatalog(db: Database.Database): Catalog {
   }[];
   return {
     cities: cityRows.map((r) => JSON.parse(r.json) as City),
-    places: placeRows.map((r) => JSON.parse(r.json) as Place),
+    places: placeRows.map((r) => normalizePlaceRow(JSON.parse(r.json))),
   };
 }
 
@@ -52,6 +64,11 @@ export function replaceCatalog(db: Database.Database, catalog: Catalog): void {
     }
   });
   tx();
+}
+
+export function deletePlace(db: Database.Database, id: string): boolean {
+  const r = db.prepare('DELETE FROM places WHERE id = ?').run(id);
+  return r.changes > 0;
 }
 
 export function upsertPlace(db: Database.Database, place: Place): void {

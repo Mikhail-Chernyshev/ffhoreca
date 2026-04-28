@@ -636,8 +636,8 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 2rem 1rem;
-  overflow: auto;
+  padding: 1rem;
+  overflow: hidden;
   background: rgba(8, 6, 13, 0.55);
   backdrop-filter: blur(4px);
 }
@@ -645,6 +645,10 @@
 .modal-dialog {
   position: relative;
   width: min(560px, 100%);
+  /* Иначе flex-ребёнок не сжимается ниже высоты контента — скролл не появляется */
+  min-height: 0;
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
   margin-block: auto;
   padding: 1.5rem 1.5rem 1.75rem;
   border-radius: 14px;
@@ -652,10 +656,115 @@
   background: var(--surface-elevated);
   box-shadow: var(--shadow-lg);
   color: var(--text);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-dialog.modal-dialog--wide {
   width: min(640px, 100%);
+}
+
+/* Просмотр места — ограничение высоты, длинное содержимое скроллится внутри */
+.modal-dialog--place-view {
+  max-height: min(85dvh, 640px);
+  max-height: min(85vh, 640px);
+}
+
+/* Форма «Новое место» — ограничение высоты, длинная форма только со скроллом */
+.modal-dialog--add-place {
+  max-height: min(82dvh, 640px);
+  max-height: min(82vh, 640px);
+}
+
+/* Вложенное подтверждение (поверх модалки места) */
+.confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(8, 6, 13, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.confirm-modal {
+  width: min(26rem, 100%);
+  padding: 1.35rem 1.5rem 1.45rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.confirm-modal__title {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.confirm-modal__text {
+  margin: 0 0 1.15rem;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.confirm-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.confirm-modal__btn {
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  padding: 0.45rem 1rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.confirm-modal__btn--ghost {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+}
+
+.confirm-modal__btn--ghost:hover:not(:disabled) {
+  background: var(--accent-bg);
+}
+
+.confirm-modal__btn--danger {
+  border: 1px solid rgba(198, 40, 40, 0.55);
+  background: rgba(198, 40, 40, 0.12);
+  color: #b71c1c;
+}
+
+.confirm-modal__btn--danger:hover:not(:disabled) {
+  background: rgba(198, 40, 40, 0.2);
+}
+
+.confirm-modal__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .confirm-modal__btn--danger {
+    border-color: rgba(239, 154, 154, 0.5);
+    background: rgba(239, 154, 154, 0.12);
+    color: #ffcdd2;
+  }
+
+  .confirm-modal__btn--danger:hover:not(:disabled) {
+    background: rgba(239, 154, 154, 0.2);
+  }
 }
 
 .modal-close {
@@ -687,9 +796,59 @@
 }
 
 .modal-address {
-  margin: 0 0 0.75rem;
+  margin: 0 0 0.2rem;
   font-size: 0.9rem;
   color: var(--text-muted);
+}
+
+.modal-coords {
+  margin: 0 0 0.85rem;
+  font-family: ui-monospace, 'Cascadia Code', monospace;
+  font-size: 0.76rem;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+.modal-place-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1rem;
+}
+
+.modal-place-cat-badge {
+  display: inline-block;
+  padding: 0.32rem 0.75rem;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+}
+
+.modal-place-cat-badge--lodging {
+  background: color-mix(in srgb, var(--marker-lodging) 22%, var(--surface));
+  border-color: color-mix(in srgb, var(--marker-lodging) 42%, var(--border));
+  color: var(--text-h);
+}
+
+.modal-place-cat-badge--food {
+  background: color-mix(in srgb, var(--marker-food) 22%, var(--surface));
+  border-color: color-mix(in srgb, var(--marker-food) 42%, var(--border));
+  color: var(--text-h);
+}
+
+.modal-place-cat-badge--bar {
+  background: color-mix(in srgb, var(--marker-bar) 22%, var(--surface));
+  border-color: color-mix(in srgb, var(--marker-bar) 42%, var(--border));
+  color: var(--text-h);
+}
+
+.modal-place-cat-badge--airport {
+  background: color-mix(in srgb, var(--marker-airport) 22%, var(--surface));
+  border-color: color-mix(in srgb, var(--marker-airport) 42%, var(--border));
+  color: var(--text-h);
 }
 
 .modal-summary {
@@ -697,6 +856,11 @@
   font-size: 1rem;
   line-height: 1.45;
   color: var(--text);
+}
+
+.modal-summary--place-lead {
+  margin-bottom: 1rem;
+  font-size: 1.02rem;
 }
 
 .modal-summary--muted {
@@ -716,6 +880,78 @@
 .modal-rating {
   margin: 0 0 1rem;
   font-size: 0.95rem;
+  color: var(--text-muted);
+}
+
+.modal-rating--block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.modal-rating__label {
+  flex: 0 0 auto;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.modal-rating__value {
+  color: var(--text-h);
+}
+
+.modal-rating__add {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.modal-rating__add:hover {
+  filter: brightness(0.97);
+}
+
+.modal-rating__edit {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.modal-rating__input {
+  width: 4.5rem;
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.28rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-h);
+}
+
+.modal-rating__save,
+.modal-rating__cancel {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 0.28rem 0.55rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.modal-rating__save {
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.modal-rating__cancel {
+  border: 1px solid var(--border);
+  background: transparent;
   color: var(--text-muted);
 }
 
@@ -777,11 +1013,69 @@
   margin-top: 0.25rem;
 }
 
+.modal-story__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
 .modal-story__heading {
-  margin: 0 0 0.5rem;
+  margin: 0;
   font-size: 1rem;
   font-weight: 600;
   color: var(--text-h);
+}
+
+.modal-story__edit {
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.modal-story__edit:hover {
+  filter: brightness(0.97);
+}
+
+.modal-story__edit-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.modal-story__textarea {
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.55;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+  min-height: 6rem;
+}
+
+.modal-story__textarea:focus {
+  outline: 2px solid var(--accent-border);
+  outline-offset: 2px;
+}
+
+.modal-story__edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .modal-story__text {
@@ -790,6 +1084,45 @@
   line-height: 1.55;
   white-space: pre-wrap;
   color: var(--text);
+}
+
+.modal-place-delete {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.modal-place-delete__btn {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid rgba(198, 40, 40, 0.55);
+  background: rgba(198, 40, 40, 0.1);
+  color: #b71c1c;
+  cursor: pointer;
+}
+
+.modal-place-delete__btn:hover:not(:disabled) {
+  background: rgba(198, 40, 40, 0.18);
+}
+
+.modal-place-delete__btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@media (prefers-color-scheme: dark) {
+  .modal-place-delete__btn {
+    border-color: rgba(239, 154, 154, 0.55);
+    background: rgba(239, 154, 154, 0.12);
+    color: #ffcdd2;
+  }
+
+  .modal-place-delete__btn:hover:not(:disabled) {
+    background: rgba(239, 154, 154, 0.2);
+  }
 }
 
 .add-place-form {
@@ -807,6 +1140,81 @@
   font-weight: 500;
   color: var(--text-h);
   text-align: left;
+}
+
+.add-place-form__hint {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.add-place-form__autocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.add-place-form__suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 40;
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: min(50vh, 14rem);
+  overflow-y: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.add-place-form__suggestion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border: none;
+  background: transparent;
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+}
+
+.add-place-form__suggestion-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.add-place-form__suggestion-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.add-place-form__suggestion:hover,
+.add-place-form__suggestion:focus-visible {
+  background: var(--accent-bg);
+  outline: none;
+}
+
+.add-place-form__suggestion--muted {
+  cursor: default;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.add-place-form__suggestion--muted:hover,
+.add-place-form__suggestion--muted:focus-visible {
+  background: transparent;
 }
 
 .add-place-form__label--half {

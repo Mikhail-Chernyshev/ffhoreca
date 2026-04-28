@@ -1,0 +1,19 @@
+# Локальная проверка образа перед деплоем в облако
+# ADMIN_TOKEN и CORS_ORIGIN подставь свои
+
+services:
+  api:
+    build: .
+    ports:
+      - '3001:3001'
+    environment:
+      PORT: '3001'
+      DATABASE_PATH: /data/catalog.sqlite
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-dev-secret-change-me}
+      VITE_ADMIN_TOKEN: ${ADMIN_TOKEN:-dev-secret-change-me}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:5173}
+    volumes:
+      - api-data:/data
+
+volumes:
+  api-data:

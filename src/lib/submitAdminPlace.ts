@@ -37,6 +37,43 @@ export async function submitAdminPlaceToApi(
   }
 }
 
+export function adminPlacesDeleteUrlFromPlacesPostUrl(postPlacesUrl: string): string {
+  const u = postPlacesUrl.trim().replace(/\/$/, '');
+  return `${u}/delete`;
+}
+
+/**
+ * Удаление места на сервере: POST `{ token, id }` на …/api/places/delete.
+ */
+export async function deleteAdminPlaceFromApi(
+  postPlacesUrl: string,
+  token: string,
+  placeId: string,
+): Promise<SubmitAdminPlaceResult> {
+  if (!postPlacesUrl.trim()) {
+    return { ok: false, message: 'API URL не задан' };
+  }
+  const deleteUrl = adminPlacesDeleteUrlFromPlacesPostUrl(postPlacesUrl);
+  try {
+    const res = await fetch(deleteUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, id: placeId }),
+    });
+    if (res.ok) {
+      return { ok: true, message: 'Удалено' };
+    }
+    const text = await res.text().catch(() => '');
+    return {
+      ok: false,
+      message: text ? `Сервер: ${res.status} — ${text.slice(0, 200)}` : `Сервер: ${res.status}`,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, message: `Сеть: ${msg}` };
+  }
+}
+
 export function adminPlacesApiUrlFromEnv(): string {
   const v = import.meta.env.VITE_ADMIN_PLACES_API;
   return typeof v === 'string' ? v.trim() : '';

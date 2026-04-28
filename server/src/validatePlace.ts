@@ -20,9 +20,15 @@ export function isValidPlace(x: unknown): x is Place {
     if (typeof p.googleRating !== 'number' || p.googleRating < 0 || p.googleRating > 5)
       return false;
   }
-  if (!Array.isArray(p.photos) || p.photos.length === 0) return false;
-  for (const ph of p.photos) {
-    if (typeof ph !== 'string' || !ph.trim()) return false;
+  if (p.photos === null) {
+    /* ok — фото нет */
+  } else if (Array.isArray(p.photos)) {
+    if (p.photos.length === 0) return false;
+    for (const ph of p.photos) {
+      if (typeof ph !== 'string' || !ph.trim()) return false;
+    }
+  } else {
+    return false;
   }
   if (p.lng != null && typeof p.lng !== 'number') return false;
   if (p.lat != null && typeof p.lat !== 'number') return false;

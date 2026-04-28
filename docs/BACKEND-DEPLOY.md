@@ -2,6 +2,8 @@
 
 Этот документ описывает развёртывание **Node + Hono + SQLite** из папки `server/` на отдельной машине (VPS). Фронт (GitHub Pages, Vercel и т.д.) потом подключается по `VITE_API_BASE_URL`.
 
+**Деплой через Docker (Railway, Fly.io и т.п.)** — короче и практичнее для старта: см. **[BACKEND-DEPLOY-CLOUD.md](./BACKEND-DEPLOY-CLOUD.md)**.
+
 ---
 
 ## 0. Что именно выкладывается
