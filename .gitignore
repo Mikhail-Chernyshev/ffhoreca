@@ -16,6 +16,9 @@ dist-ssr
 server/data/*.sqlite
 server/data/*.sqlite-*
 
+# Локальные снимки БД с Fly (`fly ssh sftp get`)
+backups/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

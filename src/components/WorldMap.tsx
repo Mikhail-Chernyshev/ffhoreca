@@ -32,6 +32,10 @@ import {
   fixGeojsonAntimeridian,
   sanitizeMapFillGeometry,
 } from '../lib/fixGeojsonAntimeridian';
+import {
+  FlightRoutesToSpb,
+  LAYER_FLIGHT_ARCS_LINE,
+} from './FlightRoutesToSpb';
 
 /** Топология world-atlas countries-10m (подгружается async — файл ~3.5 MB). */
 type Countries10mTopology = typeof import('world-atlas/countries-10m.json');
@@ -124,6 +128,7 @@ function reorderWorldMapLayers(map: MapLibreMap): void {
     return;
   }
 
+  const hasFlight = map.getLayer(LAYER_FLIGHT_ARCS_LINE);
   const hasCity =
     map.getLayer(LAYER_CITY_BOUNDARIES_FILL) &&
     map.getLayer(LAYER_CITY_BOUNDARIES_LINE);
@@ -133,8 +138,18 @@ function reorderWorldMapLayers(map: MapLibreMap): void {
     map.moveLayer(LAYER_CITY_BOUNDARIES_FILL, LAYER_CITY_BOUNDARIES_LINE);
     map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_CITY_BOUNDARIES_FILL);
     map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
+    if (hasFlight) {
+      map.moveLayer(LAYER_FLIGHT_ARCS_LINE, LAYER_CITY_BOUNDARIES_FILL);
+      map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_FLIGHT_ARCS_LINE);
+      map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
+    }
   } else {
     map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
+    if (hasFlight) {
+      map.moveLayer(LAYER_FLIGHT_ARCS_LINE);
+      map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_FLIGHT_ARCS_LINE);
+      map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
+    }
   }
 }
 
@@ -458,6 +473,12 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             paint={countryFillPaint as never}
           />
         </Source>
+
+        <FlightRoutesToSpb
+          catalog={catalog}
+          zoom={zoom}
+          mapThemeDark={mapThemeDark}
+        />
 
         {showCityBoundaries ? (
           <Source
