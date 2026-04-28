@@ -19,7 +19,15 @@ const ADMIN_TOKEN = (
   process.env.ADMIN_TOKEN ?? process.env.VITE_ADMIN_TOKEN ??
   ''
 ).trim();
-const CORS_ORIGIN = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').trim();
+
+/** Несколько origin через запятую: локалка + прод на GitHub Pages.
+ * Для Pages в браузере Origin всегда `https://username.github.io` (без `/repo`). */
+function corsOriginOption(): string | string[] {
+  const raw = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').trim();
+  const list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  if (list.length === 0) return 'http://localhost:5173';
+  return list.length === 1 ? list[0] : list;
+}
 
 const db = openDatabase(DATABASE_PATH);
 
@@ -28,7 +36,7 @@ const app = new Hono();
 app.use(
   '/*',
   cors({
-    origin: CORS_ORIGIN,
+    origin: corsOriginOption(),
     allowMethods: ['GET', 'POST', 'OPTIONS'],
     allowHeaders: ['Content-Type'],
   }),
