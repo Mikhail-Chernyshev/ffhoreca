@@ -1,4 +1,3 @@
-import { catalog as embeddedCatalog } from '../data/catalog';
 import type { Catalog, City } from '../data/types';
 import { cityById } from '../data/selectors';
 import {
@@ -474,11 +473,6 @@ export function mergeCatalogWithStoryRouteCities(base: Catalog): Catalog {
   const extra: City[] = [];
   for (const id of travelStoryRouteCityIds()) {
     if (existing.has(id)) continue;
-    const fromEmbedded = cityById(embeddedCatalog, id);
-    if (fromEmbedded != null) {
-      extra.push(fromEmbedded);
-      continue;
-    }
     const fb = TRAVEL_STORY_CITY_COORDS[id];
     if (fb == null) continue;
     extra.push({

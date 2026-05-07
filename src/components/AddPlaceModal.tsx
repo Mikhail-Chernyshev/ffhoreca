@@ -16,7 +16,13 @@ type Props = {
   onSaved: (place: Place) => void | Promise<void>;
 };
 
-const CATEGORIES: PlaceCategory[] = ['lodging', 'food', 'bar', 'airport'];
+const CATEGORIES: { value: PlaceCategory; label: string }[] = [
+  { value: 'attraction', label: 'Места' },
+  { value: 'lodging', label: 'Жильё' },
+  { value: 'food', label: 'Еда' },
+  { value: 'bar', label: 'Бары' },
+  { value: 'airport', label: 'Аэропорты' },
+];
 
 function buildPlace(form: {
   name: string;
@@ -80,7 +86,7 @@ function buildPlace(form: {
 export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
   const [name, setName] = useState('');
   const [cityId, setCityId] = useState(catalog.cities[0]?.id ?? '');
-  const [cats, setCats] = useState<PlaceCategory[]>(['food']);
+  const [cats, setCats] = useState<PlaceCategory[]>(['attraction']);
   const [address, setAddress] = useState('');
   const [placeSearchQuery, setPlaceSearchQuery] = useState('');
   const [summary, setSummary] = useState('');
@@ -163,6 +169,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     setAddress(s.label);
     setLng(String(Math.round(s.lng * 1e6) / 1e6));
     setLat(String(Math.round(s.lat * 1e6) / 1e6));
+    if (s.googleRating != null) setRating(String(s.googleRating));
     const matchedCityId = catalogCityIdFromPhotonHints(
       catalog,
       s.lat,
@@ -374,17 +381,51 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
             </select>
           </label>
 
+          <div className="add-place-form__row">
+            <label className="add-place-form__label add-place-form__label--half">
+              Долгота (необяз.)
+              <input
+                className="add-place-form__input"
+                value={lng}
+                onChange={(e) => setLng(e.target.value)}
+                inputMode="decimal"
+                placeholder="100.88"
+              />
+            </label>
+            <label className="add-place-form__label add-place-form__label--half">
+              Широта (необяз.)
+              <input
+                className="add-place-form__input"
+                value={lat}
+                onChange={(e) => setLat(e.target.value)}
+                inputMode="decimal"
+                placeholder="12.93"
+              />
+            </label>
+          </div>
+
+          <label className="add-place-form__label">
+            Оценка Google (0–5, необяз.)
+            <input
+              className="add-place-form__input"
+              value={rating}
+              onChange={(e) => setRating(e.target.value)}
+              inputMode="decimal"
+              placeholder="4.5"
+            />
+          </label>
+
           <fieldset className="add-place-form__fieldset">
             <legend className="add-place-form__legend">Категории</legend>
             <div className="add-place-form__cats">
-              {CATEGORIES.map((c) => (
-                <label key={c} className="add-place-form__check">
+              {CATEGORIES.map(({ value, label }) => (
+                <label key={value} className="add-place-form__check">
                   <input
                     type="checkbox"
-                    checked={cats.includes(c)}
-                    onChange={() => toggleCat(c)}
+                    checked={cats.includes(value)}
+                    onChange={() => toggleCat(value)}
                   />
-                  {c}
+                  {label}
                 </label>
               ))}
             </div>
@@ -433,40 +474,6 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
               onChange={(e) => setStory(e.target.value)}
               required
               rows={4}
-            />
-          </label>
-
-          <div className="add-place-form__row">
-            <label className="add-place-form__label add-place-form__label--half">
-              Долгота (необяз.)
-              <input
-                className="add-place-form__input"
-                value={lng}
-                onChange={(e) => setLng(e.target.value)}
-                inputMode="decimal"
-                placeholder="100.88"
-              />
-            </label>
-            <label className="add-place-form__label add-place-form__label--half">
-              Широта (необяз.)
-              <input
-                className="add-place-form__input"
-                value={lat}
-                onChange={(e) => setLat(e.target.value)}
-                inputMode="decimal"
-                placeholder="12.93"
-              />
-            </label>
-          </div>
-
-          <label className="add-place-form__label">
-            Оценка Google (0–5, необяз.)
-            <input
-              className="add-place-form__input"
-              value={rating}
-              onChange={(e) => setRating(e.target.value)}
-              inputMode="decimal"
-              placeholder="4.5"
             />
           </label>
 

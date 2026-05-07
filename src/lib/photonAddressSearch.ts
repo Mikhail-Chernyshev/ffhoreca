@@ -1,6 +1,8 @@
 /**
- * Поиск адресов через Photon (данные OpenStreetMap).
- * https://photon.komoot.io
+ * Поиск мест для модалки «Новое место».
+ *
+ * Если задан VITE_GOOGLE_PLACES_API_KEY — используется Google Places API (New, v1).
+ * Иначе — Photon (OpenStreetMap, бесплатно, без ключа, менее полные данные по бизнесам).
  */
 
 export type AddressSuggestion = {
@@ -12,9 +14,110 @@ export type AddressSuggestion = {
   lat: number;
   /** Названия населённых пунктов из OSM — для сопоставления с каталогом городов */
   localityHints: string[];
-  /** ISO alpha-2 из Photon (`countrycode`), если есть */
+  /** ISO alpha-2, если есть */
   countryCodeOsm?: string;
+  /** Оценка Google (0–5), если API вернул */
+  googleRating?: number;
 };
+
+// ---------------------------------------------------------------------------
+// Google Places API (New, v1) — требует VITE_GOOGLE_PLACES_API_KEY
+// ---------------------------------------------------------------------------
+
+interface GooglePlace {
+  displayName?: { text?: string };
+  formattedAddress?: string;
+  location?: { latitude?: number; longitude?: number };
+  rating?: number;
+  addressComponents?: Array<{
+    longText?: string;
+    types?: string[];
+  }>;
+}
+
+interface GooglePlacesResponse {
+  places?: GooglePlace[];
+}
+
+function parseGooglePlace(p: GooglePlace): AddressSuggestion | null {
+  const lat = p.location?.latitude;
+  const lng = p.location?.longitude;
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+
+  const placeName = p.displayName?.text ?? '';
+  const label = p.formattedAddress ?? placeName;
+
+  const localityHints: string[] = [];
+  let countryCodeOsm: string | undefined;
+
+  for (const comp of p.addressComponents ?? []) {
+    const types = comp.types ?? [];
+    const text = comp.longText ?? '';
+    if (!text) continue;
+    if (
+      types.includes('locality') ||
+      types.includes('sublocality') ||
+      types.includes('administrative_area_level_2') ||
+      types.includes('administrative_area_level_1')
+    ) {
+      localityHints.push(text);
+    }
+    if (types.includes('country')) {
+      // addressComponents дают длинное имя страны; ISO code берём отдельно
+    }
+  }
+
+  const googleRating = typeof p.rating === 'number' ? p.rating : undefined;
+  return { placeName, label, lng, lat, localityHints, countryCodeOsm, googleRating };
+}
+
+async function searchGooglePlaces(
+  query: string,
+  bias: { lat: number; lng: number } | undefined,
+  apiKey: string,
+  signal?: AbortSignal,
+): Promise<AddressSuggestion[]> {
+  const body: Record<string, unknown> = {
+    textQuery: query,
+    languageCode: 'ru',
+    maxResultCount: 10,
+  };
+
+  if (bias) {
+    body.locationBias = {
+      circle: {
+        center: { latitude: bias.lat, longitude: bias.lng },
+        radius: 50000, // 50 км
+      },
+    };
+  }
+
+  const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
+    method: 'POST',
+    signal,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask':
+        'places.displayName,places.formattedAddress,places.location,places.addressComponents,places.rating',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) return [];
+
+  const data = (await res.json()) as GooglePlacesResponse;
+  const results: AddressSuggestion[] = [];
+  for (const place of data.places ?? []) {
+    const s = parseGooglePlace(place);
+    if (s) results.push(s);
+  }
+  return results;
+}
+
+// ---------------------------------------------------------------------------
+// Photon (OSM) — бесплатно, без ключа
+// ---------------------------------------------------------------------------
 
 type PhotonFeature = {
   geometry?: { coordinates?: [number, number] };
@@ -53,7 +156,6 @@ function countryCodeFromPhotonProps(p: Record<string, unknown>): string | undefi
   return undefined;
 }
 
-/** Имя места для карточки: приоритет name → улица+дом → населённый пункт */
 function placeNameFromPhotonProps(p: Record<string, unknown>): string {
   const n = p.name;
   if (typeof n === 'string' && n.trim()) return n.trim();
@@ -64,19 +166,12 @@ function placeNameFromPhotonProps(p: Record<string, unknown>): string {
   return formatPhotonLabel(p);
 }
 
-export async function searchPhotonAddresses(
+async function searchPhoton(
   query: string,
   bias: { lat: number; lng: number } | undefined,
   signal?: AbortSignal,
 ): Promise<AddressSuggestion[]> {
-  const q = query.trim();
-  if (q.length < 3) return [];
-
-  const params = new URLSearchParams({
-    q,
-    limit: '10',
-    lang: 'en',
-  });
+  const params = new URLSearchParams({ q: query, limit: '10', lang: 'ru' });
   if (bias) {
     params.set('lat', String(bias.lat));
     params.set('lon', String(bias.lng));
@@ -89,10 +184,9 @@ export async function searchPhotonAddresses(
   if (!res.ok) return [];
 
   const data = (await res.json()) as { features?: PhotonFeature[] };
-  const features = data.features ?? [];
   const out: AddressSuggestion[] = [];
 
-  for (const f of features) {
+  for (const f of data.features ?? []) {
     const coords = f.geometry?.coordinates;
     const p = f.properties;
     if (!coords || coords.length < 2 || !p) continue;
@@ -107,6 +201,25 @@ export async function searchPhotonAddresses(
       countryCodeOsm: countryCodeFromPhotonProps(p),
     });
   }
-
   return out;
+}
+
+// ---------------------------------------------------------------------------
+// Публичная функция
+// ---------------------------------------------------------------------------
+
+const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY as string | undefined;
+
+export async function searchPhotonAddresses(
+  query: string,
+  bias: { lat: number; lng: number } | undefined,
+  signal?: AbortSignal,
+): Promise<AddressSuggestion[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
+
+  if (GOOGLE_API_KEY) {
+    return searchGooglePlaces(q, bias, GOOGLE_API_KEY, signal);
+  }
+  return searchPhoton(q, bias, signal);
 }

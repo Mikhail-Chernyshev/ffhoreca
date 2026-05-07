@@ -9,7 +9,7 @@ export type CategoryFilter =
   | 'airport';
 
 /** Категории заведения (можно несколько — место попадёт в каждый подходящий таб) */
-export type PlaceCategory = 'lodging' | 'food' | 'bar' | 'airport';
+export type PlaceCategory = 'lodging' | 'food' | 'bar' | 'airport' | 'attraction';
 
 /**
  * Город в каталоге. Граница на карте: опциональный файл `public/geo/cities/{id}.json`

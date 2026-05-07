@@ -16,7 +16,7 @@ import Map, {
   Source,
   type MapRef,
 } from 'react-map-gl/maplibre';
-import type { Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
+import type { Map as MapLibreMap } from 'maplibre-gl';
 import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
@@ -34,10 +34,7 @@ import {
   sanitizeMapFillGeometry,
 } from '../lib/fixGeojsonAntimeridian';
 import { rewindGeoJson } from '../lib/geojsonRewind';
-import {
-  TravelStoryRoutes,
-  LAYER_TRAVEL_ARCS_LINE,
-} from './TravelStoryRoutes';
+import { TravelStoryRoutes } from './TravelStoryRoutes';
 
 /** Топология world-atlas countries-10m (подгружается async — файл ~3.5 MB). */
 type Countries10mTopology = typeof import('world-atlas/countries-10m.json');
@@ -93,73 +90,23 @@ function countriesVisitedGeoJson(
   return { type: 'FeatureCollection', features };
 }
 
-const LAYER_CARTO_BASE = 'carto-base';
 const LAYER_ATLAS_COUNTRIES_FILL = 'atlas-countries-fill';
 const LAYER_CITY_BOUNDARIES_FILL = 'city-boundaries-fill';
 const LAYER_CITY_BOUNDARIES_LINE = 'city-boundaries-line';
 
-/** Растровые тайлы: детализация (дороги, реки, подписи) растёт с зумом автоматически. */
-const CARTO_RASTER_STYLE = {
-  version: 8,
-  sources: {
-    carto: {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-        'https://d.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-      ],
-      tileSize: 256,
-      attribution:
-        '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap</a> ' +
-        '<a href="https://carto.com/attributions">© CARTO</a>',
-    },
-  },
-  layers: [
-    {
-      id: LAYER_CARTO_BASE,
-      type: 'raster',
-      source: 'carto',
-      minzoom: 0,
-      maxzoom: 22,
-    },
-  ],
-} satisfies StyleSpecification;
+/**
+ * Векторный стиль CARTO Voyager GL — слои раздельны, можно вставлять
+ * кастомные слои между, например под текстовые подписи.
+ */
+const CARTO_VECTOR_STYLE =
+  'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json';
 
 /**
- * Снизу вверх: растр CARTO → заливка стран → заливка границы города → линия границы.
- * Иначе после обновления GeoJSON слой стран может оказаться выше оранжевой заливки города.
+ * Находит id первого symbol-слоя в загруженном стиле.
+ * Используется как beforeId, чтобы заливка стран оказалась ПОД подписями.
  */
-function reorderWorldMapLayers(map: MapLibreMap): void {
-  if (!map.isStyleLoaded()) return;
-  if (!map.getLayer(LAYER_CARTO_BASE) || !map.getLayer(LAYER_ATLAS_COUNTRIES_FILL)) {
-    return;
-  }
-
-  const hasTravelArcs = map.getLayer(LAYER_TRAVEL_ARCS_LINE);
-  const hasCity =
-    map.getLayer(LAYER_CITY_BOUNDARIES_FILL) &&
-    map.getLayer(LAYER_CITY_BOUNDARIES_LINE);
-
-  if (hasCity) {
-    map.moveLayer(LAYER_CITY_BOUNDARIES_LINE);
-    map.moveLayer(LAYER_CITY_BOUNDARIES_FILL, LAYER_CITY_BOUNDARIES_LINE);
-    map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_CITY_BOUNDARIES_FILL);
-    map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
-    if (hasTravelArcs) {
-      map.moveLayer(LAYER_TRAVEL_ARCS_LINE, LAYER_CITY_BOUNDARIES_FILL);
-      map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_TRAVEL_ARCS_LINE);
-      map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
-    }
-  } else {
-    map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
-    if (hasTravelArcs) {
-      map.moveLayer(LAYER_TRAVEL_ARCS_LINE);
-      map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_TRAVEL_ARCS_LINE);
-      map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
-    }
-  }
+function firstSymbolLayerId(map: MapLibreMap): string | undefined {
+  return map.getStyle()?.layers.find((l) => l.type === 'symbol')?.id;
 }
 
 const MAP_MIN_ZOOM = 0.85;
@@ -207,19 +154,22 @@ export type WorldMapRef = {
   flyToLngLat: (lng: number, lat: number) => void;
 };
 
+const NO_CITIES: City[] = [];
+
 export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   { catalog, filter, places, onPlaceClick, onCityClick },
   ref,
 ) {
   const showCityLayer = filter !== 'places';
   const { geography: cityBoundaryGeo } = useCityBoundaryGeography(
-    showCityLayer ? catalog.cities : [],
+    showCityLayer ? catalog.cities : NO_CITIES,
   );
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapRef>(null);
   const cityClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
   const [aboutExpanded, setAboutExpanded] = useState(false);
+  const [fillBeforeId, setFillBeforeId] = useState<string | undefined>();
   const [mapThemeDark, setMapThemeDark] = useState(
     () =>
       typeof window !== 'undefined' &&
@@ -254,10 +204,6 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     return () => mq.removeEventListener('change', sync);
   }, []);
 
-  /**
-   * Растровый тайл рисует подписи в одном PNG — заливка стран не может оказаться «между»
-   * подложкой и текстом; только низкая альфа, чтобы подписи читались сквозь тон.
-   */
   const countryFillPaint = useMemo(
     () => ({
       'fill-antialias': false,
@@ -267,7 +213,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         mapThemeDark ? 'rgba(218, 175, 48, 0.44)' : 'rgba(255, 224, 102, 0.55)',
         ['==', ['get', 'visited'], true],
         mapThemeDark ? 'rgba(62, 107, 74, 0.32)' : 'rgba(95, 165, 115, 0.3)',
-        mapThemeDark ? 'rgba(42, 49, 64, 0.16)' : 'rgba(238, 244, 240, 0.2)',
+        'rgba(0, 0, 0, 0)',
       ],
     }),
     [mapThemeDark],
@@ -275,7 +221,9 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
 
   const handleMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
-    if (map) reorderWorldMapLayers(map);
+    if (!map) return;
+    // Первый symbol-слой стиля — inserting fill before it puts our layer under all labels.
+    setFillBeforeId(firstSymbolLayerId(map));
   }, []);
 
   useImperativeHandle(
@@ -385,12 +333,11 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   useEffect(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
-    const run = () => reorderWorldMapLayers(map);
+    // Обновляем firstSymbolId при смене стиля (например, при горячей замене тайлов)
+    const run = () => setFillBeforeId(firstSymbolLayerId(map));
     if (map.isStyleLoaded()) run();
-    map.on('idle', run);
     map.on('styledata', run);
     return () => {
-      map.off('idle', run);
       map.off('styledata', run);
     };
   }, [countriesGeo, showCityBoundaries]);
@@ -450,7 +397,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
       </div>
       <Map
         ref={mapRef}
-        mapStyle={CARTO_RASTER_STYLE}
+        mapStyle={CARTO_VECTOR_STYLE}
         initialViewState={{
           longitude: MAP_DEFAULT_LONGITUDE,
           latitude: MAP_DEFAULT_LATITUDE,
@@ -481,6 +428,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             id={LAYER_ATLAS_COUNTRIES_FILL}
             type='fill'
             maxzoom={COUNTRY_FILL_LAYER_MAX_ZOOM}
+            beforeId={fillBeforeId}
             paint={countryFillPaint as never}
           />
         </Source>

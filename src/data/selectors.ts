@@ -165,7 +165,8 @@ export function placeCoordinates(
 
 function placeMatchesFilter(place: Place, filter: CategoryFilter): boolean {
   if (filter === 'cities') return false;
-  if (filter === 'all' || filter === 'places') return true;
+  if (filter === 'all') return true;
+  if (filter === 'places') return place.categories.includes('attraction');
   return place.categories.includes(filter as PlaceCategory);
 }
 
