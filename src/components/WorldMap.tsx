@@ -26,16 +26,18 @@ import {
   atlasCountryAlpha2,
   markerColorClass,
   placeCoordinates,
+  TRANSIT_LAYOVER_COUNTRY_CODES,
   visitedCountryCodes,
 } from '../data/selectors';
 import {
   fixGeojsonAntimeridian,
   sanitizeMapFillGeometry,
 } from '../lib/fixGeojsonAntimeridian';
+import { rewindGeoJson } from '../lib/geojsonRewind';
 import {
-  FlightRoutesToSpb,
-  LAYER_FLIGHT_ARCS_LINE,
-} from './FlightRoutesToSpb';
+  TravelStoryRoutes,
+  LAYER_TRAVEL_ARCS_LINE,
+} from './TravelStoryRoutes';
 
 /** Топология world-atlas countries-10m (подгружается async — файл ~3.5 MB). */
 type Countries10mTopology = typeof import('world-atlas/countries-10m.json');
@@ -59,6 +61,10 @@ function countriesVisitedGeoJson(
       properties: f.properties as { name?: string } | undefined,
     });
     const isVisited = alpha2 != null && visited.has(alpha2);
+    const transitLayover =
+      isVisited &&
+      alpha2 != null &&
+      TRANSIT_LAYOVER_COUNTRY_CODES.has(alpha2);
     const prev =
       f.properties != null && typeof f.properties === 'object'
         ? (f.properties as GeoJsonProperties)
@@ -69,17 +75,20 @@ function countriesVisitedGeoJson(
     if (geometry == null) {
       return [];
     }
-    return [
-      {
-        type: 'Feature' as const,
-        id: f.id,
-        geometry,
-        properties: {
-          ...prev,
-          visited: isVisited,
-        },
+    const feat = {
+      type: 'Feature' as const,
+      id: f.id,
+      geometry,
+      properties: {
+        ...prev,
+        visited: isVisited,
+        transitLayover,
       },
-    ];
+    };
+    // world-atlas использует clockwise-обмотку; MapLibre ждёт GeoJSON right-hand rule
+    // (outer rings counter-clockwise). Без rewind earcut заливает «снаружи» полигона.
+    rewindGeoJson(feat, true);
+    return [feat];
   });
   return { type: 'FeatureCollection', features };
 }
@@ -128,7 +137,7 @@ function reorderWorldMapLayers(map: MapLibreMap): void {
     return;
   }
 
-  const hasFlight = map.getLayer(LAYER_FLIGHT_ARCS_LINE);
+  const hasTravelArcs = map.getLayer(LAYER_TRAVEL_ARCS_LINE);
   const hasCity =
     map.getLayer(LAYER_CITY_BOUNDARIES_FILL) &&
     map.getLayer(LAYER_CITY_BOUNDARIES_LINE);
@@ -138,16 +147,16 @@ function reorderWorldMapLayers(map: MapLibreMap): void {
     map.moveLayer(LAYER_CITY_BOUNDARIES_FILL, LAYER_CITY_BOUNDARIES_LINE);
     map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_CITY_BOUNDARIES_FILL);
     map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
-    if (hasFlight) {
-      map.moveLayer(LAYER_FLIGHT_ARCS_LINE, LAYER_CITY_BOUNDARIES_FILL);
-      map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_FLIGHT_ARCS_LINE);
+    if (hasTravelArcs) {
+      map.moveLayer(LAYER_TRAVEL_ARCS_LINE, LAYER_CITY_BOUNDARIES_FILL);
+      map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_TRAVEL_ARCS_LINE);
       map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
     }
   } else {
     map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
-    if (hasFlight) {
-      map.moveLayer(LAYER_FLIGHT_ARCS_LINE);
-      map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_FLIGHT_ARCS_LINE);
+    if (hasTravelArcs) {
+      map.moveLayer(LAYER_TRAVEL_ARCS_LINE);
+      map.moveLayer(LAYER_ATLAS_COUNTRIES_FILL, LAYER_TRAVEL_ARCS_LINE);
       map.moveLayer(LAYER_CARTO_BASE, LAYER_ATLAS_COUNTRIES_FILL);
     }
   }
@@ -254,6 +263,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
       'fill-antialias': false,
       'fill-color': [
         'case',
+        ['==', ['get', 'transitLayover'], true],
+        mapThemeDark ? 'rgba(218, 175, 48, 0.44)' : 'rgba(255, 224, 102, 0.55)',
         ['==', ['get', 'visited'], true],
         mapThemeDark ? 'rgba(62, 107, 74, 0.32)' : 'rgba(95, 165, 115, 0.3)',
         mapThemeDark ? 'rgba(42, 49, 64, 0.16)' : 'rgba(238, 244, 240, 0.2)',
@@ -474,7 +485,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           />
         </Source>
 
-        <FlightRoutesToSpb
+        <TravelStoryRoutes
           catalog={catalog}
           zoom={zoom}
           mapThemeDark={mapThemeDark}

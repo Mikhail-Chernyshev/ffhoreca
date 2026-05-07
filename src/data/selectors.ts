@@ -46,6 +46,14 @@ export function visitedCountryCodes(catalog: Catalog): Set<string> {
   return s;
 }
 
+/**
+ * Страны, где были только транзитом / пересадкой — на карте отдельный (жёлтый) тон заливки.
+ */
+export const TRANSIT_LAYOVER_COUNTRY_CODES: ReadonlySet<string> = new Set([
+  'AZ',
+  'QA',
+]);
+
 export function cityById(catalog: Catalog, id: string): City | undefined {
   return catalog.cities.find((c) => c.id === id);
 }

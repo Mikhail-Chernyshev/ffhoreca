@@ -287,8 +287,8 @@
   outline: none;
 }
 
-/* Декор: маршруты в СПб — не перехватывать клики по карте */
-.world-map-flight-plane {
+/* Декор: линии истории маршрутов — не перехватывать клики по карте */
+.world-map-travel-vehicle {
   display: flex;
   pointer-events: none;
   filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.95))

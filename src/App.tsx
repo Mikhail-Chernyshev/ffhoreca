@@ -19,6 +19,7 @@ import {
 } from './lib/adminLocalPlacesStorage'
 import { parseAdminTokenFromLocation } from './lib/adminToken'
 import { fetchCatalogFromApi } from './lib/fetchCatalog'
+import { mergeCatalogWithStoryRouteCities } from './lib/travelStoryRoutes'
 import {
   adminPlacesApiUrlFromEnv,
   deleteAdminPlaceFromApi,
@@ -78,6 +79,7 @@ function App() {
    * Встроенный catalog.ts и localStorage не подмешиваются (ни при загрузке, ни при ошибке).
    */
   const catalogMerged = useMemo(() => {
+    const withStoryCities = (c: Catalog) => mergeCatalogWithStoryRouteCities(c)
     if (!apiConfigured) {
       let merged = mergeCatalogWithAdminPlaces(catalog, extraPlaces)
       if (deletedPlaceIds.size > 0) {
@@ -86,10 +88,10 @@ function App() {
           places: merged.places.filter((p) => !deletedPlaceIds.has(p.id)),
         }
       }
-      return merged
+      return withStoryCities(merged)
     }
-    if (remoteCatalog) return remoteCatalog
-    return EMPTY_CATALOG
+    if (remoteCatalog) return withStoryCities(remoteCatalog)
+    return withStoryCities(EMPTY_CATALOG)
   }, [apiConfigured, remoteCatalog, extraPlaces, deletedPlaceIds])
 
   const visiblePlaces = useMemo(
