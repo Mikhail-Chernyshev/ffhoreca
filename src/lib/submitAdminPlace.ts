@@ -1,4 +1,4 @@
-import type { Place } from '../data/types';
+import type { City, Place } from '../data/types';
 
 export type SubmitAdminPlaceResult =
   | { ok: true; message: string }
@@ -13,6 +13,7 @@ export async function submitAdminPlaceToApi(
   apiUrl: string,
   token: string,
   place: Place,
+  city?: City,
 ): Promise<SubmitAdminPlaceResult> {
   const url = apiUrl.trim();
   if (!url) return { ok: false, message: 'API URL не задан' };
@@ -21,7 +22,7 @@ export async function submitAdminPlaceToApi(
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token, place }),
+      body: JSON.stringify({ token, place, city }),
     });
     if (res.ok) {
       return { ok: true, message: 'Сервер принял место' };

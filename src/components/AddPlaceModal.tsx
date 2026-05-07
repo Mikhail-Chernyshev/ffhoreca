@@ -95,6 +95,8 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
   const [lat, setLat] = useState('');
   const [rating, setRating] = useState('');
   const [photosRaw, setPhotosRaw] = useState('');
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoUploadBusy, setPhotoUploadBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [placeSuggestions, setPlaceSuggestions] = useState<AddressSuggestion[]>([]);
@@ -199,14 +201,47 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
       story,
       categories: cats,
     });
-    if (err) {
-      setError(err);
-      return;
+    if (err) { setError(err); return; }
+    if (!city) { setError('Город не найден в каталоге.'); return; }
+
+    // Загрузка файлов на сервер (если есть)
+    let uploadedUrls: string[] = [];
+    if (photoFiles.length > 0) {
+      const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
+      const token = new URLSearchParams(window.location.search).get('token') ?? '';
+      if (base && token) {
+        setPhotoUploadBusy(true);
+        try {
+          const fd = new FormData();
+          for (const file of photoFiles) fd.append('photos', file);
+          const res = await fetch(`${base.replace(/\/+$/, '')}/api/photos`, {
+            method: 'POST',
+            headers: { 'X-Admin-Token': token },
+            body: fd,
+          });
+          if (res.ok) {
+            const json = await res.json() as { urls: string[] };
+            uploadedUrls = json.urls;
+          } else {
+            setError('Не удалось загрузить фото на сервер.');
+            setPhotoUploadBusy(false);
+            return;
+          }
+        } catch (e) {
+          setError(`Ошибка загрузки фото: ${e instanceof Error ? e.message : String(e)}`);
+          setPhotoUploadBusy(false);
+          return;
+        } finally {
+          setPhotoUploadBusy(false);
+        }
+      }
     }
-    if (!city) {
-      setError('Город не найден в каталоге.');
-      return;
-    }
+
+    const combinedPhotosRaw = [
+      ...uploadedUrls,
+      ...photosRaw.split(/\n+/).map((s) => s.trim()).filter(Boolean),
+    ].join('\n');
+
     const draft = buildPlace({
       name,
       cityId,
@@ -217,7 +252,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
       lng,
       lat,
       rating,
-      photosRaw,
+      photosRaw: combinedPhotosRaw,
     });
     if (!draft) {
       setError('Проверьте корректность опциональных полей (оценка 0–5, координаты).');
@@ -478,13 +513,60 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
           </label>
 
           <label className="add-place-form__label">
-            Фото — URL по одному на строку (необяз.)
+            Фото (необяз.)
+            <span className="add-place-form__hint">
+              Загрузите файлы или укажите URL по одному на строку.
+            </span>
+
+            {/* Загрузка файлов */}
+            <div className="add-place-form__photo-upload">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                className="add-place-form__file-input"
+                disabled={photoUploadBusy || busy}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []);
+                  setPhotoFiles((prev) => [...prev, ...files]);
+                  e.target.value = '';
+                }}
+              />
+              {photoUploadBusy && (
+                <span className="add-place-form__hint">Загрузка файлов…</span>
+              )}
+            </div>
+
+            {/* Превью выбранных файлов */}
+            {photoFiles.length > 0 && (
+              <div className="add-place-form__photo-previews">
+                {photoFiles.map((file, i) => (
+                  <div key={`${file.name}-${i}`} className="add-place-form__photo-preview">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={file.name}
+                      className="add-place-form__photo-thumb"
+                    />
+                    <button
+                      type="button"
+                      className="add-place-form__photo-remove"
+                      onClick={() => setPhotoFiles((prev) => prev.filter((_, j) => j !== i))}
+                      aria-label="Удалить фото"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* URL вручную */}
             <textarea
               className="add-place-form__textarea add-place-form__textarea--short"
               value={photosRaw}
               onChange={(e) => setPhotosRaw(e.target.value)}
-              rows={3}
-              placeholder="Пусто — без фото"
+              rows={2}
+              placeholder="Или URL по одному на строку…"
             />
           </label>
 

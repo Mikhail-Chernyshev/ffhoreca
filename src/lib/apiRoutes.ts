@@ -1,0 +1,49 @@
+import type { TravelRoute, UserRouteMode } from '../data/types';
+import { apiBaseUrl } from './apiBase';
+
+function parseAdminToken(): string {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('token') ?? '';
+}
+
+export async function fetchRoutes(): Promise<TravelRoute[]> {
+  const base = apiBaseUrl();
+  if (!base) return [];
+  const res = await fetch(`${base}/api/routes`);
+  if (!res.ok) return [];
+  return res.json() as Promise<TravelRoute[]>;
+}
+
+export async function postRoute(route: TravelRoute): Promise<{ ok: boolean; message: string }> {
+  const base = apiBaseUrl();
+  if (!base) return { ok: false, message: 'API не настроен' };
+  const token = parseAdminToken();
+  const res = await fetch(`${base}/api/routes`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, route }),
+  });
+  const text = await res.text().catch(() => '');
+  if (res.ok) return { ok: true, message: 'Маршрут сохранён' };
+  return { ok: false, message: text ? `Сервер: ${res.status} — ${text.slice(0, 200)}` : `Ошибка ${res.status}` };
+}
+
+export async function deleteRouteById(id: string): Promise<{ ok: boolean; message: string }> {
+  const base = apiBaseUrl();
+  if (!base) return { ok: false, message: 'API не настроен' };
+  const token = parseAdminToken();
+  const res = await fetch(`${base}/api/routes/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+    headers: { 'X-Admin-Token': token },
+  });
+  const text = await res.text().catch(() => '');
+  if (res.ok) return { ok: true, message: 'Маршрут удалён' };
+  return { ok: false, message: text ? `Сервер: ${res.status} — ${text.slice(0, 200)}` : `Ошибка ${res.status}` };
+}
+
+export const USER_ROUTE_MODE_LABELS: Record<UserRouteMode, string> = {
+  plane: '✈ Самолёт',
+  train: '🚆 Поезд',
+  bus: '🚌 Автобус',
+  boat: '⛴ Водный транспорт',
+};

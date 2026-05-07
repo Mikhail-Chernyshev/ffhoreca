@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
-import type { Catalog, City, Place } from '../../src/data/types';
+import type { Catalog, City, Place, TravelRoute } from '../../src/data/types';
 
 function normalizePlaceRow(raw: unknown): Place {
   const p = raw as Place;
@@ -26,6 +26,10 @@ export function openDatabase(dbPath: string): Database.Database {
       json TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS places (
+      id TEXT PRIMARY KEY NOT NULL,
+      json TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS routes (
       id TEXT PRIMARY KEY NOT NULL,
       json TEXT NOT NULL
     );
@@ -75,4 +79,26 @@ export function upsertPlace(db: Database.Database, place: Place): void {
   db.prepare(
     'INSERT INTO places (id, json) VALUES (@id, @json) ON CONFLICT(id) DO UPDATE SET json = excluded.json',
   ).run({ id: place.id, json: JSON.stringify(place) });
+}
+
+export function upsertCity(db: Database.Database, city: City): void {
+  db.prepare(
+    'INSERT INTO cities (id, json) VALUES (@id, @json) ON CONFLICT(id) DO UPDATE SET json = excluded.json',
+  ).run({ id: city.id, json: JSON.stringify(city) });
+}
+
+export function getRoutes(db: Database.Database): TravelRoute[] {
+  const rows = db.prepare('SELECT json FROM routes ORDER BY id').all() as { json: string }[];
+  return rows.map((r) => JSON.parse(r.json) as TravelRoute);
+}
+
+export function upsertRoute(db: Database.Database, route: TravelRoute): void {
+  db.prepare(
+    'INSERT INTO routes (id, json) VALUES (@id, @json) ON CONFLICT(id) DO UPDATE SET json = excluded.json',
+  ).run({ id: route.id, json: JSON.stringify(route) });
+}
+
+export function deleteRoute(db: Database.Database, id: string): boolean {
+  const r = db.prepare('DELETE FROM routes WHERE id = ?').run(id);
+  return r.changes > 0;
 }

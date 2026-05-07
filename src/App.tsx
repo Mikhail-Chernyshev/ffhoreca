@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AddPlaceModal } from './components/AddPlaceModal'
+import { AddRouteModal } from './components/AddRouteModal'
+import { ManagerModal } from './components/ManagerModal'
 import { CategoryTabs } from './components/CategoryTabs'
 import { CityModal } from './components/CityModal'
 import { MapSearchBar } from './components/MapSearchBar'
@@ -7,10 +9,12 @@ import { PlaceModal } from './components/PlaceModal'
 import { WorldMap, type WorldMapRef } from './components/WorldMap'
 import { catalog } from './data/catalog'
 import {
+  cityById,
   mergeCatalogWithAdminPlaces,
   placesForFilter,
 } from './data/selectors'
-import type { Catalog, CategoryFilter, City, Place } from './data/types'
+import type { Catalog, CategoryFilter, City, Place, TravelRoute } from './data/types'
+import { fetchRoutes } from './lib/apiRoutes'
 import { useAdminMode } from './hooks/useAdminMode'
 import { apiBaseUrl } from './lib/apiBase'
 import {
@@ -19,7 +23,6 @@ import {
 } from './lib/adminLocalPlacesStorage'
 import { parseAdminTokenFromLocation } from './lib/adminToken'
 import { fetchCatalogFromApi } from './lib/fetchCatalog'
-import { mergeCatalogWithStoryRouteCities } from './lib/travelStoryRoutes'
 import {
   adminPlacesApiUrlFromEnv,
   deleteAdminPlaceFromApi,
@@ -48,6 +51,9 @@ function App() {
   const [remoteCatalog, setRemoteCatalog] = useState<Catalog | null>(null)
   const [catalogLoadError, setCatalogLoadError] = useState(false)
   const [addPlaceOpen, setAddPlaceOpen] = useState(false)
+  const [addRouteOpen, setAddRouteOpen] = useState(false)
+  const [managerOpen, setManagerOpen] = useState(false)
+  const [userRoutes, setUserRoutes] = useState<TravelRoute[]>([])
   const mapRef = useRef<WorldMapRef>(null)
   const adminMode = useAdminMode()
 
@@ -71,6 +77,11 @@ function App() {
     }
   }, [apiConfigured])
 
+  useEffect(() => {
+    if (!apiConfigured) return
+    void fetchRoutes().then((routes) => setUserRoutes(routes)).catch(() => {})
+  }, [apiConfigured])
+
   const catalogBusy =
     apiConfigured && remoteCatalog === null && !catalogLoadError
 
@@ -79,7 +90,6 @@ function App() {
    * Встроенный catalog.ts и localStorage не подмешиваются (ни при загрузке, ни при ошибке).
    */
   const catalogMerged = useMemo(() => {
-    const withStoryCities = (c: Catalog) => mergeCatalogWithStoryRouteCities(c)
     if (!apiConfigured) {
       let merged = mergeCatalogWithAdminPlaces(catalog, extraPlaces)
       if (deletedPlaceIds.size > 0) {
@@ -88,10 +98,10 @@ function App() {
           places: merged.places.filter((p) => !deletedPlaceIds.has(p.id)),
         }
       }
-      return withStoryCities(merged)
+      return merged
     }
-    if (remoteCatalog) return withStoryCities(remoteCatalog)
-    return withStoryCities(EMPTY_CATALOG)
+    if (remoteCatalog) return remoteCatalog
+    return EMPTY_CATALOG
   }, [apiConfigured, remoteCatalog, extraPlaces, deletedPlaceIds])
 
   const visiblePlaces = useMemo(
@@ -114,7 +124,7 @@ function App() {
   }, [])
 
   const persistPlaceToBackendOrStorage = useCallback(
-    async (place: Place): Promise<{ ok: boolean; message?: string }> => {
+    async (place: Place, city?: City): Promise<{ ok: boolean; message?: string }> => {
       const token = parseAdminTokenFromLocation();
       const base = apiBaseUrl();
       const postUrl =
@@ -134,7 +144,7 @@ function App() {
       };
 
       if (postUrl && token) {
-        const r = await submitAdminPlaceToApi(postUrl, token, place);
+        const r = await submitAdminPlaceToApi(postUrl, token, place, city);
         if (r.ok) {
           if (base) {
             try {
@@ -166,9 +176,10 @@ function App() {
 
   const handleAdminPlaceSaved = useCallback(
     async (place: Place) => {
-      await persistPlaceToBackendOrStorage(place);
+      const city = cityById(catalogMerged, place.cityId);
+      await persistPlaceToBackendOrStorage(place, city);
     },
-    [persistPlaceToBackendOrStorage],
+    [catalogMerged, persistPlaceToBackendOrStorage],
   );
 
   const handlePlaceDeleted = useCallback(
@@ -247,13 +258,17 @@ function App() {
       ) : null}
 
       {adminMode ? (
-        <button
-          type="button"
-          className="app-admin-add"
-          onClick={() => setAddPlaceOpen(true)}
-        >
-          Добавить
-        </button>
+        <div className="app-admin-actions">
+          <button type="button" className="app-admin-add" onClick={() => setAddPlaceOpen(true)}>
+            + Место
+          </button>
+          <button type="button" className="app-admin-add" onClick={() => setAddRouteOpen(true)}>
+            + Маршрут
+          </button>
+          <button type="button" className="app-admin-add" onClick={() => setManagerOpen(true)}>
+            ☰ Список
+          </button>
+        </div>
       ) : null}
 
       <header className="app-header">
@@ -272,6 +287,7 @@ function App() {
         catalog={catalogMerged}
         filter={filter}
         places={visiblePlaces}
+        userRoutes={userRoutes}
         onPlaceClick={openPlace}
         onCityClick={openCity}
       />
@@ -290,6 +306,27 @@ function App() {
           onClose={() => setAddPlaceOpen(false)}
           catalog={catalogMerged}
           onSaved={handleAdminPlaceSaved}
+        />
+      ) : null}
+      {managerOpen ? (
+        <ManagerModal
+          routes={userRoutes}
+          catalog={catalogMerged}
+          onClose={() => setManagerOpen(false)}
+          onRoutesChanged={() => {
+            void fetchRoutes().then((r) => setUserRoutes(r)).catch(() => {})
+          }}
+          onDeletePlace={handlePlaceDeleted}
+          onEditPlace={(place) => { setSelectedPlace(place); }}
+        />
+      ) : null}
+      {addRouteOpen ? (
+        <AddRouteModal
+          catalog={catalogMerged}
+          onClose={() => setAddRouteOpen(false)}
+          onSaved={() => {
+            void fetchRoutes().then((routes) => setUserRoutes(routes)).catch(() => {})
+          }}
         />
       ) : null}
     </div>

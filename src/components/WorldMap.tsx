@@ -21,7 +21,7 @@ import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
 import { useCityBoundaryGeography } from '../hooks/useCityBoundaryGeography';
-import type { Catalog, CategoryFilter, City, Place } from '../data/types';
+import type { Catalog, CategoryFilter, City, Place, TravelRoute } from '../data/types';
 import {
   atlasCountryAlpha2,
   markerColorClass,
@@ -34,7 +34,7 @@ import {
   sanitizeMapFillGeometry,
 } from '../lib/fixGeojsonAntimeridian';
 import { rewindGeoJson } from '../lib/geojsonRewind';
-import { TravelStoryRoutes } from './TravelStoryRoutes';
+import { UserRoutes } from './UserRoutes';
 
 /** Топология world-atlas countries-10m (подгружается async — файл ~3.5 MB). */
 type Countries10mTopology = typeof import('world-atlas/countries-10m.json');
@@ -145,6 +145,7 @@ type Props = {
   catalog: Catalog;
   filter: CategoryFilter;
   places: Place[];
+  userRoutes?: TravelRoute[];
   onPlaceClick: (place: Place) => void;
   onCityClick?: (city: City) => void;
 };
@@ -157,7 +158,7 @@ export type WorldMapRef = {
 const NO_CITIES: City[] = [];
 
 export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
-  { catalog, filter, places, onPlaceClick, onCityClick },
+  { catalog, filter, places, userRoutes = [], onPlaceClick, onCityClick },
   ref,
 ) {
   const showCityLayer = filter !== 'places';
@@ -433,11 +434,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           />
         </Source>
 
-        <TravelStoryRoutes
-          catalog={catalog}
-          zoom={zoom}
-          mapThemeDark={mapThemeDark}
-        />
+        <UserRoutes routes={userRoutes} mapThemeDark={mapThemeDark} />
 
         {showCityBoundaries ? (
           <Source

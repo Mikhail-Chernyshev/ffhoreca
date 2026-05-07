@@ -1,6 +1,6 @@
 import type { Place, PlaceCategory } from '../../src/data/types';
 
-const CATS: Set<PlaceCategory> = new Set(['lodging', 'food', 'bar', 'airport']);
+const CATS: Set<PlaceCategory> = new Set(['lodging', 'food', 'bar', 'airport', 'attraction']);
 
 export function isValidPlace(x: unknown): x is Place {
   if (x == null || typeof x !== 'object') return false;

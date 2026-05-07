@@ -53,3 +53,21 @@ export interface Catalog {
   cities: City[];
   places: Place[];
 }
+
+/** Режим транспорта для пользовательских маршрутов */
+export type UserRouteMode = 'plane' | 'train' | 'bus' | 'boat';
+
+/** Одна точка маршрута */
+export interface RouteWaypoint {
+  cityId: string;
+  name: string;
+  lat: number;
+  lng: number;
+}
+
+/** Маршрут, созданный пользователем */
+export interface TravelRoute {
+  id: string;
+  waypoints: RouteWaypoint[];
+  mode: UserRouteMode;
+}

@@ -4,3 +4,13 @@ export function apiBaseUrl(): string {
   if (typeof v !== 'string') return '';
   return v.replace(/\/+$/, '').trim();
 }
+
+/**
+ * Превращает путь вида `/uploads/abc.jpg` в полный URL бэкенда.
+ * Если путь уже абсолютный (http/https) — возвращает как есть.
+ */
+export function mediaUrl(path: string): string {
+  if (!path) return path;
+  if (/^https?:\/\//i.test(path)) return path;
+  return apiBaseUrl() + path;
+}

@@ -17,6 +17,7 @@ COPY . .
 ENV NODE_ENV=production
 ENV PORT=3001
 ENV DATABASE_PATH=/data/catalog.sqlite
+ENV UPLOADS_DIR=/data/uploads
 
 EXPOSE 3001
 
