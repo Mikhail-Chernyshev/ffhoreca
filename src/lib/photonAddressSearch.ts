@@ -16,6 +16,8 @@ export type AddressSuggestion = {
   localityHints: string[];
   /** ISO alpha-2, если есть */
   countryCodeOsm?: string;
+  /** Название города (первый locality-компонент из Google Places) */
+  cityName?: string;
   /** Оценка Google (0–5), если API вернул */
   googleRating?: number;
 };
@@ -31,6 +33,7 @@ interface GooglePlace {
   rating?: number;
   addressComponents?: Array<{
     longText?: string;
+    shortText?: string;
     types?: string[];
   }>;
 }
@@ -49,26 +52,31 @@ function parseGooglePlace(p: GooglePlace): AddressSuggestion | null {
 
   const localityHints: string[] = [];
   let countryCodeOsm: string | undefined;
+  let cityName: string | undefined;
 
   for (const comp of p.addressComponents ?? []) {
     const types = comp.types ?? [];
-    const text = comp.longText ?? '';
-    if (!text) continue;
-    if (
-      types.includes('locality') ||
+    const longText = comp.longText ?? '';
+    const shortText = comp.shortText ?? '';
+    if (types.includes('country') && shortText.length === 2) {
+      countryCodeOsm = shortText.toUpperCase();
+    }
+    if (!longText) continue;
+    if (types.includes('locality')) {
+      // locality — самый точный уровень города (напр. «Санкт-Петербург»)
+      if (!cityName) cityName = longText;
+      localityHints.unshift(longText); // locality — приоритетнее остальных
+    } else if (
       types.includes('sublocality') ||
       types.includes('administrative_area_level_2') ||
       types.includes('administrative_area_level_1')
     ) {
-      localityHints.push(text);
-    }
-    if (types.includes('country')) {
-      // addressComponents дают длинное имя страны; ISO code берём отдельно
+      localityHints.push(longText);
     }
   }
 
   const googleRating = typeof p.rating === 'number' ? p.rating : undefined;
-  return { placeName, label, lng, lat, localityHints, countryCodeOsm, googleRating };
+  return { placeName, label, lng, lat, localityHints, countryCodeOsm, cityName, googleRating };
 }
 
 async function searchGooglePlaces(

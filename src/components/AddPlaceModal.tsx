@@ -5,15 +5,15 @@ import {
   useState,
   type FormEvent,
 } from 'react';
-import type { Catalog, Place, PlaceCategory } from '../data/types';
-import { cityById, catalogCityIdFromPhotonHints } from '../data/selectors';
+import type { Catalog, City, Place, PlaceCategory } from '../data/types';
+import { catalogCityIdFromPhotonHints } from '../data/selectors';
 import { validateNewPlaceRequired } from '../lib/validateNewPlaceForm';
 import { searchPhotonAddresses, type AddressSuggestion } from '../lib/photonAddressSearch';
 
 type Props = {
   onClose: () => void;
   catalog: Catalog;
-  onSaved: (place: Place) => void | Promise<void>;
+  onSaved: (place: Place, city: City) => void | Promise<void>;
 };
 
 const CATEGORIES: { value: PlaceCategory; label: string }[] = [
@@ -83,10 +83,22 @@ function buildPlace(form: {
   };
 }
 
+/** Генерируем id города из кода страны + нормализованного названия */
+function makeCityId(countryCode: string, cityName: string): string {
+  const slug = cityName
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-zа-яё0-9-]/gi, '')
+    .slice(0, 40);
+  return `${countryCode.toLowerCase()}-${slug}`;
+}
+
 export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
   const [name, setName] = useState('');
   const [cityId, setCityId] = useState(catalog.cities[0]?.id ?? '');
   const [cats, setCats] = useState<PlaceCategory[]>(['attraction']);
+  /** Города, созданные «на лету» из результатов поиска (не в каталоге) */
+  const [localCities, setLocalCities] = useState<City[]>([]);
   const [address, setAddress] = useState('');
   const [placeSearchQuery, setPlaceSearchQuery] = useState('');
   const [summary, setSummary] = useState('');
@@ -94,7 +106,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
   const [lng, setLng] = useState('');
   const [lat, setLat] = useState('');
   const [rating, setRating] = useState('');
-  const [photosRaw, setPhotosRaw] = useState('');
+  const photosRaw = '';
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoUploadBusy, setPhotoUploadBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -128,10 +140,16 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     );
   };
 
+  /** Полный список городов: из каталога + созданные «на лету» из поиска */
+  const allCities = useMemo(
+    () => [...catalog.cities, ...localCities],
+    [catalog.cities, localCities],
+  );
+
   const cityCenter = useMemo(() => {
-    const c = cityById(catalog, cityId);
+    const c = allCities.find((c) => c.id === cityId);
     return c ? { lat: c.lat, lng: c.lng } : undefined;
-  }, [catalog, cityId]);
+  }, [allCities, cityId]);
 
   useEffect(() => {
     const q = placeSearchQuery.trim();
@@ -172,14 +190,48 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     setLng(String(Math.round(s.lng * 1e6) / 1e6));
     setLat(String(Math.round(s.lat * 1e6) / 1e6));
     if (s.googleRating != null) setRating(String(s.googleRating));
-    const matchedCityId = catalogCityIdFromPhotonHints(
-      catalog,
-      s.lat,
-      s.lng,
-      s.localityHints,
-      s.countryCodeOsm,
-    );
-    if (matchedCityId) setCityId(matchedCityId);
+
+    let resolvedCityId: string | undefined;
+
+    if (s.cityName && s.countryCodeOsm) {
+      // Google Places вернул название города — ищем только по имени+стране,
+      // БЕЗ дистанционного фолбека (иначе всегда найдётся «ближайший» чужой город).
+      const cc = s.countryCodeOsm.toUpperCase();
+      const norm = (str: string) =>
+        str.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+      const nameNorm = norm(s.cityName);
+      resolvedCityId = allCities.find(
+        (c) => c.countryCode.toUpperCase() === cc && norm(c.name) === nameNorm,
+      )?.id;
+
+      if (!resolvedCityId) {
+        // Не нашли в каталоге — создаём на лету
+        const newId = makeCityId(s.countryCodeOsm, s.cityName);
+        if (!localCities.some((c) => c.id === newId)) {
+          const newCity: City = {
+            id: newId,
+            name: s.cityName,
+            countryCode: cc,
+            lat: Math.round(s.lat * 1e4) / 1e4,
+            lng: Math.round(s.lng * 1e4) / 1e4,
+          };
+          setLocalCities((prev) => [...prev, newCity]);
+        }
+        resolvedCityId = newId;
+      }
+    } else {
+      // Нет данных о городе из Google — старый метод (имя + дистанция)
+      resolvedCityId = catalogCityIdFromPhotonHints(
+        { cities: allCities, places: catalog.places },
+        s.lat,
+        s.lng,
+        s.localityHints,
+        s.countryCodeOsm,
+      );
+    }
+
+    if (resolvedCityId) setCityId(resolvedCityId);
+
     setPlaceSearchQuery(s.placeName);
     setPlaceSuggestOpen(false);
     setPlaceSuggestions([]);
@@ -191,7 +243,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-    const city = cityById(catalog, cityId);
+    const city = allCities.find((c) => c.id === cityId);
     const err = validateNewPlaceRequired({
       name,
       cityId,
@@ -202,7 +254,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
       categories: cats,
     });
     if (err) { setError(err); return; }
-    if (!city) { setError('Город не найден в каталоге.'); return; }
+    if (!city) { setError('Выберите город из списка.'); return; }
 
     // Загрузка файлов на сервер (если есть)
     let uploadedUrls: string[] = [];
@@ -261,7 +313,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     const place: Place = { ...draft, countryCode: city.countryCode };
     setBusy(true);
     try {
-      await onSaved(place);
+      await onSaved(place, city);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -388,6 +440,19 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
               ) : null}
             </div>
           </label>
+          <label className="add-place-form__label">
+            Адрес
+            <span className="add-place-form__hint">
+              Заполняется из поиска; можно отредактировать вручную.
+            </span>
+            <input
+              className="add-place-form__input"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              required
+              autoComplete="street-address"
+            />
+          </label>
 
           <label className="add-place-form__label">
             Город
@@ -413,6 +478,15 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
                   {c.name}
                 </option>
               ))}
+              {localCities.length > 0 && (
+                <optgroup label="— Новые из поиска —">
+                  {localCities.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.countryCode})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </label>
 
@@ -466,30 +540,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
             </div>
           </fieldset>
 
-          <label className="add-place-form__label">
-            Название
-            <input
-              className="add-place-form__input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              autoComplete="off"
-            />
-          </label>
-
-          <label className="add-place-form__label">
-            Адрес
-            <span className="add-place-form__hint">
-              Заполняется из поиска; можно отредактировать вручную.
-            </span>
-            <input
-              className="add-place-form__input"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              required
-              autoComplete="street-address"
-            />
-          </label>
+         
 
           <label className="add-place-form__label">
             Кратко (summary)
@@ -560,14 +611,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
               </div>
             )}
 
-            {/* URL вручную */}
-            <textarea
-              className="add-place-form__textarea add-place-form__textarea--short"
-              value={photosRaw}
-              onChange={(e) => setPhotosRaw(e.target.value)}
-              rows={2}
-              placeholder="Или URL по одному на строку…"
-            />
+           
           </label>
 
           {error ? <p className="add-place-form__error">{error}</p> : null}

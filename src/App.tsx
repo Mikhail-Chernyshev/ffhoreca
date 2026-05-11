@@ -9,7 +9,6 @@ import { PlaceModal } from './components/PlaceModal'
 import { WorldMap, type WorldMapRef } from './components/WorldMap'
 import { catalog } from './data/catalog'
 import {
-  cityById,
   mergeCatalogWithAdminPlaces,
   placesForFilter,
 } from './data/selectors'
@@ -175,11 +174,10 @@ function App() {
   );
 
   const handleAdminPlaceSaved = useCallback(
-    async (place: Place) => {
-      const city = cityById(catalogMerged, place.cityId);
+    async (place: Place, city: City) => {
       await persistPlaceToBackendOrStorage(place, city);
     },
-    [catalogMerged, persistPlaceToBackendOrStorage],
+    [persistPlaceToBackendOrStorage],
   );
 
   const handlePlaceDeleted = useCallback(
