@@ -10,7 +10,7 @@ const LAYER_USER_ROUTES_LINE = 'user-routes-line';
 // Скорость анимации аналогично TravelStoryRoutes
 const PLANE_VISUAL_SPEED_KMH = 900;
 const SPEED_RATIO: Record<UserRouteMode, number> = {
-  plane: 3.5, // на ~40% быстрее базовой скорости
+  plane: 3.5, // на ~350% быстрее базовой скорости
   train: 0.25,
   bus:   0.28,
   boat:  0.12,

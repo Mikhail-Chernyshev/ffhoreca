@@ -15,6 +15,8 @@ import {
 import type { Catalog, CategoryFilter, City, Place, TravelRoute } from './data/types'
 import { fetchRoutes } from './lib/apiRoutes'
 import { useAdminMode } from './hooks/useAdminMode'
+import { useAppSplash } from './hooks/useAppSplash'
+import { LoadingLetterSplash } from './components/LoadingLetterSplash'
 import { apiBaseUrl } from './lib/apiBase'
 import {
   loadAdminPlacesFromStorage,
@@ -53,6 +55,7 @@ function App() {
   const [addRouteOpen, setAddRouteOpen] = useState(false)
   const [managerOpen, setManagerOpen] = useState(false)
   const [userRoutes, setUserRoutes] = useState<TravelRoute[]>([])
+  const [routesLoaded, setRoutesLoaded] = useState(!apiConfiguredAtInit)
   const mapRef = useRef<WorldMapRef>(null)
   const adminMode = useAdminMode()
 
@@ -78,11 +81,28 @@ function App() {
 
   useEffect(() => {
     if (!apiConfigured) return
-    void fetchRoutes().then((routes) => setUserRoutes(routes)).catch(() => {})
+    let cancelled = false
+    void fetchRoutes()
+      .then((routes) => {
+        if (!cancelled) setUserRoutes(routes)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setRoutesLoaded(true)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [apiConfigured])
 
   const catalogBusy =
     apiConfigured && remoteCatalog === null && !catalogLoadError
+
+  const dataReady =
+    !apiConfigured ||
+    ((remoteCatalog !== null || catalogLoadError) && routesLoaded)
+
+  const { visible: splashVisible, onAnimationComplete } = useAppSplash(dataReady)
 
   /**
    * Если задан VITE_API_BASE_URL — единственный источник данных: ответ GET /api/catalog.
@@ -242,8 +262,12 @@ function App() {
   );
 
   return (
-    <div className="app">
-      {catalogBusy ? (
+    <div className={`app${splashVisible ? ' app--splash' : ''}`}>
+      {splashVisible ? (
+        <LoadingLetterSplash onAnimationComplete={onAnimationComplete} />
+      ) : null}
+      <div className="app-content" aria-hidden={splashVisible}>
+      {catalogBusy && !splashVisible ? (
         <p className="app-banner" role="status">
           Загрузка каталога с сервера…
         </p>
@@ -327,6 +351,7 @@ function App() {
           }}
         />
       ) : null}
+      </div>
     </div>
   )
 }

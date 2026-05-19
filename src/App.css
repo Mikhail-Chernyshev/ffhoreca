@@ -6,6 +6,288 @@
   box-sizing: border-box;
 }
 
+.app-content {
+  transition: filter 0.5s ease;
+}
+
+.app--splash .app-content {
+  filter: blur(11px) saturate(0.85);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---- Заставка загрузки: танец букв ---- */
+.loading-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: loading-splash-fade-in 0.35s ease;
+}
+
+@keyframes loading-splash-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.loading-splash__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg, #f4f7f5) 78%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.loading-splash__stage {
+  position: relative;
+  width: min(100%, 1100px);
+  height: 100%;
+  margin: 0 auto;
+  perspective: 680px;
+  perspective-origin: 50% 42%;
+  transform-style: preserve-3d;
+}
+
+.loading-splash__letter {
+  position: absolute;
+  z-index: 1;
+  font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: clamp(1.45rem, 3.5vw, 2.65rem);
+  font-weight: 600;
+  font-variation-settings: 'opsz' 32;
+  color: var(--text-h, #1e3a28);
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.65),
+    0 3px 8px rgba(30, 58, 40, 0.22),
+    0 10px 22px rgba(30, 58, 40, 0.14);
+  transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  transition: opacity 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  backface-visibility: hidden;
+}
+
+/* Фоновые буквы — только transform, без transition на позиции */
+.loading-splash__letter--drift {
+  transition: opacity 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.loading-splash__letter--drift-0 {
+  animation: loading-letter-float-a 2.45s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.loading-splash__letter--drift-1 {
+  animation: loading-letter-float-b 2.85s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.loading-splash__letter--drift-2 {
+  animation: loading-letter-float-c 2.65s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.loading-splash__letter--drift-3 {
+  animation: loading-letter-float-d 3.1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+@keyframes loading-letter-float-a {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) rotateX(0deg) rotate(-2deg) scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate3d(4px, -11px, 28px) rotateX(10deg) rotate(3.5deg)
+      scale(1.1);
+    filter: brightness(1.04);
+  }
+}
+
+@keyframes loading-letter-float-b {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) rotateX(0deg) rotate(1.5deg) scale(1);
+    filter: brightness(1);
+  }
+  33% {
+    transform: translate(-50%, -50%) translate3d(-5px, -6px, 18px) rotateX(6deg) rotate(-3.5deg)
+      scale(1.06);
+    filter: brightness(1.02);
+  }
+  66% {
+    transform: translate(-50%, -50%) translate3d(4px, -12px, 32px) rotateX(12deg) rotate(2.5deg)
+      scale(1.12);
+    filter: brightness(1.05);
+  }
+}
+
+@keyframes loading-letter-float-c {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) rotateX(0deg) scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate3d(0, -12px, 24px) rotateX(8deg) rotate(-3deg)
+      scale(1.09);
+    filter: brightness(1.04);
+  }
+}
+
+@keyframes loading-letter-float-d {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) rotate(-1.5deg) scale(1);
+    filter: brightness(1);
+  }
+  40% {
+    transform: translate(-50%, -50%) translate3d(6px, 3px, 20px) rotateX(7deg) rotate(3.5deg)
+      scale(1.08);
+    filter: brightness(1.03);
+  }
+  80% {
+    transform: translate(-50%, -50%) translate3d(-3px, -9px, 30px) rotateX(11deg) rotate(-2.5deg)
+      scale(1.11);
+    filter: brightness(1.04);
+  }
+}
+
+/* Названия городов — плавное появление + лёгкое покачивание */
+.loading-splash__letter--city {
+  z-index: 3;
+  font-weight: 700;
+  font-size: clamp(1.55rem, 3.8vw, 2.85rem);
+  letter-spacing: 0.07em;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7),
+    0 4px 14px rgba(0, 0, 0, 0.18),
+    0 14px 32px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  animation-timing-function: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+  animation-iteration-count: infinite;
+}
+
+.loading-splash__letter--city-wobble-0 {
+  color: #1a4d32;
+  animation-name: loading-city-wobble-a;
+}
+
+.loading-splash__letter--city-wobble-1 {
+  color: #2a5f7a;
+  animation-name: loading-city-wobble-b;
+}
+
+.loading-splash__letter--city-wobble-2 {
+  color: #5c4a1e;
+  animation-name: loading-city-wobble-c;
+}
+
+.loading-splash__letter--city-wobble-3 {
+  color: #4a3068;
+  animation-name: loading-city-wobble-d;
+}
+
+@keyframes loading-city-wobble-a {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) rotateX(0deg) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate3d(0, -9px, 36px) rotateX(12deg) scale(1.12);
+  }
+}
+
+@keyframes loading-city-wobble-b {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(1);
+  }
+  40% {
+    transform: translate(-50%, -50%) translate3d(-4px, -6px, 22px) rotateX(8deg) rotate(-1.2deg)
+      scale(1.07);
+  }
+  75% {
+    transform: translate(-50%, -50%) translate3d(2px, -11px, 40px) rotateX(14deg) rotate(1deg)
+      scale(1.14);
+  }
+}
+
+@keyframes loading-city-wobble-c {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50%) translate3d(0, -10px, 32px) rotateX(10deg) scale(1.1);
+  }
+}
+
+@keyframes loading-city-wobble-d {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) translate3d(0, 0, 0) rotate(0deg) scale(1);
+  }
+  35% {
+    transform: translate(-50%, -50%) translate3d(3px, -5px, 24px) rotateX(9deg) rotate(1.2deg)
+      scale(1.08);
+  }
+  70% {
+    transform: translate(-50%, -50%) translate3d(-2px, -10px, 38px) rotateX(13deg) rotate(-1deg)
+      scale(1.13);
+  }
+}
+
+.loading-splash__letter--gather {
+  transition:
+    left 0.92s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.92s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.92s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.5s ease;
+  animation: none;
+  transform: translate(-50%, -50%) translate3d(0, 0, 8px) scale(1.02);
+  filter: brightness(1.02);
+}
+
+.loading-splash__letter--final {
+  transition:
+    opacity 0.45s ease,
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.45s ease;
+  animation: none;
+  transform: translate(-50%, -50%) translate3d(0, 0, 0) scale(1);
+  filter: brightness(1);
+}
+
+.loading-splash__letter--extra {
+  color: var(--text-muted, #5f7264);
+  opacity: 0.7;
+}
+
+.loading-splash__tagline {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 20%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-muted, #5f7264);
+  opacity: 0;
+  transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1) 0.2s;
+}
+
+.loading-splash__tagline--visible {
+  opacity: 0.55;
+}
+
 .app-banner {
   margin: 0 0 0.75rem;
   padding: 0.5rem 0.75rem;
