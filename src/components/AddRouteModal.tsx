@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import type { Catalog, RouteWaypoint, TravelRoute, UserRouteMode } from '../data/types';
 import { USER_ROUTE_MODE_LABELS, postRoute } from '../lib/apiRoutes';
+import { CitySearchSelect } from './CitySearchSelect';
 
 type Props = {
   catalog: Catalog;
@@ -122,16 +123,12 @@ export function AddRouteModal({ catalog, onClose, onSaved }: Props) {
                 <span className="add-route-waypoints__letter">
                   {String.fromCharCode(65 + i)}
                 </span>
-                <select
-                  className="add-place-form__input"
+                <CitySearchSelect
+                  cities={catalog.cities}
                   value={cityId}
-                  onChange={(e) => setWaypointAt(i, e.target.value)}
+                  onChange={(id) => setWaypointAt(i, id)}
                   required
-                >
-                  {catalog.cities.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                />
                 {waypointIds.length > 2 && (
                   <button
                     type="button"

@@ -254,7 +254,10 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
       categories: cats,
     });
     if (err) { setError(err); return; }
-    if (!city) { setError('Выберите город из списка.'); return; }
+    if (!city) {
+      setError('Сначала найдите и выберите место в поле поиска — город подставится автоматически.');
+      return;
+    }
 
     // Загрузка файлов на сервер (если есть)
     let uploadedUrls: string[] = [];
@@ -453,65 +456,6 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
               autoComplete="street-address"
             />
           </label>
-
-          <label className="add-place-form__label">
-            Город
-            <span className="add-place-form__hint">
-              Можно выбрать вручную или он подставится из результата поиска.
-            </span>
-            <select
-              className="add-place-form__input"
-              value={cityId}
-              onChange={(e) => {
-                const next = e.target.value;
-                setCityId(next);
-                if (placeSearchQuery.trim().length >= 3) {
-                  setPlaceSearchDebouncing(true);
-                  setPlaceSuggestions([]);
-                  setPlaceNoResults(false);
-                }
-              }}
-              required
-            >
-              {catalog.cities.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-              {localCities.length > 0 && (
-                <optgroup label="— Новые из поиска —">
-                  {localCities.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name} ({c.countryCode})
-                    </option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
-          </label>
-
-          <div className="add-place-form__row">
-            <label className="add-place-form__label add-place-form__label--half">
-              Долгота (необяз.)
-              <input
-                className="add-place-form__input"
-                value={lng}
-                onChange={(e) => setLng(e.target.value)}
-                inputMode="decimal"
-                placeholder="100.88"
-              />
-            </label>
-            <label className="add-place-form__label add-place-form__label--half">
-              Широта (необяз.)
-              <input
-                className="add-place-form__input"
-                value={lat}
-                onChange={(e) => setLat(e.target.value)}
-                inputMode="decimal"
-                placeholder="12.93"
-              />
-            </label>
-          </div>
 
           <label className="add-place-form__label">
             Оценка Google (0–5, необяз.)

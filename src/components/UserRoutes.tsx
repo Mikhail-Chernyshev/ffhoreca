@@ -7,12 +7,10 @@ import { positionAndBearingOneWayOnArc } from '../lib/travelStoryRoutes';
 
 const SOURCE_USER_ROUTES = 'user-routes';
 const LAYER_USER_ROUTES_LINE = 'user-routes-line';
-const TRAVEL_ANIM_MAX_ZOOM = 8.85;
-
 // Скорость анимации аналогично TravelStoryRoutes
 const PLANE_VISUAL_SPEED_KMH = 900;
 const SPEED_RATIO: Record<UserRouteMode, number> = {
-  plane: 1,
+  plane: 3.5, // на ~40% быстрее базовой скорости
   train: 0.25,
   bus:   0.28,
   boat:  0.12,
@@ -36,9 +34,13 @@ function polylineLengthKm(coords: LngLatDeg[]): number {
   return d;
 }
 
+const MIN_CYCLE_MS = 6_000;
+const MAX_CYCLE_MS = 420_000;
+
 function cycleDurationMs(km: number, mode: UserRouteMode): number {
   const speed = PLANE_VISUAL_SPEED_KMH * SPEED_RATIO[mode];
-  return Math.max(4000, (km / speed) * 3_600_000);
+  const raw = (km / speed) * 3_600_000;
+  return Math.min(MAX_CYCLE_MS, Math.max(MIN_CYCLE_MS, raw));
 }
 
 function hashPhase(id: string): number {

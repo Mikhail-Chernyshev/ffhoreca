@@ -161,9 +161,16 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   { catalog, filter, places, userRoutes = [], onPlaceClick, onCityClick },
   ref,
 ) {
-  const showCityLayer = filter !== 'places';
+  /** Города на карте: на табе «Города»/«Всё» — все; иначе — только с видимыми местами */
+  const citiesOnMap = useMemo(() => {
+    if (filter === 'cities' || filter === 'all') return catalog.cities;
+    const ids = new Set(places.map((p) => p.cityId));
+    return catalog.cities.filter((c) => ids.has(c.id));
+  }, [catalog.cities, filter, places]);
+
+  const showCityLayer = citiesOnMap.length > 0;
   const { geography: cityBoundaryGeo } = useCityBoundaryGeography(
-    showCityLayer ? catalog.cities : NO_CITIES,
+    showCityLayer ? citiesOnMap : NO_CITIES,
   );
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapRef>(null);
@@ -463,7 +470,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         ) : null}
 
         {showCityLayer
-          ? catalog.cities.map((city) => (
+          ? citiesOnMap.map((city) => (
               <Marker
                 key={city.id}
                 longitude={city.lng}
@@ -616,7 +623,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           </code>{' '}
           (OSM). Цветная точка — заведение.{' '}
           {filter === 'places'
-            ? 'Все заведения из каталога; города и их границы скрыты. Заведения — после приближения.'
+            ? 'Места (достопримечательности) и города, где они есть; заведения — после приближения.'
             : filter === 'cities'
               ? 'Только города; заведения скрыты.'
               : filter === 'all'

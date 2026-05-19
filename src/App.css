@@ -1679,3 +1679,79 @@
   flex: 1;
   margin-bottom: 0;
 }
+
+.add-route-waypoints__row .city-search-select {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---- Поиск города в селекте маршрута ---- */
+.city-search-select {
+  position: relative;
+  width: 100%;
+}
+
+.city-search-select__list {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #ccc);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.city-search-select__option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.city-search-select__option:hover,
+.city-search-select__option[aria-selected='true'] {
+  background: rgba(95, 165, 115, 0.15);
+}
+
+.city-search-select__cc {
+  font-size: 0.75rem;
+  color: var(--text-muted, #666);
+}
+
+.modal-place-edit-bar {
+  margin-bottom: 0.75rem;
+}
+
+.modal-place-card-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.city-search-select__empty {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 2px);
+  margin: 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted, #666);
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #ccc);
+  border-radius: 8px;
+}

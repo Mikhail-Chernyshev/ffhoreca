@@ -78,26 +78,16 @@ export function PlaceModal({
   onPlaceUpdated,
   onPlaceDeleted,
 }: Props) {
-  const [ratingEditing, setRatingEditing] = useState(false);
-  const [ratingDraft, setRatingDraft] = useState('');
-  const [ratingBusy, setRatingBusy] = useState(false);
-  const [storyEditing, setStoryEditing] = useState(false);
-  const [storyDraft, setStoryDraft] = useState('');
-  const [storyBusy, setStoryBusy] = useState(false);
+  const [cardEditing, setCardEditing] = useState(false);
+  const [cardBusy, setCardBusy] = useState(false);
+  const [draftCats, setDraftCats] = useState<PlaceCategory[]>([]);
+  const [draftSummary, setDraftSummary] = useState('');
+  const [draftStory, setDraftStory] = useState('');
+  const [draftRating, setDraftRating] = useState('');
+  const [draftPhotos, setDraftPhotos] = useState<string[]>([]);
+  const [fileUploadBusy, setFileUploadBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-
-  // Редактирование категорий
-  const [catEditing, setCatEditing] = useState(false);
-  const [catDraft, setCatDraft] = useState<PlaceCategory[]>([]);
-  const [catBusy, setCatBusy] = useState(false);
-
-  // Редактирование фотографий
-  const [photosEditing, setPhotosEditing] = useState(false);
-  const [photosDraft, setPhotosDraft] = useState<string[]>([]);
-  const [photosBusy, setPhotosBusy] = useState(false);
-  const [newPhotoUrl, setNewPhotoUrl] = useState('');
-  const [fileUploadBusy, setFileUploadBusy] = useState(false);
 
   const onKey = useCallback(
     (e: KeyboardEvent) => {
@@ -106,17 +96,13 @@ export function PlaceModal({
         setDeleteConfirmOpen(false);
         return;
       }
-      if (catEditing) {
-        setCatEditing(false);
-        return;
-      }
-      if (photosEditing) {
-        setPhotosEditing(false);
+      if (cardEditing) {
+        setCardEditing(false);
         return;
       }
       onClose();
     },
-    [onClose, deleteConfirmOpen, catEditing, photosEditing],
+    [onClose, deleteConfirmOpen, cardEditing],
   );
 
   useEffect(() => {
@@ -150,65 +136,61 @@ export function PlaceModal({
     place.googleRating != null ? `${place.googleRating.toFixed(1)} / 5` : '—';
 
   const canEdit = adminMode && typeof onPlaceUpdated === 'function';
-  const canEditRating = canEdit && place.googleRating == null;
   const canDeletePlace = adminMode && typeof onPlaceDeleted === 'function';
 
-  const commitRating = async () => {
-    if (!onPlaceUpdated) return;
-    const n = Number(ratingDraft.replace(',', '.'));
-    if (Number.isNaN(n) || n < 0 || n > 5) {
-      window.alert('Введите оценку от 0 до 5.');
-      return;
-    }
-    setRatingBusy(true);
-    try {
-      await Promise.resolve(onPlaceUpdated({ ...place, googleRating: n }));
-      setRatingEditing(false);
-    } finally {
-      setRatingBusy(false);
-    }
+  const startCardEdit = () => {
+    setDraftCats([...place.categories]);
+    setDraftSummary(place.summary);
+    setDraftStory(place.story);
+    setDraftRating(
+      place.googleRating != null ? String(place.googleRating) : '',
+    );
+    setDraftPhotos(place.photos ?? []);
+    setCardEditing(true);
   };
 
-  const commitStory = async () => {
+  const commitCard = async () => {
     if (!onPlaceUpdated) return;
-    const s = storyDraft.trim();
-    if (!s) {
-      window.alert('Текст впечатлений не может быть пустым.');
-      return;
-    }
-    setStoryBusy(true);
-    try {
-      await Promise.resolve(onPlaceUpdated({ ...place, story: s }));
-      setStoryEditing(false);
-    } finally {
-      setStoryBusy(false);
-    }
-  };
-
-  const commitCategories = async () => {
-    if (!onPlaceUpdated) return;
-    if (catDraft.length === 0) {
+    if (draftCats.length === 0) {
       window.alert('Выберите хотя бы одну категорию.');
       return;
     }
-    setCatBusy(true);
-    try {
-      await Promise.resolve(onPlaceUpdated({ ...place, categories: catDraft }));
-      setCatEditing(false);
-    } finally {
-      setCatBusy(false);
+    const summary = draftSummary.trim();
+    const story = draftStory.trim();
+    if (!summary) {
+      window.alert('Краткое описание не может быть пустым.');
+      return;
     }
-  };
-
-  const commitPhotos = async () => {
-    if (!onPlaceUpdated) return;
-    setPhotosBusy(true);
-    const photos = photosDraft.length > 0 ? photosDraft : null;
+    if (!story) {
+      window.alert('Текст впечатлений не может быть пустым.');
+      return;
+    }
+    let googleRating: number | null = place.googleRating;
+    const ratingStr = draftRating.trim();
+    if (ratingStr) {
+      const n = Number(ratingStr.replace(',', '.'));
+      if (Number.isNaN(n) || n < 0 || n > 5) {
+        window.alert('Введите оценку от 0 до 5.');
+        return;
+      }
+      googleRating = n;
+    }
+    const photos = draftPhotos.length > 0 ? draftPhotos : null;
+    setCardBusy(true);
     try {
-      await Promise.resolve(onPlaceUpdated({ ...place, photos }));
-      setPhotosEditing(false);
+      await Promise.resolve(
+        onPlaceUpdated({
+          ...place,
+          categories: draftCats,
+          summary,
+          story,
+          googleRating,
+          photos,
+        }),
+      );
+      setCardEditing(false);
     } finally {
-      setPhotosBusy(false);
+      setCardBusy(false);
     }
   };
 
@@ -226,10 +208,10 @@ export function PlaceModal({
 
   const movePhoto = (index: number, dir: -1 | 1) => {
     const next = index + dir;
-    if (next < 0 || next >= photosDraft.length) return;
-    const arr = [...photosDraft];
+    if (next < 0 || next >= draftPhotos.length) return;
+    const arr = [...draftPhotos];
     [arr[index], arr[next]] = [arr[next]!, arr[index]!];
-    setPhotosDraft(arr);
+    setDraftPhotos(arr);
   };
 
   const handlePhotoFiles = async (files: File[]) => {
@@ -255,7 +237,7 @@ export function PlaceModal({
         return;
       }
       const json = (await res.json()) as { urls: string[] };
-      setPhotosDraft((prev) => [...prev, ...json.urls]);
+      setDraftPhotos((prev) => [...prev, ...json.urls]);
     } catch (e) {
       window.alert(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -297,182 +279,93 @@ export function PlaceModal({
           </p>
         ) : null}
 
-        {/* Категории */}
-        {catEditing ? (
-          <div className='modal-edit-cats'>
-            <div className='modal-edit-cats__checks'>
-              {CATEGORY_ORDER.map((cat) => (
-                <label key={cat} className='add-place-form__check'>
-                  <input
-                    type='checkbox'
-                    checked={catDraft.includes(cat)}
-                    disabled={catBusy}
-                    onChange={() =>
-                      setCatDraft((prev) =>
-                        prev.includes(cat)
-                          ? prev.filter((c) => c !== cat)
-                          : [...prev, cat],
-                      )
-                    }
-                  />
-                  {CATEGORY_LABELS[cat]}
-                </label>
-              ))}
-            </div>
-            <div className='modal-story__edit-actions'>
-              <button
-                type='button'
-                className='modal-rating__save'
-                disabled={catBusy}
-                onClick={() => void commitCategories()}
-              >
-                {catBusy ? '…' : 'Сохранить'}
-              </button>
-              <button
-                type='button'
-                className='modal-rating__cancel'
-                disabled={catBusy}
-                onClick={() => setCatEditing(false)}
-              >
-                Отмена
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className='modal-place-cats' aria-label='Категории'>
-            {sortedCategories.map((cat) => (
-              <span
-                key={cat}
-                className={`modal-place-cat-badge modal-place-cat-badge--${cat}`}
-              >
-                {CATEGORY_LABELS[cat]}
-              </span>
-            ))}
-            {canEdit && (
-              <button
-                type='button'
-                className='modal-rating__add'
-                onClick={() => {
-                  setCatDraft([...place.categories]);
-                  setCatEditing(true);
-                }}
-              >
-                Изменить
-              </button>
-            )}
-          </div>
-        )}
-
-        <p className='modal-summary modal-summary--place-lead'>
-          {place.summary}
-        </p>
-
-        {/* Оценка */}
-        <div className='modal-rating modal-rating--block'>
-          <span className='modal-rating__label'>Оценка Google Maps:</span>
-          {place.googleRating != null ? (
-            <strong className='modal-rating__value'>{ratingLabel}</strong>
-          ) : ratingEditing ? (
-            <span className='modal-rating__edit'>
-              <input
-                type='text'
-                inputMode='decimal'
-                className='modal-rating__input'
-                value={ratingDraft}
-                onChange={(e) => setRatingDraft(e.target.value)}
-                placeholder='0–5'
-                disabled={ratingBusy}
-                aria-label='Оценка Google Maps'
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') void commitRating();
-                  if (e.key === 'Escape') setRatingEditing(false);
-                }}
-              />
-              <button
-                type='button'
-                className='modal-rating__save'
-                disabled={ratingBusy}
-                onClick={() => void commitRating()}
-              >
-                {ratingBusy ? '…' : 'Сохранить'}
-              </button>
-              <button
-                type='button'
-                className='modal-rating__cancel'
-                disabled={ratingBusy}
-                onClick={() => setRatingEditing(false)}
-              >
-                Отмена
-              </button>
-            </span>
-          ) : canEditRating ? (
+        {canEdit && !cardEditing ? (
+          <div className="modal-place-edit-bar">
             <button
-              type='button'
-              className='modal-rating__add'
-              onClick={() => setRatingEditing(true)}
+              type="button"
+              className="modal-rating__save"
+              onClick={startCardEdit}
             >
-              Добавить оценку
+              Редактировать
             </button>
-          ) : (
-            <strong className='modal-rating__value'>—</strong>
-          )}
-        </div>
+          </div>
+        ) : null}
 
-        {/* Фотографии */}
-        {photosEditing ? (
-          <div className='modal-photos-edit'>
-            <div className='modal-photos-edit__list'>
-              {photosDraft.map((url, i) => (
-                <div key={url + i} className='modal-photos-edit__item'>
-                  <img
-                    src={mediaUrl(url)}
-                    alt=''
-                    className='modal-photos-edit__thumb'
-                  />
-                  <div className='modal-photos-edit__actions'>
-                    <button
-                      type='button'
-                      onClick={() => movePhoto(i, -1)}
-                      disabled={i === 0 || photosBusy}
-                      aria-label='Вверх'
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type='button'
-                      onClick={() => movePhoto(i, 1)}
-                      disabled={i === photosDraft.length - 1 || photosBusy}
-                      aria-label='Вниз'
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type='button'
-                      className='modal-photos-edit__delete'
-                      disabled={photosBusy}
-                      onClick={() =>
-                        setPhotosDraft((prev) => prev.filter((_, j) => j !== i))
+        {cardEditing ? (
+          <div className="modal-place-card-edit">
+            <fieldset className="add-place-form__fieldset">
+              <legend className="add-place-form__legend">Категории</legend>
+              <div className="modal-edit-cats__checks">
+                {CATEGORY_ORDER.map((cat) => (
+                  <label key={cat} className="add-place-form__check">
+                    <input
+                      type="checkbox"
+                      checked={draftCats.includes(cat)}
+                      disabled={cardBusy}
+                      onChange={() =>
+                        setDraftCats((prev) =>
+                          prev.includes(cat)
+                            ? prev.filter((c) => c !== cat)
+                            : [...prev, cat],
+                        )
                       }
-                      aria-label='Удалить'
-                    >
-                      ✕
-                    </button>
+                    />
+                    {CATEGORY_LABELS[cat]}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <label className="add-place-form__label">
+              Кратко
+              <input
+                className="add-place-form__input"
+                value={draftSummary}
+                onChange={(e) => setDraftSummary(e.target.value)}
+                disabled={cardBusy}
+              />
+            </label>
+
+            <label className="add-place-form__label">
+              Оценка Google (0–5, необяз.)
+              <input
+                className="add-place-form__input"
+                value={draftRating}
+                onChange={(e) => setDraftRating(e.target.value)}
+                inputMode="decimal"
+                disabled={cardBusy}
+                placeholder="4.5"
+              />
+            </label>
+
+            <div className="modal-photos-edit">
+              <p className="add-place-form__legend">Фото</p>
+              <div className="modal-photos-edit__list">
+                {draftPhotos.map((url, i) => (
+                  <div key={url + i} className="modal-photos-edit__item">
+                    <img src={mediaUrl(url)} alt="" className="modal-photos-edit__thumb" />
+                    <div className="modal-photos-edit__actions">
+                      <button type="button" onClick={() => movePhoto(i, -1)} disabled={i === 0 || cardBusy} aria-label="Вверх">↑</button>
+                      <button type="button" onClick={() => movePhoto(i, 1)} disabled={i === draftPhotos.length - 1 || cardBusy} aria-label="Вниз">↓</button>
+                      <button
+                        type="button"
+                        className="modal-photos-edit__delete"
+                        disabled={cardBusy}
+                        onClick={() => setDraftPhotos((prev) => prev.filter((_, j) => j !== i))}
+                        aria-label="Удалить"
+                      >✕</button>
+                    </div>
                   </div>
-                  <span className='modal-photos-edit__url' title={url}>
-                    {url}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className='modal-photos-edit__add'>
-              <label className='modal-photos-edit__file-label'>
+                ))}
+              </div>
+              <label className="modal-photos-edit__file-label">
                 {fileUploadBusy ? 'Загрузка…' : '📁 Загрузить файлы'}
                 <input
-                  type='file'
-                  accept='image/jpeg,image/png,image/webp,image/gif'
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
                   multiple
-                  className='modal-photos-edit__file-input'
-                  disabled={photosBusy || fileUploadBusy}
+                  className="modal-photos-edit__file-input"
+                  disabled={cardBusy || fileUploadBusy}
                   onChange={(e) => {
                     const files = Array.from(e.target.files ?? []);
                     e.target.value = '';
@@ -481,131 +374,61 @@ export function PlaceModal({
                 />
               </label>
             </div>
-            {/* <div className='modal-photos-edit__add'>
-              <button
-                type='button'
-                className='modal-rating__add'
-                disabled={!newPhotoUrl.trim() || photosBusy || fileUploadBusy}
-                onClick={() => {
-                  if (newPhotoUrl.trim()) {
-                    setPhotosDraft((prev) => [...prev, newPhotoUrl.trim()]);
-                    setNewPhotoUrl('');
-                  }
-                }}
-              >
-                Добавить
+
+            <label className="add-place-form__label">
+              Наши впечатления
+              <textarea
+                className="modal-story__textarea"
+                value={draftStory}
+                onChange={(e) => setDraftStory(e.target.value)}
+                rows={6}
+                disabled={cardBusy}
+              />
+            </label>
+
+            <div className="modal-story__edit-actions">
+              <button type="button" className="modal-rating__save" disabled={cardBusy} onClick={() => void commitCard()}>
+                {cardBusy ? '…' : 'Сохранить'}
               </button>
-            </div> */}
-            <div className='modal-story__edit-actions'>
-              <button
-                type='button'
-                className='modal-rating__save'
-                disabled={photosBusy}
-                onClick={() => void commitPhotos()}
-              >
-                {photosBusy ? '…' : 'Сохранить'}
-              </button>
-              <button
-                type='button'
-                className='modal-rating__cancel'
-                disabled={photosBusy}
-                onClick={() => setPhotosEditing(false)}
-              >
+              <button type="button" className="modal-rating__cancel" disabled={cardBusy} onClick={() => setCardEditing(false)}>
                 Отмена
               </button>
             </div>
           </div>
         ) : (
           <>
+            <div className="modal-place-cats" aria-label="Категории">
+              {sortedCategories.map((cat) => (
+                <span key={cat} className={`modal-place-cat-badge modal-place-cat-badge--${cat}`}>
+                  {CATEGORY_LABELS[cat]}
+                </span>
+              ))}
+            </div>
+
+            <p className="modal-summary modal-summary--place-lead">{place.summary}</p>
+
+            <div className="modal-rating modal-rating--block">
+              <span className="modal-rating__label">Оценка Google Maps:</span>
+              <strong className="modal-rating__value">{ratingLabel}</strong>
+            </div>
+
             {hasPhotos && photoUrls ? (
               <ModalPhotoCarousel key={place.id} photos={photoUrls} />
             ) : null}
-            {canEdit && (
-              <button
-                type='button'
-                className='modal-rating__add'
-                style={{ marginBottom: '0.75rem' }}
-                onClick={() => {
-                  setPhotosDraft(place.photos ?? []);
-                  setPhotosEditing(true);
-                }}
-              >
-                {hasPhotos ? 'Редактировать фото' : 'Добавить фото'}
-              </button>
-            )}
+
+            <div className="modal-story">
+              <h3 className="modal-story__heading">Наши впечатления</h3>
+              <p className="modal-story__text">{place.story}</p>
+            </div>
           </>
         )}
-
-        {/* Впечатления */}
-        <div className='modal-story'>
-          <div className='modal-story__head'>
-            <h3 className='modal-story__heading'>Наши впечатления</h3>
-            {canEdit && !storyEditing ? (
-              <button
-                type='button'
-                className='modal-story__edit'
-                onClick={() => {
-                  setStoryDraft(place.story);
-                  setStoryEditing(true);
-                }}
-              >
-                Редактировать
-              </button>
-            ) : null}
-          </div>
-          {storyEditing ? (
-            <div className='modal-story__edit-box'>
-              <textarea
-                className='modal-story__textarea'
-                value={storyDraft}
-                onChange={(e) => setStoryDraft(e.target.value)}
-                rows={6}
-                disabled={storyBusy}
-                aria-label='Наши впечатления'
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    e.stopPropagation();
-                    setStoryEditing(false);
-                  }
-                }}
-              />
-              <div className='modal-story__edit-actions'>
-                <button
-                  type='button'
-                  className='modal-rating__save'
-                  disabled={storyBusy}
-                  onClick={() => void commitStory()}
-                >
-                  {storyBusy ? '…' : 'Сохранить'}
-                </button>
-                <button
-                  type='button'
-                  className='modal-rating__cancel'
-                  disabled={storyBusy}
-                  onClick={() => setStoryEditing(false)}
-                >
-                  Отмена
-                </button>
-              </div>
-            </div>
-          ) : (
-            <p className='modal-story__text'>{place.story}</p>
-          )}
-        </div>
 
         {canDeletePlace ? (
           <div className='modal-place-delete'>
             <button
               type='button'
               className='modal-place-delete__btn'
-              disabled={
-                deleteBusy ||
-                ratingBusy ||
-                storyBusy ||
-                catBusy ||
-                photosBusy ||
-                deleteConfirmOpen
-              }
+              disabled={deleteBusy || cardBusy || deleteConfirmOpen}
               onClick={() => setDeleteConfirmOpen(true)}
             >
               {deleteBusy ? 'Удаление…' : 'Удалить место'}
