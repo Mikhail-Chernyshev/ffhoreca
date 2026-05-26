@@ -1,13 +1,16 @@
 import { useCallback, useEffect } from 'react'
 import countries from 'i18n-iso-countries'
+import en from 'i18n-iso-countries/langs/en.json'
 import ru from 'i18n-iso-countries/langs/ru.json'
 import type { City } from '../data/types'
 import { ModalPhotoCarousel } from './PlaceModal'
+import { useLocale, useT } from '../i18n/LocaleContext'
 
 countries.registerLocale(ru)
+countries.registerLocale(en)
 
-function countryNameRu(code: string): string {
-  return countries.getName(code, 'ru') ?? code
+function countryName(code: string, locale: 'ru' | 'en'): string {
+  return countries.getName(code, locale) ?? code
 }
 
 type Props = {
@@ -16,6 +19,9 @@ type Props = {
 }
 
 export function CityModal({ city, onClose }: Props) {
+  const t = useT()
+  const { locale } = useLocale()
+
   const onKey = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -38,7 +44,7 @@ export function CityModal({ city, onClose }: Props) {
 
   const photos = city.photos ?? []
   const hasPhotos = photos.length > 0
-  const country = countryNameRu(city.countryCode)
+  const country = countryName(city.countryCode, locale)
   const coords = `${city.lat.toFixed(4)}°, ${city.lng.toFixed(4)}°`
   const hasSummary = Boolean(city.summary?.trim())
   const hasStory = Boolean(city.story?.trim())
@@ -57,7 +63,7 @@ export function CityModal({ city, onClose }: Props) {
         aria-modal="true"
         aria-labelledby="city-modal-title"
       >
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">
+        <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
           ×
         </button>
 
@@ -72,18 +78,17 @@ export function CityModal({ city, onClose }: Props) {
           <p className="modal-summary">{city.summary}</p>
         ) : (
           <p className="modal-summary modal-summary--muted">
-            Описание можно добавить в каталоге: поля <code className="modal-inline-code">summary</code> и{' '}
-            <code className="modal-inline-code">story</code> у города.
+            {t('cityModal.emptySummaryHint')}
           </p>
         )}
 
         {hasPhotos && <ModalPhotoCarousel key={city.id} photos={photos} />}
 
         {hasStory ? (
-          <div className="modal-story">
-            <h3 className="modal-story__heading">Заметки</h3>
-            <p className="modal-story__text">{city.story}</p>
-          </div>
+          <>
+            <h3 className="modal-section-title">{t('cityModal.notesHeading')}</h3>
+            <p className="modal-story">{city.story}</p>
+          </>
         ) : null}
       </div>
     </div>

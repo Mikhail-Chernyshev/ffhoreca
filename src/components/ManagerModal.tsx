@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { Catalog, City, Place, TravelRoute } from '../data/types';
-import { CATEGORY_LABELS } from './PlaceModal';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Catalog, City, Place, PlaceCategory, TravelRoute } from '../data/types';
 import { ConfirmModal } from './ConfirmModal';
-import { USER_ROUTE_MODE_LABELS, deleteRouteById } from '../lib/apiRoutes';
+import { deleteRouteById } from '../lib/apiRoutes';
 import { deleteCityById } from '../lib/apiCities';
 import { cityById } from '../data/selectors';
+import { useLocale, useT } from '../i18n/LocaleContext';
+import { categoryLabel, routeModeLabel } from '../i18n/labels';
 
 type Tab = 'routes' | 'places' | 'cities';
 
@@ -24,9 +25,6 @@ type ConfirmState = {
   onConfirm: () => Promise<void>;
 } | null;
 
-// ---------------------------------------------------------------------------
-// Строка города
-// ---------------------------------------------------------------------------
 function CityRow({
   city,
   placesCount,
@@ -36,20 +34,21 @@ function CityRow({
   placesCount: number;
   onDeleteRequest: (city: City) => void;
 }) {
+  const t = useT();
   return (
     <div className="manager-row">
       <div className="manager-row__main">
         <span className="manager-row__title">{city.name}</span>
         <span className="manager-row__meta">
           {city.countryCode} · {city.lat.toFixed(2)}, {city.lng.toFixed(2)}
-          {placesCount > 0 ? ` · ${placesCount} мест` : ''}
+          {placesCount > 0 ? ` ${t('manager.cityPlacesCount', { count: placesCount })}` : ''}
         </span>
       </div>
       <button
         type="button"
         className="manager-row__delete"
         onClick={() => onDeleteRequest(city)}
-        aria-label={`Удалить город ${city.name}`}
+        aria-label={t('manager.ariaDeleteCity', { name: city.name })}
       >
         ✕
       </button>
@@ -57,9 +56,6 @@ function CityRow({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Строка маршрута
-// ---------------------------------------------------------------------------
 function RouteRow({
   route,
   onDeleteRequest,
@@ -67,19 +63,21 @@ function RouteRow({
   route: TravelRoute;
   onDeleteRequest: (route: TravelRoute) => void;
 }) {
+  const t = useT();
+  const { locale } = useLocale();
   const waypointNames = route.waypoints.map((w) => w.name).join(' → ');
 
   return (
     <div className="manager-row">
       <div className="manager-row__main">
         <span className="manager-row__title">{waypointNames}</span>
-        <span className="manager-row__meta">{USER_ROUTE_MODE_LABELS[route.mode]}</span>
+        <span className="manager-row__meta">{routeModeLabel(locale, route.mode)}</span>
       </div>
       <button
         type="button"
         className="manager-row__delete"
         onClick={() => onDeleteRequest(route)}
-        aria-label="Удалить маршрут"
+        aria-label={t('manager.ariaDeleteRoute')}
       >
         ✕
       </button>
@@ -87,9 +85,6 @@ function RouteRow({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Строка места
-// ---------------------------------------------------------------------------
 function PlaceRow({
   place,
   cityName,
@@ -101,7 +96,11 @@ function PlaceRow({
   onEdit: () => void;
   onDeleteRequest: (place: Place) => void;
 }) {
-  const catLabels = place.categories.map((c) => CATEGORY_LABELS[c]).join(', ');
+  const t = useT();
+  const { locale } = useLocale();
+  const catLabels = place.categories
+    .map((c: PlaceCategory) => categoryLabel(locale, c))
+    .join(', ');
 
   return (
     <div className="manager-row">
@@ -118,7 +117,7 @@ function PlaceRow({
         type="button"
         className="manager-row__delete"
         onClick={() => onDeleteRequest(place)}
-        aria-label="Удалить место"
+        aria-label={t('manager.ariaDeletePlace')}
       >
         ✕
       </button>
@@ -126,9 +125,6 @@ function PlaceRow({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Основной компонент
-// ---------------------------------------------------------------------------
 export function ManagerModal({
   routes,
   catalog,
@@ -138,6 +134,8 @@ export function ManagerModal({
   onDeletePlace,
   onEditPlace,
 }: Props) {
+  const t = useT();
+  const { locale } = useLocale();
   const [tab, setTab] = useState<Tab>('routes');
   const [localRoutes, setLocalRoutes] = useState(routes);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
@@ -174,8 +172,8 @@ export function ManagerModal({
   const requestDeleteRoute = (route: TravelRoute) => {
     const names = route.waypoints.map((w) => w.name).join(' → ');
     setConfirm({
-      title: 'Удалить маршрут?',
-      message: `Маршрут «${names}» будет удалён.`,
+      title: t('manager.confirmDeleteRouteTitle'),
+      message: t('manager.confirmDeleteRouteMessage', { names }),
       onConfirm: async () => {
         await deleteRouteById(route.id);
         setLocalRoutes((prev) => prev.filter((r) => r.id !== route.id));
@@ -186,8 +184,8 @@ export function ManagerModal({
 
   const requestDeletePlace = (place: Place) => {
     setConfirm({
-      title: 'Удалить место?',
-      message: `Место «${place.name}» будет удалено без возможности восстановления.`,
+      title: t('manager.confirmDeletePlaceTitle'),
+      message: t('manager.confirmDeletePlaceMessage', { name: place.name }),
       onConfirm: async () => {
         await onDeletePlace(place.id);
       },
@@ -198,13 +196,13 @@ export function ManagerModal({
     const placesCount = catalog.places.filter((p) => p.cityId === city.id).length;
     if (placesCount > 0) {
       window.alert(
-        `Город «${city.name}» нельзя удалить: в нём ${placesCount} мест(а). Сначала удалите места.`,
+        t('manager.alertDeleteCityBlocked', { name: city.name, count: placesCount }),
       );
       return;
     }
     setConfirm({
-      title: 'Удалить город?',
-      message: `Город «${city.name}» будет удалён из каталога.`,
+      title: t('manager.confirmDeleteCityTitle'),
+      message: t('manager.confirmDeleteCityMessage', { name: city.name }),
       onConfirm: async () => {
         const r = await deleteCityById(city.id);
         if (!r.ok) {
@@ -216,13 +214,25 @@ export function ManagerModal({
     });
   };
 
-  // Места по странам
-  const placesByCountry = catalog.places.reduce<Record<string, Place[]>>((acc, p) => {
-    const key = p.countryCode || '??';
-    (acc[key] ??= []).push(p);
-    return acc;
-  }, {});
-  const sortedCountries = Object.keys(placesByCountry).sort((a, b) => a.localeCompare(b, 'ru'));
+  const placesByCountry = useMemo(
+    () =>
+      catalog.places.reduce<Record<string, Place[]>>((acc, p) => {
+        const key = p.countryCode || '??';
+        (acc[key] ??= []).push(p);
+        return acc;
+      }, {}),
+    [catalog.places],
+  );
+
+  const sortedCountries = useMemo(
+    () => Object.keys(placesByCountry).sort((a, b) => a.localeCompare(b, locale)),
+    [placesByCountry, locale],
+  );
+
+  const sortedCities = useMemo(
+    () => [...catalog.cities].sort((a, b) => a.name.localeCompare(b.name, locale)),
+    [catalog.cities, locale],
+  );
 
   return (
     <>
@@ -237,9 +247,9 @@ export function ManagerModal({
           aria-modal="true"
           aria-labelledby="manager-modal-title"
         >
-          <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">×</button>
+          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>×</button>
 
-          <h2 id="manager-modal-title" className="modal-title">Управление</h2>
+          <h2 id="manager-modal-title" className="modal-title">{t('manager.title')}</h2>
 
           <div className="manager-tabs">
             <button
@@ -247,28 +257,28 @@ export function ManagerModal({
               className={`manager-tabs__btn${tab === 'routes' ? ' manager-tabs__btn--active' : ''}`}
               onClick={() => setTab('routes')}
             >
-              Маршруты ({localRoutes.length})
+              {t('manager.tabRoutes', { count: localRoutes.length })}
             </button>
             <button
               type="button"
               className={`manager-tabs__btn${tab === 'places' ? ' manager-tabs__btn--active' : ''}`}
               onClick={() => setTab('places')}
             >
-              Места ({catalog.places.length})
+              {t('manager.tabPlaces', { count: catalog.places.length })}
             </button>
             <button
               type="button"
               className={`manager-tabs__btn${tab === 'cities' ? ' manager-tabs__btn--active' : ''}`}
               onClick={() => setTab('cities')}
             >
-              Города ({catalog.cities.length})
+              {t('manager.tabCities', { count: catalog.cities.length })}
             </button>
           </div>
 
           <div className="manager-content">
             {tab === 'routes' && (
               localRoutes.length === 0
-                ? <p className="manager-empty">Маршрутов пока нет.</p>
+                ? <p className="manager-empty">{t('manager.emptyRoutes')}</p>
                 : localRoutes.map((route) => (
                     <RouteRow key={route.id} route={route} onDeleteRequest={requestDeleteRoute} />
                   ))
@@ -276,7 +286,7 @@ export function ManagerModal({
 
             {tab === 'places' && (
               catalog.places.length === 0
-                ? <p className="manager-empty">Мест пока нет.</p>
+                ? <p className="manager-empty">{t('manager.emptyPlaces')}</p>
                 : sortedCountries.map((cc) => (
                     <div key={cc} className="manager-group">
                       <h3 className="manager-group__heading">{cc}</h3>
@@ -298,17 +308,15 @@ export function ManagerModal({
 
             {tab === 'cities' && (
               catalog.cities.length === 0
-                ? <p className="manager-empty">Городов пока нет.</p>
-                : [...catalog.cities]
-                    .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
-                    .map((city) => (
-                      <CityRow
-                        key={city.id}
-                        city={city}
-                        placesCount={catalog.places.filter((p) => p.cityId === city.id).length}
-                        onDeleteRequest={requestDeleteCity}
-                      />
-                    ))
+                ? <p className="manager-empty">{t('manager.emptyCities')}</p>
+                : sortedCities.map((city) => (
+                    <CityRow
+                      key={city.id}
+                      city={city}
+                      placesCount={catalog.places.filter((p) => p.cityId === city.id).length}
+                      onDeleteRequest={requestDeleteCity}
+                    />
+                  ))
             )}
           </div>
         </div>

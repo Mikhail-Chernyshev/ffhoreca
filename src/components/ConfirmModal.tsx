@@ -1,3 +1,5 @@
+import { useT } from '../i18n/LocaleContext';
+
 type Props = {
   title: string;
   message: string;
@@ -11,12 +13,14 @@ type Props = {
 export function ConfirmModal({
   title,
   message,
-  confirmLabel = 'Удалить',
-  cancelLabel = 'Отмена',
+  confirmLabel,
+  cancelLabel,
   busy = false,
   onConfirm,
   onCancel,
 }: Props) {
+  const t = useT();
+
   return (
     <div
       className="confirm-modal-overlay"
@@ -39,7 +43,7 @@ export function ConfirmModal({
             disabled={busy}
             onClick={onCancel}
           >
-            {cancelLabel}
+            {cancelLabel ?? t('common.cancel')}
           </button>
           <button
             type="button"
@@ -47,7 +51,7 @@ export function ConfirmModal({
             disabled={busy}
             onClick={onConfirm}
           >
-            {busy ? '…' : confirmLabel}
+            {busy ? t('common.busy') : (confirmLabel ?? t('common.delete'))}
           </button>
         </div>
       </div>

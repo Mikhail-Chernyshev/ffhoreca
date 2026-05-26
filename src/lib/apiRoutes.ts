@@ -1,5 +1,6 @@
-import type { TravelRoute, UserRouteMode } from '../data/types';
+import type { TravelRoute } from '../data/types';
 import { apiBaseUrl } from './apiBase';
+import { apiErrorMessage, apiMessage } from './apiMessages';
 
 function parseAdminToken(): string {
   const params = new URLSearchParams(window.location.search);
@@ -16,7 +17,7 @@ export async function fetchRoutes(): Promise<TravelRoute[]> {
 
 export async function postRoute(route: TravelRoute): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
-  if (!base) return { ok: false, message: 'API не настроен' };
+  if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
   const token = parseAdminToken();
   const res = await fetch(`${base}/api/routes`, {
     method: 'POST',
@@ -24,36 +25,19 @@ export async function postRoute(route: TravelRoute): Promise<{ ok: boolean; mess
     body: JSON.stringify({ token, route }),
   });
   const text = await res.text().catch(() => '');
-  if (res.ok) return { ok: true, message: 'Маршрут сохранён' };
-  return { ok: false, message: text ? `Сервер: ${res.status} — ${text.slice(0, 200)}` : `Ошибка ${res.status}` };
+  if (res.ok) return { ok: true, message: apiMessage('api.routeSaved') };
+  return { ok: false, message: apiErrorMessage(res.status, text) };
 }
 
 export async function deleteRouteById(id: string): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
-  if (!base) return { ok: false, message: 'API не настроен' };
+  if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
   const token = parseAdminToken();
   const res = await fetch(`${base}/api/routes/${encodeURIComponent(id)}`, {
     method: 'DELETE',
     headers: { 'X-Admin-Token': token },
   });
   const text = await res.text().catch(() => '');
-  if (res.ok) return { ok: true, message: 'Маршрут удалён' };
-  return { ok: false, message: text ? `Сервер: ${res.status} — ${text.slice(0, 200)}` : `Ошибка ${res.status}` };
+  if (res.ok) return { ok: true, message: apiMessage('api.routeDeleted') };
+  return { ok: false, message: apiErrorMessage(res.status, text) };
 }
-
-export const USER_ROUTE_MODE_LABELS: Record<UserRouteMode, string> = {
-  plane: '✈ Самолёт',
-  train: '🚆 Поезд',
-  bus: '🚌 Автобус',
-  boat: '⛴ Водный транспорт',
-  car: '🚗 Автомобиль',
-};
-
-/** Подписи для aria-label (без эмодзи) */
-export const USER_ROUTE_MODE_ARIA: Record<UserRouteMode, string> = {
-  plane: 'Самолёт',
-  train: 'Поезд',
-  bus: 'Автобус',
-  boat: 'Водный транспорт',
-  car: 'Автомобиль',
-};

@@ -1,13 +1,14 @@
 import type { CategoryFilter } from '../data/types'
+import { useT } from '../i18n/LocaleContext'
 
-const TABS: { id: CategoryFilter; label: string }[] = [
-  { id: 'all', label: 'Всё' },
-  { id: 'places', label: 'Места' },
-  { id: 'cities', label: 'Города' },
-  { id: 'lodging', label: 'Жильё' },
-  { id: 'food', label: 'Еда' },
-  { id: 'bar', label: 'Бары' },
-  { id: 'airport', label: 'Аэропорты' },
+const TAB_IDS: CategoryFilter[] = [
+  'all',
+  'places',
+  'cities',
+  'lodging',
+  'food',
+  'bar',
+  'airport',
 ]
 
 type Props = {
@@ -16,18 +17,20 @@ type Props = {
 }
 
 export function CategoryTabs({ value, onChange }: Props) {
+  const t = useT()
+
   return (
-    <div className="category-tabs" role="tablist" aria-label="Категории на карте">
-      {TABS.map((tab) => (
+    <div className="category-tabs" role="tablist" aria-label={t('category.ariaTablist')}>
+      {TAB_IDS.map((id) => (
         <button
-          key={tab.id}
+          key={id}
           type="button"
           role="tab"
-          aria-selected={value === tab.id}
-          className={`category-tabs__btn${value === tab.id ? ' category-tabs__btn--active' : ''}`}
-          onClick={() => onChange(tab.id)}
+          aria-selected={value === id}
+          className={`category-tabs__btn${value === id ? ' category-tabs__btn--active' : ''}`}
+          onClick={() => onChange(id)}
         >
-          {tab.label}
+          {t(`category.tab.${id}`)}
         </button>
       ))}
     </div>

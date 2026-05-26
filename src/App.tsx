@@ -34,11 +34,14 @@ import {
   loadDeletedPlaceIds,
   saveDeletedPlaceIds,
 } from './lib/adminDeletedPlaceIdsStorage'
+import { LocaleToggle } from './components/LocaleToggle'
+import { useT } from './i18n/LocaleContext'
 import './App.css'
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] }
 
 function App() {
+  const t = useT()
   const apiConfiguredAtInit = apiBaseUrl() !== ''
 
   const [filter, setFilter] = useState<CategoryFilter>('all')
@@ -178,8 +181,8 @@ function App() {
         }
         window.alert(
           apiConfigured
-            ? `Сервер не принял место:\n${r.message}`
-            : `Сервер не принял место:\n${r.message}\n\nСохраняю копию в этом браузере (localStorage).`,
+            ? `${t('app.alertPlaceRejected')}\n${r.message}`
+            : `${t('app.alertPlaceRejected')}\n${r.message}\n\n${t('app.alertPlaceRejectedLocal')}`,
         );
         if (!apiConfigured) mergeLocal();
         return { ok: false, message: r.message };
@@ -190,9 +193,9 @@ function App() {
         return { ok: true };
       }
 
-      return { ok: false, message: 'Нет URL API или токена админа в URL' };
+      return { ok: false, message: t('app.errorMissingApiOrToken') };
     },
-    [apiConfigured],
+    [apiConfigured, t],
   );
 
   const handleAdminPlaceSaved = useCallback(
@@ -223,9 +226,7 @@ function App() {
           return true
         }
         window.alert(
-          apiConfigured
-            ? `Не удалось удалить место:\n${r.message}`
-            : `Не удалось удалить место:\n${r.message}`,
+          `${t('app.alertPlaceDeleteFailed')}\n${r.message}`,
         )
         return false
       }
@@ -245,10 +246,10 @@ function App() {
         return true
       }
 
-      window.alert('Нет URL API или токена админа в URL')
+      window.alert(t('app.errorMissingApiOrToken'))
       return false
     },
-    [apiConfigured],
+    [apiConfigured, t],
   )
 
   const handlePlaceUpdatedFromModal = useCallback(
@@ -271,21 +272,19 @@ function App() {
       <div className="app-content" aria-hidden={splashVisible}>
       {catalogBusy && !splashVisible ? (
         <p className="app-banner" role="status">
-          Загрузка каталога с сервера…
+          {t('app.catalogLoading')}
         </p>
       ) : null}
       {catalogLoadError && apiConfigured ? (
         <p className="app-banner app-banner--warn" role="alert">
-          Не удалось загрузить каталог с API. Данные из репозитория не подставляются — проверьте
-          сеть, CORS и URL в VITE_API_BASE_URL.
+          {t('app.catalogLoadError')}
         </p>
       ) : null}
 
       <header className="app-header">
+        <LocaleToggle />
         <h1 className="app-title">Tips from trips</h1>
-        <p className="app-tagline">
-          Места, где мы были: отели, гостевые, бары и рестораны по миру
-        </p>
+        <p className="app-tagline">{t('app.tagline')}</p>
       </header>
 
       <CategoryTabs value={filter} onChange={setFilter} />
@@ -293,16 +292,16 @@ function App() {
       {adminMode ? (
         <div className="app-admin-actions">
           <button type="button" className="app-admin-add" onClick={() => setAddCityOpen(true)}>
-            + Город
+            {t('app.adminAddCity')}
           </button>
           <button type="button" className="app-admin-add" onClick={() => setAddPlaceOpen(true)}>
-            + Место
+            {t('app.adminAddPlace')}
           </button>
           <button type="button" className="app-admin-add" onClick={() => setAddRouteOpen(true)}>
-            + Маршрут
+            {t('app.adminAddRoute')}
           </button>
           <button type="button" className="app-admin-add" onClick={() => setManagerOpen(true)}>
-            ☰ Список
+            {t('app.adminOpenManager')}
           </button>
         </div>
       ) : null}

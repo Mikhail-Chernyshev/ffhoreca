@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Place, PlaceCategory } from '../data/types';
 import { apiBaseUrl, mediaUrl } from '../lib/apiBase';
-
-export const CATEGORY_LABELS: Record<PlaceCategory, string> = {
-  attraction: 'Места',
-  lodging: 'Жильё',
-  food: 'Еда',
-  bar: 'Бары',
-  airport: 'Аэропорты',
-};
+import { useLocale, useT } from '../i18n/LocaleContext';
+import { categoryLabel } from '../i18n/labels';
 
 const CATEGORY_ORDER: PlaceCategory[] = [
   'attraction',
@@ -29,6 +23,7 @@ type Props = {
 };
 
 export function ModalPhotoCarousel({ photos }: { photos: string[] }) {
+  const t = useT();
   const [photoIndex, setPhotoIndex] = useState(0);
 
   return (
@@ -50,7 +45,7 @@ export function ModalPhotoCarousel({ photos }: { photos: string[] }) {
             onClick={() =>
               setPhotoIndex((i) => (i - 1 + photos.length) % photos.length)
             }
-            aria-label='Предыдущее фото'
+            aria-label={t('placeModal.ariaPrevPhoto')}
           >
             ‹
           </button>
@@ -61,7 +56,7 @@ export function ModalPhotoCarousel({ photos }: { photos: string[] }) {
             type='button'
             className='modal-carousel__btn'
             onClick={() => setPhotoIndex((i) => (i + 1) % photos.length)}
-            aria-label='Следующее фото'
+            aria-label={t('placeModal.ariaNextPhoto')}
           >
             ›
           </button>
@@ -78,6 +73,8 @@ export function PlaceModal({
   onPlaceUpdated,
   onPlaceDeleted,
 }: Props) {
+  const t = useT();
+  const { locale } = useLocale();
   const [cardEditing, setCardEditing] = useState(false);
   const [cardBusy, setCardBusy] = useState(false);
   const [draftCats, setDraftCats] = useState<PlaceCategory[]>([]);
@@ -152,17 +149,17 @@ export function PlaceModal({
   const commitCard = async () => {
     if (!onPlaceUpdated) return;
     if (draftCats.length === 0) {
-      window.alert('Выберите хотя бы одну категорию.');
+      window.alert(t('placeModal.alertCategoryRequired'));
       return;
     }
     const summary = draftSummary.trim();
     const story = draftStory.trim();
     if (!summary) {
-      window.alert('Краткое описание не может быть пустым.');
+      window.alert(t('placeModal.alertSummaryRequired'));
       return;
     }
     if (!story) {
-      window.alert('Текст впечатлений не может быть пустым.');
+      window.alert(t('placeModal.alertStoryRequired'));
       return;
     }
     let googleRating: number | null = place.googleRating;
@@ -170,7 +167,7 @@ export function PlaceModal({
     if (ratingStr) {
       const n = Number(ratingStr.replace(',', '.'));
       if (Number.isNaN(n) || n < 0 || n > 5) {
-        window.alert('Введите оценку от 0 до 5.');
+        window.alert(t('placeModal.alertRatingRange'));
         return;
       }
       googleRating = n;
@@ -220,7 +217,7 @@ export function PlaceModal({
     const token =
       new URLSearchParams(window.location.search).get('token') ?? '';
     if (!base || !token) {
-      window.alert('Загрузка файлов требует настроенного API и токена в URL.');
+      window.alert(t('placeModal.alertUploadNeedsApi'));
       return;
     }
     setFileUploadBusy(true);
@@ -233,13 +230,13 @@ export function PlaceModal({
         body: fd,
       });
       if (!res.ok) {
-        window.alert('Ошибка загрузки фото на сервер.');
+        window.alert(t('placeModal.alertPhotoUploadFailed'));
         return;
       }
       const json = (await res.json()) as { urls: string[] };
       setDraftPhotos((prev) => [...prev, ...json.urls]);
     } catch (e) {
-      window.alert(`Ошибка: ${e instanceof Error ? e.message : String(e)}`);
+      window.alert(t('placeModal.alertGenericError', { message: e instanceof Error ? e.message : String(e) }));
     } finally {
       setFileUploadBusy(false);
     }
@@ -263,7 +260,7 @@ export function PlaceModal({
           type='button'
           className='modal-close'
           onClick={onClose}
-          aria-label='Закрыть'
+          aria-label={t('common.close')}
         >
           ×
         </button>
@@ -274,7 +271,7 @@ export function PlaceModal({
 
         <p className='modal-address'>{place.address}</p>
         {coordLine ? (
-          <p className='modal-coords' aria-label='Координаты'>
+          <p className='modal-coords' aria-label={t('placeModal.ariaCoords')}>
             {coordLine}
           </p>
         ) : null}
@@ -286,7 +283,7 @@ export function PlaceModal({
               className="modal-rating__save"
               onClick={startCardEdit}
             >
-              Редактировать
+              {t('placeModal.edit')}
             </button>
           </div>
         ) : null}
@@ -294,7 +291,7 @@ export function PlaceModal({
         {cardEditing ? (
           <div className="modal-place-card-edit">
             <fieldset className="add-place-form__fieldset">
-              <legend className="add-place-form__legend">Категории</legend>
+              <legend className="add-place-form__legend">{t('placeModal.categories')}</legend>
               <div className="modal-edit-cats__checks">
                 {CATEGORY_ORDER.map((cat) => (
                   <label key={cat} className="add-place-form__check">
@@ -310,14 +307,14 @@ export function PlaceModal({
                         )
                       }
                     />
-                    {CATEGORY_LABELS[cat]}
+                    {categoryLabel(locale, cat)}
                   </label>
                 ))}
               </div>
             </fieldset>
 
             <label className="add-place-form__label">
-              Кратко
+              {t('placeModal.summary')}
               <input
                 className="add-place-form__input"
                 value={draftSummary}
@@ -327,7 +324,7 @@ export function PlaceModal({
             </label>
 
             <label className="add-place-form__label">
-              Оценка Google (0–5, необяз.)
+              {t('placeModal.ratingOptional')}
               <input
                 className="add-place-form__input"
                 value={draftRating}
@@ -339,27 +336,27 @@ export function PlaceModal({
             </label>
 
             <div className="modal-photos-edit">
-              <p className="add-place-form__legend">Фото</p>
+              <p className="add-place-form__legend">{t('placeModal.photos')}</p>
               <div className="modal-photos-edit__list">
                 {draftPhotos.map((url, i) => (
                   <div key={url + i} className="modal-photos-edit__item">
                     <img src={mediaUrl(url)} alt="" className="modal-photos-edit__thumb" />
                     <div className="modal-photos-edit__actions">
-                      <button type="button" onClick={() => movePhoto(i, -1)} disabled={i === 0 || cardBusy} aria-label="Вверх">↑</button>
-                      <button type="button" onClick={() => movePhoto(i, 1)} disabled={i === draftPhotos.length - 1 || cardBusy} aria-label="Вниз">↓</button>
+                      <button type="button" onClick={() => movePhoto(i, -1)} disabled={i === 0 || cardBusy} aria-label={t('placeModal.ariaMoveUp')}>↑</button>
+                      <button type="button" onClick={() => movePhoto(i, 1)} disabled={i === draftPhotos.length - 1 || cardBusy} aria-label={t('placeModal.ariaMoveDown')}>↓</button>
                       <button
                         type="button"
                         className="modal-photos-edit__delete"
                         disabled={cardBusy}
                         onClick={() => setDraftPhotos((prev) => prev.filter((_, j) => j !== i))}
-                        aria-label="Удалить"
+                        aria-label={t('placeModal.ariaDeletePhoto')}
                       >✕</button>
                     </div>
                   </div>
                 ))}
               </div>
               <label className="modal-photos-edit__file-label">
-                {fileUploadBusy ? 'Загрузка…' : '📁 Загрузить файлы'}
+                {fileUploadBusy ? t('common.loading') : `📁 ${t('placeModal.uploadFiles')}`}
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
@@ -376,7 +373,7 @@ export function PlaceModal({
             </div>
 
             <label className="add-place-form__label">
-              Наши впечатления
+              {t('placeModal.ourImpressions')}
               <textarea
                 className="modal-story__textarea"
                 value={draftStory}
@@ -388,19 +385,19 @@ export function PlaceModal({
 
             <div className="modal-story__edit-actions">
               <button type="button" className="modal-rating__save" disabled={cardBusy} onClick={() => void commitCard()}>
-                {cardBusy ? '…' : 'Сохранить'}
+                {cardBusy ? t('common.busy') : t('common.save')}
               </button>
               <button type="button" className="modal-rating__cancel" disabled={cardBusy} onClick={() => setCardEditing(false)}>
-                Отмена
+                {t('common.cancel')}
               </button>
             </div>
           </div>
         ) : (
           <>
-            <div className="modal-place-cats" aria-label="Категории">
+            <div className="modal-place-cats" aria-label={t('placeModal.categories')}>
               {sortedCategories.map((cat) => (
                 <span key={cat} className={`modal-place-cat-badge modal-place-cat-badge--${cat}`}>
-                  {CATEGORY_LABELS[cat]}
+                  {categoryLabel(locale, cat)}
                 </span>
               ))}
             </div>
@@ -408,7 +405,7 @@ export function PlaceModal({
             <p className="modal-summary modal-summary--place-lead">{place.summary}</p>
 
             <div className="modal-rating modal-rating--block">
-              <span className="modal-rating__label">Оценка Google Maps:</span>
+              <span className="modal-rating__label">{t('placeModal.ratingLabel')}</span>
               <strong className="modal-rating__value">{ratingLabel}</strong>
             </div>
 
@@ -417,7 +414,7 @@ export function PlaceModal({
             ) : null}
 
             <div className="modal-story">
-              <h3 className="modal-story__heading">Наши впечатления</h3>
+              <h3 className="modal-story__heading">{t('placeModal.ourImpressions')}</h3>
               <p className="modal-story__text">{place.story}</p>
             </div>
           </>
@@ -431,7 +428,7 @@ export function PlaceModal({
               disabled={deleteBusy || cardBusy || deleteConfirmOpen}
               onClick={() => setDeleteConfirmOpen(true)}
             >
-              {deleteBusy ? 'Удаление…' : 'Удалить место'}
+              {deleteBusy ? t('common.deleting') : t('placeModal.delete')}
             </button>
           </div>
         ) : null}
@@ -456,10 +453,10 @@ export function PlaceModal({
               id='confirm-delete-place-title'
               className='confirm-modal__title'
             >
-              Удалить место?
+              {t('placeModal.confirmDeleteTitle')}
             </h2>
             <p id='confirm-delete-place-desc' className='confirm-modal__text'>
-              Место «{place.name}» будет удалено без возможности восстановления.
+              {t('placeModal.confirmDeleteMessage', { name: place.name })}
             </p>
             <div className='confirm-modal__actions'>
               <button
@@ -468,7 +465,7 @@ export function PlaceModal({
                 disabled={deleteBusy}
                 onClick={() => setDeleteConfirmOpen(false)}
               >
-                Отмена
+                {t('common.cancel')}
               </button>
               <button
                 type='button'
@@ -476,7 +473,7 @@ export function PlaceModal({
                 disabled={deleteBusy}
                 onClick={() => void confirmDeletePlace()}
               >
-                {deleteBusy ? 'Удаление…' : 'Удалить'}
+                {deleteBusy ? t('common.deleting') : t('common.delete')}
               </button>
             </div>
           </div>

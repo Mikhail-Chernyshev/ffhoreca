@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { City } from '../data/types';
+import { useT } from '../i18n/LocaleContext';
 import { cityMatchesQuery } from '../lib/transliterate';
 
 type Props = {
@@ -14,9 +15,11 @@ export function CitySearchSelect({
   cities,
   value,
   onChange,
-  placeholder = 'Начните вводить название…',
+  placeholder,
   required = false,
 }: Props) {
+  const t = useT();
+  const resolvedPlaceholder = placeholder ?? t('citySelect.placeholder');
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
 
@@ -40,7 +43,7 @@ export function CitySearchSelect({
         type="text"
         className="add-place-form__input"
         value={open ? query : (selected?.name ?? query)}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         required={required && !value}
         autoComplete="off"
         onFocus={() => {
@@ -77,7 +80,7 @@ export function CitySearchSelect({
         </ul>
       ) : null}
       {open && query.trim() && filtered.length === 0 ? (
-        <p className="city-search-select__empty">Ничего не найдено</p>
+        <p className="city-search-select__empty">{t('common.emptyResults')}</p>
       ) : null}
     </div>
   );

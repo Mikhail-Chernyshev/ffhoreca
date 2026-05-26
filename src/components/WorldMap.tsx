@@ -22,6 +22,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
 import { useCityBoundaryGeography } from '../hooks/useCityBoundaryGeography';
 import type { Catalog, CategoryFilter, City, Place, TravelRoute } from '../data/types';
+import { useT } from '../i18n/LocaleContext';
 import {
   atlasCountryAlpha2,
   markerColorClass,
@@ -119,19 +120,6 @@ const MAP_DEFAULT_LATITUDE = 18;
 const COUNTRY_FILL_LAYER_MAX_ZOOM = 7.5;
 /** При клике по городу — уровень «район / улицы» (тайлы сами подтянут дорожную сеть). */
 const CITY_FOCUS_ZOOM = 12.5;
-/** Рыбный текст блока «О проекте» (заменить на реальное описание). */
-const PROJECT_ABOUT_PLACEHOLDER = `Здесь появится развёрнутое описание проекта ffhoreca: для кого каталог, откуда данные, как устроена карта и фильтры. Пока ниже — типографская рыба, чтобы проверить раскрытие и прокрутку.
-
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vehicula, nibh non fermentum dictum, ligula ante sollicitudin odio, vel blandit augue velit nec turpis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Donec vitae libero vitae urna bibendum tincidunt.
-
-Suspendisse potenti. Mauris faucibus, nulla id ultricies lacinia, metus lacus tristique massa, vitae pulvinar lectus lacus sit amet tellus. Cras imperdiet, risus vitae dignissim faucibus, lacus tortor commodo urna, at sagittis lectus erat id nisl. Phasellus id sapien nec nulla convallis faucibus.
-
-Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Ut at tortor vitae nisl pretium dictum. Curabitur euismod, felis sit amet vehicula bibendum, urna elit varius nunc, sed faucibus eros tortor a nisl. Aliquam erat volutpat.
-
-Nam euismod ligula id lacus feugiat, sed luctus urna dictum. Etiam faucibus urna id nisl consequat, vitae tempor magna laoreet. Duis vel nisl ac mi consequat bibendum. Morbi sit amet nibh vel velit cursus pharetra. Integer id nulla nec urna efficitur tincidunt.
-
-Vivamus sagittis lacus vel augue laoreet rutrum faucibus dolor auctor. Aenean lacinia bibendum nulla sed consectetur. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus.`;
-
 /** Подписи городов */
 const CITY_LABEL_MIN_ZOOM = 3.6;
 const CITY_LABEL_COMPACT_ZOOM = 9.5;
@@ -161,6 +149,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   { catalog, filter, places, userRoutes = [], onPlaceClick, onCityClick },
   ref,
 ) {
+  const t = useT();
   /** Города на карте: на табе «Города»/«Всё» — все; иначе — только с видимыми местами */
   const citiesOnMap = useMemo(() => {
     if (filter === 'cities' || filter === 'all') return catalog.cities;
@@ -374,13 +363,26 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     setAboutExpanded(true);
   }, []);
 
+  const aboutParagraphs = useMemo(
+    () => [t('map.aboutIntro'), t('map.aboutLorem1'), t('map.aboutLorem2'), t('map.aboutLorem3')],
+    [t],
+  );
+
+  const filterHint = useMemo(() => {
+    if (filter === 'places') return t('map.hintFilterPlaces');
+    if (filter === 'cities') return t('map.hintFilterCities');
+    if (filter === 'all') return t('map.hintFilterAll');
+    if (filter === 'airport') return t('map.hintFilterAirport');
+    return t('map.hintFilterDefault');
+  }, [filter, t]);
+
   return (
     <div className='world-map-wrap' ref={mapWrapRef}>
       <div className='world-map-zoom-controls maplibregl-ctrl maplibregl-ctrl-group'>
         <button
           type='button'
           className='maplibregl-ctrl-zoom-in'
-          aria-label='Приблизить'
+          aria-label={t('map.ariaZoomIn')}
           onClick={handleZoomIn}
         >
           <span className='maplibregl-ctrl-icon' aria-hidden />
@@ -388,7 +390,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         <button
           type='button'
           className='maplibregl-ctrl-zoom-out'
-          aria-label='Отдалить'
+          aria-label={t('map.ariaZoomOut')}
           onClick={handleZoomOut}
         >
           <span className='maplibregl-ctrl-icon' aria-hidden />
@@ -396,8 +398,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         <button
           type='button'
           className='world-map-zoom-controls__reset'
-          aria-label='Сбросить масштаб и положение карты'
-          title='Исходный вид'
+          aria-label={t('map.ariaResetView')}
+          title={t('map.titleResetView')}
           onClick={handleResetView}
         >
           ⌂
@@ -480,7 +482,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
                 <button
                   type='button'
                   className='world-map-city-marker'
-                  aria-label={`Приблизить карту к ${city.name}; двойной клик — карточка города`}
+                  aria-label={t('map.ariaFocusCity', { name: city.name })}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -563,7 +565,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             className='world-map-about__link'
             onClick={handleAboutLinkClick}
           >
-            О проекте
+            {t('map.aboutLink')}
           </a>
           <button
             type='button'
@@ -575,11 +577,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             aria-expanded={aboutExpanded}
             aria-controls='project-about-details'
             id='project-about-summary'
-            aria-label={
-              aboutExpanded
-                ? 'Свернуть описание проекта'
-                : 'Развернуть описание проекта'
-            }
+            aria-label={aboutExpanded ? t('map.aboutCollapse') : t('map.aboutExpand')}
             onClick={handleAboutChevronClick}
           >
             <span className='world-map-about__chevron-icon' aria-hidden>
@@ -599,7 +597,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           {...(!aboutExpanded ? { 'aria-hidden': true as const } : {})}
         >
           <div className='world-map-about-details__inner'>
-            {PROJECT_ABOUT_PLACEHOLDER.split('\n\n').map((chunk, i) => (
+            {aboutParagraphs.map((chunk, i) => (
               <p key={i} className='world-map-about-details__p'>
                 {chunk}
               </p>
@@ -608,29 +606,14 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         </div>
         <p className='world-map-hint' aria-live='polite'>
           <span className='world-map-hint__zoom'>
-            Подложка — растровые тайлы OpenStreetMap (CARTO);
-             {/* полупрозрачная заливка стран
-            world-atlas 10m только при зуме не выше {COUNTRY_FILL_LAYER_MAX_ZOOM} (на приближении
-            скрывается). Оранжевая зона города — выше слоя стран. Слева вверху: зум ± и сброс вида.
-            Подписи и дороги в одном PNG с подложкой. При приближении на тайлах появляются реки и
-            дороги. Границы городов
-            из файлов — после приближения. Клик по точке города — приближение;
-            двойной клик — карточка города. */}
+            {t('map.hintBasemap')}{' '}
           </span>{' '}
-          Файлы границ:{' '}
+          {t('map.hintBoundaryFiles')}{' '}
           <code className='world-map-hint__code'>
             public/geo/cities/{'{id}'}.json
           </code>{' '}
-          (OSM). Цветная точка — заведение.{' '}
-          {filter === 'places'
-            ? 'Места (достопримечательности) и города, где они есть; заведения — после приближения.'
-            : filter === 'cities'
-              ? 'Только города; заведения скрыты.'
-              : filter === 'all'
-                ? 'Без GeoJSON у города — только точка; заведения — после приближения.'
-                : filter === 'airport'
-                  ? 'Только аэропорты (после приближения).'
-                  : 'Заведения по табу — после приближения.'}
+          (OSM). {t('map.hintPlaceDot')}{' '}
+          {filterHint}
         </p>
       </div>
     </div>

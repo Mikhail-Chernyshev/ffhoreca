@@ -336,8 +336,50 @@
 }
 
 .app-header {
+  position: relative;
   text-align: center;
   margin-bottom: 1.25rem;
+}
+
+.locale-toggle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.locale-toggle__btn {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.35rem 0.65rem;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.locale-toggle__btn--active {
+  background: var(--accent-bg);
+  color: var(--text-h);
+}
+
+.locale-toggle__btn:focus-visible {
+  outline: 2px solid var(--accent-border);
+  outline-offset: -2px;
+}
+
+@media (max-width: 520px) {
+  .locale-toggle {
+    position: static;
+    margin: 0 auto 0.75rem;
+  }
 }
 
 .app-title {

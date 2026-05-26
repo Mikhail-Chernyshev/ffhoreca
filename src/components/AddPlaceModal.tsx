@@ -10,6 +10,8 @@ import { catalogCityIdFromPhotonHints } from '../data/selectors';
 import { validateNewPlaceRequired } from '../lib/validateNewPlaceForm';
 import { makeCityId } from '../lib/makeCityId';
 import { searchPhotonAddresses, type AddressSuggestion } from '../lib/photonAddressSearch';
+import { useLocale, useT } from '../i18n/LocaleContext';
+import { categoryLabel } from '../i18n/labels';
 
 type Props = {
   onClose: () => void;
@@ -17,13 +19,7 @@ type Props = {
   onSaved: (place: Place, city: City) => void | Promise<void>;
 };
 
-const CATEGORIES: { value: PlaceCategory; label: string }[] = [
-  { value: 'attraction', label: 'Места' },
-  { value: 'lodging', label: 'Жильё' },
-  { value: 'food', label: 'Еда' },
-  { value: 'bar', label: 'Бары' },
-  { value: 'airport', label: 'Аэропорты' },
-];
+const CATEGORY_VALUES: PlaceCategory[] = ['attraction', 'lodging', 'food', 'bar', 'airport'];
 
 function buildPlace(form: {
   name: string;
@@ -85,6 +81,8 @@ function buildPlace(form: {
 }
 
 export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
+  const t = useT();
+  const { locale } = useLocale();
   const [name, setName] = useState('');
   const [cityId, setCityId] = useState(catalog.cities[0]?.id ?? '');
   const [cats, setCats] = useState<PlaceCategory[]>(['attraction']);
@@ -265,7 +263,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     });
     if (err) { setError(err); return; }
     if (!city) {
-      setError('Сначала найдите и выберите место в поле поиска — город подставится автоматически.');
+      setError(t('addPlace.errorSelectFromSearch'));
       return;
     }
 
@@ -288,12 +286,12 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
             const json = await res.json() as { urls: string[] };
             uploadedUrls = json.urls;
           } else {
-            setError('Не удалось загрузить фото на сервер.');
+            setError(t('addPlace.errorPhotoUpload'));
             setPhotoUploadBusy(false);
             return;
           }
         } catch (e) {
-          setError(`Ошибка загрузки фото: ${e instanceof Error ? e.message : String(e)}`);
+          setError(t('addPlace.errorPhotoUploadDetail', { message: e instanceof Error ? e.message : String(e) }));
           setPhotoUploadBusy(false);
           return;
         } finally {
@@ -320,7 +318,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
       photosRaw: combinedPhotosRaw,
     });
     if (!draft) {
-      setError('Проверьте корректность опциональных полей (оценка 0–5, координаты).');
+      setError(t('addPlace.errorOptionalFields'));
       return;
     }
     const place: Place = { ...draft, countryCode: city.countryCode };
@@ -349,24 +347,22 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
         aria-modal="true"
         aria-labelledby="add-place-modal-title"
       >
-        <button type="button" className="modal-close" onClick={onClose} aria-label="Закрыть">
+        <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>
           ×
         </button>
 
         <h2 id="add-place-modal-title" className="modal-title">
-          Новое место
+          {t('addPlace.title')}
         </h2>
         <p className="modal-summary modal-summary--muted">
-          Попадёт на карту и в поиск; дублируется в localStorage браузера. При настроенном API —
-          дополнительно отправится на сервер (токен из URL).
+          {t('addPlace.intro')}
         </p>
 
         <form className="add-place-form" onSubmit={handleSubmit}>
           <label className="add-place-form__label">
-            Найти место
+            {t('addPlace.search')}
             <span className="add-place-form__hint">
-              OpenStreetMap (Photon). Выберите объект — подставятся город (если есть в каталоге),
-              название, адрес и координаты.
+              {t('addPlace.searchHint')}
             </span>
             <div className="add-place-form__autocomplete">
               <input
@@ -390,7 +386,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
                   window.setTimeout(() => setPlaceSuggestOpen(false), 180);
                 }}
                 autoComplete="off"
-                placeholder="Начните вводить название или адрес…"
+                placeholder={t('addPlace.searchPlaceholder')}
                 aria-autocomplete="list"
                 aria-expanded={
                   placeSuggestOpen &&
@@ -420,7 +416,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
                       className="add-place-form__suggestion add-place-form__suggestion--muted"
                       role="presentation"
                     >
-                      Поиск…
+                      {t('common.searching')}
                     </li>
                   ) : null}
                   {!placeSearchDebouncing &&
@@ -430,7 +426,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
                       className="add-place-form__suggestion add-place-form__suggestion--muted"
                       role="presentation"
                     >
-                      Ничего не найдено
+                      {t('common.emptyResults')}
                     </li>
                   ) : null}
                   {placeSuggestions.map((s, i) => (
@@ -454,9 +450,9 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
             </div>
           </label>
           <label className="add-place-form__label">
-            Адрес
+            {t('addPlace.address')}
             <span className="add-place-form__hint">
-              Заполняется из поиска; можно отредактировать вручную.
+              {t('addPlace.addressHint')}
             </span>
             <input
               className="add-place-form__input"
@@ -468,7 +464,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
           </label>
 
           <label className="add-place-form__label">
-            Оценка Google (0–5, необяз.)
+            {t('addPlace.ratingOptional')}
             <input
               className="add-place-form__input"
               value={rating}
@@ -479,16 +475,16 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
           </label>
 
           <fieldset className="add-place-form__fieldset">
-            <legend className="add-place-form__legend">Категории</legend>
+            <legend className="add-place-form__legend">{t('addPlace.categories')}</legend>
             <div className="add-place-form__cats">
-              {CATEGORIES.map(({ value, label }) => (
+              {CATEGORY_VALUES.map((value) => (
                 <label key={value} className="add-place-form__check">
                   <input
                     type="checkbox"
                     checked={cats.includes(value)}
                     onChange={() => toggleCat(value)}
                   />
-                  {label}
+                  {categoryLabel(locale, value)}
                 </label>
               ))}
             </div>
@@ -497,7 +493,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
          
 
           <label className="add-place-form__label">
-            Кратко (summary)
+            {t('addPlace.summary')}
             <input
               className="add-place-form__input"
               value={summary}
@@ -507,7 +503,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
           </label>
 
           <label className="add-place-form__label">
-            История / впечатления
+            {t('addPlace.story')}
             <textarea
               className="add-place-form__textarea"
               value={story}
@@ -518,9 +514,9 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
           </label>
 
           <label className="add-place-form__label">
-            Фото (необяз.)
+            {t('addPlace.photos')}
             <span className="add-place-form__hint">
-              Загрузите файлы или укажите URL по одному на строку.
+              {t('addPlace.photosHint')}
             </span>
 
             {/* Загрузка файлов */}
@@ -538,7 +534,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
                 }}
               />
               {photoUploadBusy && (
-                <span className="add-place-form__hint">Загрузка файлов…</span>
+                <span className="add-place-form__hint">{t('addPlace.uploadingFiles')}</span>
               )}
             </div>
 
@@ -556,7 +552,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
                       type="button"
                       className="add-place-form__photo-remove"
                       onClick={() => setPhotoFiles((prev) => prev.filter((_, j) => j !== i))}
-                      aria-label="Удалить фото"
+                      aria-label={t('addPlace.ariaRemovePhoto')}
                     >
                       ✕
                     </button>
@@ -572,10 +568,10 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
 
           <div className="add-place-form__actions">
             <button type="button" className="add-place-form__btn add-place-form__btn--ghost" onClick={onClose}>
-              Отмена
+              {t('common.cancel')}
             </button>
             <button type="submit" className="add-place-form__btn" disabled={busy}>
-              {busy ? 'Сохранение…' : 'Сохранить'}
+              {busy ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>

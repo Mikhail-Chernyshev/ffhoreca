@@ -3,6 +3,7 @@ import type { Catalog, City } from '../data/types';
 import { postCity } from '../lib/apiCities';
 import { makeCityId } from '../lib/makeCityId';
 import { searchCities, type CitySuggestion } from '../lib/citySearch';
+import { useT } from '../i18n/LocaleContext';
 
 type Props = {
   catalog: Catalog;
@@ -48,6 +49,7 @@ function buildCity(form: {
 }
 
 export function AddCityModal({ catalog, onClose, onSaved }: Props) {
+  const t = useT();
   const [name, setName] = useState('');
   const [countryCode, setCountryCode] = useState('');
   const [lng, setLng] = useState('');
@@ -143,15 +145,13 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
       photosRaw,
     });
     if (!city) {
-      setError('Заполните название, код страны (2 буквы) и координаты.');
+      setError(t('addCity.errorRequired'));
       return;
     }
 
     const existing = catalog.cities.find((c) => c.id === city.id);
     if (existing) {
-      setError(
-        `Город «${existing.name}» уже есть в каталоге (${existing.id}).`,
-      );
+      setError(t('addCity.errorDuplicate', { name: existing.name, id: existing.id }));
       return;
     }
 
@@ -189,25 +189,23 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
           type='button'
           className='modal-close'
           onClick={onClose}
-          aria-label='Закрыть'
+          aria-label={t('common.close')}
         >
           ×
         </button>
 
         <h2 id='add-city-modal-title' className='modal-title'>
-          Новый город
+          {t('addCity.title')}
         </h2>
         <p className='modal-summary modal-summary--muted'>
-          Поиск через Google Places (если задан VITE_GOOGLE_PLACES_API_KEY).
-          Город сохранится на сервере и появится в каталоге и на карте.
+          {t('addCity.intro')}
         </p>
 
         <form className='add-place-form' onSubmit={handleSubmit}>
           <label className='add-place-form__label'>
-            Найти город
+            {t('addCity.search')}
             <span className='add-place-form__hint'>
-              Введите название — выберите из подсказок, координаты и страна
-              подставятся автоматически.
+              {t('addCity.searchHint')}
             </span>
             <div className='add-place-form__autocomplete'>
               <input
@@ -231,7 +229,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
                   window.setTimeout(() => setCitySuggestOpen(false), 180);
                 }}
                 autoComplete='off'
-                placeholder='Начните вводить название города…'
+                placeholder={t('addCity.searchPlaceholder')}
                 aria-autocomplete='list'
                 aria-expanded={
                   citySuggestOpen &&
@@ -261,7 +259,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
                       className='add-place-form__suggestion add-place-form__suggestion--muted'
                       role='presentation'
                     >
-                      Поиск…
+                      {t('common.searching')}
                     </li>
                   ) : null}
                   {!citySearchDebouncing &&
@@ -271,7 +269,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
                       className='add-place-form__suggestion add-place-form__suggestion--muted'
                       role='presentation'
                     >
-                      Ничего не найдено
+                      {t('common.emptyResults')}
                     </li>
                   ) : null}
                   {citySuggestions.map((s, i) => (
@@ -303,7 +301,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
           </label>
 
           <label className='add-place-form__label'>
-            Код страны (ISO, 2 буквы)
+            {t('addCity.countryCode')}
             <input
               className='add-place-form__input'
               value={countryCode}
@@ -318,7 +316,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
 
           <div className='add-place-form__row'>
             <label className='add-place-form__label'>
-              Долгота
+              {t('addCity.lng')}
               <input
                 className='add-place-form__input'
                 value={lng}
@@ -328,7 +326,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
               />
             </label>
             <label className='add-place-form__label'>
-              Широта
+              {t('addCity.lat')}
               <input
                 className='add-place-form__input'
                 value={lat}
@@ -340,7 +338,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
           </div>
 
           <label className='add-place-form__label'>
-            Кратко (summary, необяз.)
+            {t('addCity.summaryOptional')}
             <input
               className='add-place-form__input'
               value={summary}
@@ -349,7 +347,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
           </label>
 
           <label className='add-place-form__label'>
-            История / заметки (необяз.)
+            {t('addCity.storyOptional')}
             <textarea
               className='add-place-form__textarea'
               value={story}
@@ -366,14 +364,14 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
               className='add-place-form__btn add-place-form__btn--ghost'
               onClick={onClose}
             >
-              Отмена
+              {t('common.cancel')}
             </button>
             <button
               type='submit'
               className='add-place-form__btn'
               disabled={busy}
             >
-              {busy ? 'Сохранение…' : 'Сохранить город'}
+              {busy ? t('common.saving') : t('addCity.save')}
             </button>
           </div>
         </form>

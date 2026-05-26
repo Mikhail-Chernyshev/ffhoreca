@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { cityById, placeCoordinates } from '../data/selectors';
 import type { Catalog, City, Place } from '../data/types';
+import { useLocale, useT } from '../i18n/LocaleContext';
 import {
   fieldMatchesQuery,
   normalizeSearchText,
@@ -20,12 +21,6 @@ export type MapSearchHit =
 
 function hitName(h: MapSearchHit): string {
   return h.kind === 'city' ? h.city.name : h.place.name;
-}
-
-function hitSubtitle(catalog: Catalog, h: MapSearchHit): string {
-  if (h.kind === 'city') return 'Город';
-  const c = cityById(catalog, h.place.cityId);
-  return c?.name ?? '';
 }
 
 function hitCoords(catalog: Catalog, h: MapSearchHit): [number, number] {
@@ -59,6 +54,7 @@ function filterHits(
   catalog: Catalog,
   query: string,
   limit: number,
+  locale: string,
 ): MapSearchHit[] {
   const q = query.trim();
   if (!q) return [];
@@ -75,7 +71,7 @@ function filterHits(
     .filter((x) => x.s < 99)
     .sort((a, b) => {
       if (a.s !== b.s) return a.s - b.s;
-      return hitName(a.h).localeCompare(hitName(b.h), 'ru');
+      return hitName(a.h).localeCompare(hitName(b.h), locale);
     })
     .slice(0, limit)
     .map((x) => x.h);
@@ -104,14 +100,25 @@ type Props = {
 };
 
 export function MapSearchBar({ catalog, onFlyTo }: Props) {
+  const t = useT();
+  const { locale } = useLocale();
   const listId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
 
+  const hitSubtitle = useCallback(
+    (h: MapSearchHit): string => {
+      if (h.kind === 'city') return t('search.cityKind');
+      const c = cityById(catalog, h.place.cityId);
+      return c?.name ?? '';
+    },
+    [catalog, t],
+  );
+
   const suggestions = useMemo(
-    () => filterHits(catalog, query, SUGGESTION_LIMIT),
-    [catalog, query],
+    () => filterHits(catalog, query, SUGGESTION_LIMIT, locale),
+    [catalog, query, locale],
   );
 
   const exactHit = useMemo(() => findExactHit(catalog, query), [catalog, query]);
@@ -146,7 +153,7 @@ export function MapSearchBar({ catalog, onFlyTo }: Props) {
             id={`${listId}-input`}
             type='search'
             className='map-search__input'
-            placeholder='Город или место из каталога…'
+            placeholder={t('search.placeholder')}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
@@ -171,7 +178,7 @@ export function MapSearchBar({ catalog, onFlyTo }: Props) {
               id={listId}
               className='map-search__list'
               role='listbox'
-              aria-label='Подсказки поиска'
+              aria-label={t('search.ariaSuggestions')}
             >
               {suggestions.map((h) => {
                 const id =
@@ -189,7 +196,7 @@ export function MapSearchBar({ catalog, onFlyTo }: Props) {
                     >
                       <span className='map-search__option-name'>{hitName(h)}</span>
                       <span className='map-search__option-meta'>
-                        {hitSubtitle(catalog, h)}
+                        {hitSubtitle(h)}
                       </span>
                     </button>
                   </li>
@@ -206,7 +213,7 @@ export function MapSearchBar({ catalog, onFlyTo }: Props) {
             if (exactHit) navigateToHit(exactHit);
           }}
         >
-          Перейти
+          {t('search.go')}
         </button>
       </div>
     </div>

@@ -1,20 +1,20 @@
+import { getAppLocale } from '../i18n/localeStore';
+
 export type SearchLanguage = 'ru' | 'en';
 
-/** Язык результатов поиска: кириллица → ru, латиница → en, иначе — язык браузера */
+/** Язык результатов поиска: кириллица → ru, латиница → en, иначе — локаль приложения */
 export function searchLanguageForQuery(query: string): SearchLanguage {
   const q = query.trim();
   if (/[\u0400-\u04FF]/.test(q)) return 'ru';
   if (/[A-Za-z]/.test(q)) return 'en';
-  if (typeof navigator !== 'undefined') {
-    const lang = navigator.language.toLowerCase();
-    if (lang.startsWith('ru')) return 'ru';
-  }
-  return 'en';
+  return getAppLocale();
 }
 
-/** Photon: ru не поддерживается, для en — en, иначе default */
+/** Photon: ru не поддерживается; en для латиницы и локали en, иначе default */
 export function photonLangForQuery(query: string): 'default' | 'en' {
-  return searchLanguageForQuery(query) === 'en' ? 'en' : 'default';
+  if (searchLanguageForQuery(query) === 'en') return 'en';
+  if (getAppLocale() === 'en') return 'en';
+  return 'default';
 }
 
 const ARABIC_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]/;
