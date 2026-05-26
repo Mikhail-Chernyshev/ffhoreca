@@ -8,6 +8,11 @@ import {
 } from 'react';
 import { cityById, placeCoordinates } from '../data/selectors';
 import type { Catalog, City, Place } from '../data/types';
+import {
+  fieldMatchesQuery,
+  normalizeSearchText,
+  searchQueryVariants,
+} from '../lib/transliterate';
 
 export type MapSearchHit =
   | { kind: 'city'; city: City }
@@ -35,13 +40,18 @@ function collectHits(catalog: Catalog): MapSearchHit[] {
   return hits;
 }
 
-function matchScore(name: string, q: string): number {
-  const n = name.toLowerCase();
-  const qq = q.toLowerCase();
-  if (qq === '') return 99;
-  if (n === qq) return 0;
-  if (n.startsWith(qq)) return 1;
-  if (n.includes(qq)) return 2;
+function matchScore(name: string, id: string, q: string): number {
+  const variants = searchQueryVariants(q);
+  if (variants.length === 0) return 99;
+
+  const n = normalizeSearchText(name);
+  const slug = normalizeSearchText(id);
+
+  for (const qq of variants) {
+    if (n === qq || slug === qq) return 0;
+    if (n.startsWith(qq) || slug.startsWith(qq)) return 1;
+    if (fieldMatchesQuery(name, [qq]) || fieldMatchesQuery(id, [qq])) return 2;
+  }
   return 99;
 }
 
@@ -54,7 +64,14 @@ function filterHits(
   if (!q) return [];
   const all = collectHits(catalog);
   return all
-    .map((h) => ({ h, s: matchScore(hitName(h), q) }))
+    .map((h) => ({
+      h,
+      s: matchScore(
+        hitName(h),
+        h.kind === 'city' ? h.city.id : h.place.id,
+        q,
+      ),
+    }))
     .filter((x) => x.s < 99)
     .sort((a, b) => {
       if (a.s !== b.s) return a.s - b.s;
@@ -67,13 +84,13 @@ function filterHits(
 function findExactHit(catalog: Catalog, input: string): MapSearchHit | null {
   const t = input.trim();
   if (!t) return null;
-  const lower = t.toLowerCase();
+  const lower = normalizeSearchText(t);
   const city = catalog.cities.find(
-    (c) => c.name.trim().toLowerCase() === lower,
+    (c) => normalizeSearchText(c.name) === lower,
   );
   if (city) return { kind: 'city', city };
   const place = catalog.places.find(
-    (p) => p.name.trim().toLowerCase() === lower,
+    (p) => normalizeSearchText(p.name) === lower,
   );
   if (place) return { kind: 'place', place };
   return null;

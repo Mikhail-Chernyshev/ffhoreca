@@ -62,7 +62,7 @@ function normalizeCityToken(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/ё/g, 'е');
 }
 
-const PHOTON_NEAREST_MAX_KM = 160;
+const PHOTON_NEAREST_MAX_KM = 35;
 
 /**
  * Подобрать id города из каталога по данным Photon (названия + координаты).

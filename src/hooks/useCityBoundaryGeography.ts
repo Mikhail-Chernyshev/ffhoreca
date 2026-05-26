@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rewindGeoJson } from '../lib/geojsonRewind';
+import {
+  fetchCityBoundaryFromOsm,
+  NOMINATIM_MIN_INTERVAL_MS,
+} from '../lib/fetchCityBoundaryFromOsm';
 import type { City } from '../data/types';
 
 type GeoFeature = {
@@ -93,7 +97,7 @@ function normalizeCityBoundaryJson(raw: unknown): FeatureCollection | null {
   return null;
 }
 
-/** Загружает GeoJSON границ из public/geo/cities/{id}.json и склеивает в один слой. */
+/** Загружает GeoJSON границ из public/geo/cities/{id}.json или OSM (Nominatim). */
 export function useCityBoundaryGeography(cities: City[]): {
   geography: FeatureCollection | null;
   boundaryCityIds: Set<string>;
@@ -108,9 +112,26 @@ export function useCityBoundaryGeography(cities: City[]): {
   useEffect(() => {
     let cancelled = false;
 
+    const addBoundary = (
+      cityId: string,
+      gj: FeatureCollection,
+      loadedIds: Set<string>,
+      allFeatures: FeatureCollection['features'],
+    ) => {
+      rewindGeoJson(gj, true);
+      loadedIds.add(cityId);
+      for (const f of gj.features) {
+        allFeatures.push({
+          ...f,
+          properties: { ...f.properties, _cityId: cityId },
+        });
+      }
+    };
+
     void (async () => {
       const loadedIds = new Set<string>();
       const allFeatures: FeatureCollection['features'] = [];
+      const needsOsm: City[] = [];
 
       await Promise.all(
         cities.map(async (c) => {
@@ -119,31 +140,55 @@ export function useCityBoundaryGeography(cities: City[]): {
             const res = await fetch(
               `${base}/geo/cities/${encodeURIComponent(c.id)}.json`,
             );
-            if (!res.ok) return;
-            const gj = normalizeCityBoundaryJson(await res.json());
-            if (!gj?.features?.length) return;
-            rewindGeoJson(gj, true);
-            loadedIds.add(c.id);
-            for (const f of gj.features) {
-              allFeatures.push({
-                ...f,
-                properties: { ...f.properties, _cityId: c.id },
-              });
+            if (!res.ok) {
+              needsOsm.push(c);
+              return;
             }
+            const gj = normalizeCityBoundaryJson(await res.json());
+            if (!gj?.features?.length) {
+              needsOsm.push(c);
+              return;
+            }
+            addBoundary(c.id, gj, loadedIds, allFeatures);
           } catch {
-            /* нет файла */
+            needsOsm.push(c);
           }
         }),
       );
 
       if (cancelled) return;
 
-      setBoundaryCityIds(loadedIds);
-      if (allFeatures.length > 0) {
-        setGeography({ type: 'FeatureCollection', features: allFeatures });
-      } else {
-        setGeography(null);
+      const publish = () => {
+        setBoundaryCityIds(new Set(loadedIds));
+        if (allFeatures.length > 0) {
+          setGeography({ type: 'FeatureCollection', features: [...allFeatures] });
+        }
+      };
+
+      if (allFeatures.length > 0) publish();
+
+      for (let i = 0; i < needsOsm.length; i++) {
+        if (cancelled) return;
+        if (i > 0) {
+          await new Promise((resolve) => setTimeout(resolve, NOMINATIM_MIN_INTERVAL_MS));
+        }
+        const c = needsOsm[i]!;
+        try {
+          const raw = await fetchCityBoundaryFromOsm(c);
+          if (cancelled || raw == null) continue;
+          const gj = normalizeCityBoundaryJson(raw);
+          if (!gj?.features?.length) continue;
+          addBoundary(c.id, gj, loadedIds, allFeatures);
+          publish();
+        } catch {
+          /* нет полигона в OSM */
+        }
       }
+
+      if (cancelled) return;
+
+      publish();
+      if (allFeatures.length === 0) setGeography(null);
     })();
 
     return () => {

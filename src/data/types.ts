@@ -55,7 +55,7 @@ export interface Catalog {
 }
 
 /** Режим транспорта для пользовательских маршрутов */
-export type UserRouteMode = 'plane' | 'train' | 'bus' | 'boat';
+export type UserRouteMode = 'plane' | 'train' | 'bus' | 'boat' | 'car';
 
 /** Одна точка маршрута */
 export interface RouteWaypoint {

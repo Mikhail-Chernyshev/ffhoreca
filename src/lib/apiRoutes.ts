@@ -46,4 +46,14 @@ export const USER_ROUTE_MODE_LABELS: Record<UserRouteMode, string> = {
   train: '🚆 Поезд',
   bus: '🚌 Автобус',
   boat: '⛴ Водный транспорт',
+  car: '🚗 Автомобиль',
+};
+
+/** Подписи для aria-label (без эмодзи) */
+export const USER_ROUTE_MODE_ARIA: Record<UserRouteMode, string> = {
+  plane: 'Самолёт',
+  train: 'Поезд',
+  bus: 'Автобус',
+  boat: 'Водный транспорт',
+  car: 'Автомобиль',
 };

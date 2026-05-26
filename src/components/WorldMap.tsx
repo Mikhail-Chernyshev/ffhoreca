@@ -115,8 +115,8 @@ const MAP_DEFAULT_ZOOM = 1.42;
 const MAP_DEFAULT_LONGITUDE = 0;
 const MAP_DEFAULT_LATITUDE = 18;
 
-/** Заливка стран только на обзорном зуме; при приближении скрывается (слой maxzoom). */
-const COUNTRY_FILL_LAYER_MAX_ZOOM = 5;
+/** Заливка стран на обзорном и среднем зуме; при сильном приближении скрывается (слой maxzoom). */
+const COUNTRY_FILL_LAYER_MAX_ZOOM = 7.5;
 /** При клике по городу — уровень «район / улицы» (тайлы сами подтянут дорожную сеть). */
 const CITY_FOCUS_ZOOM = 12.5;
 /** Рыбный текст блока «О проекте» (заменить на реальное описание). */

@@ -81,6 +81,21 @@ export function upsertPlace(db: Database.Database, place: Place): void {
   ).run({ id: place.id, json: JSON.stringify(place) });
 }
 
+export function deleteCity(db: Database.Database, id: string): boolean {
+  const r = db.prepare('DELETE FROM cities WHERE id = ?').run(id);
+  return r.changes > 0;
+}
+
+export function countPlacesInCity(db: Database.Database, cityId: string): number {
+  const rows = db.prepare('SELECT json FROM places').all() as { json: string }[];
+  let n = 0;
+  for (const row of rows) {
+    const p = JSON.parse(row.json) as Place;
+    if (p.cityId === cityId) n++;
+  }
+  return n;
+}
+
 export function upsertCity(db: Database.Database, city: City): void {
   db.prepare(
     'INSERT INTO cities (id, json) VALUES (@id, @json) ON CONFLICT(id) DO UPDATE SET json = excluded.json',

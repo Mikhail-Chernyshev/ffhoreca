@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { City } from '../data/types';
+import { cityMatchesQuery } from '../lib/transliterate';
 
 type Props = {
   cities: City[];
@@ -22,16 +23,9 @@ export function CitySearchSelect({
   const selected = cities.find((c) => c.id === value);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase().replace(/ё/g, 'е');
+    const q = query.trim();
     if (!q) return cities;
-    return cities.filter((c) => {
-      const name = c.name.toLowerCase().replace(/ё/g, 'е');
-      return (
-        name.includes(q) ||
-        c.countryCode.toLowerCase().includes(q) ||
-        c.id.toLowerCase().includes(q)
-      );
-    });
+    return cities.filter((c) => cityMatchesQuery(c, q));
   }, [cities, query]);
 
   const pick = (city: City) => {
@@ -46,7 +40,7 @@ export function CitySearchSelect({
         type="text"
         className="add-place-form__input"
         value={open ? query : (selected?.name ?? query)}
-        placeholder={selected ? selected.name : placeholder}
+        placeholder={placeholder}
         required={required && !value}
         autoComplete="off"
         onFocus={() => {

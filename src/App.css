@@ -305,12 +305,11 @@
 }
 
 .app-admin-actions {
-  position: fixed;
-  top: 0.75rem;
-  right: 0.75rem;
-  z-index: 40;
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
 }
 
 .app-admin-add {
@@ -1926,6 +1925,67 @@
 }
 
 /* ---- Модалка добавления маршрута ---- */
+.add-route-mode-fieldset {
+  margin-bottom: 1rem;
+}
+
+.add-route-mode-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.add-route-mode-picker__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid var(--border, #d1d5db);
+  border-radius: 10px;
+  background: var(--surface, #fff);
+  color: var(--text-muted, #64748b);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.add-route-mode-picker__option:hover {
+  border-color: var(--accent, #2563eb);
+  color: var(--text, #1e293b);
+}
+
+.add-route-mode-picker__option--active {
+  border-color: var(--accent, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.add-route-mode-picker__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .add-route-mode-picker__option {
+    background: rgba(255, 255, 255, 0.04);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: #94a3b8;
+  }
+
+  .add-route-mode-picker__option--active {
+    background: rgba(96, 165, 250, 0.12);
+    border-color: #60a5fa;
+    color: #93c5fd;
+    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
+  }
+}
+
 .add-route-waypoints {
   margin-bottom: 1rem;
 }

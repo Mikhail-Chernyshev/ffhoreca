@@ -8,6 +8,7 @@ import {
 import type { Catalog, City, Place, PlaceCategory } from '../data/types';
 import { catalogCityIdFromPhotonHints } from '../data/selectors';
 import { validateNewPlaceRequired } from '../lib/validateNewPlaceForm';
+import { makeCityId } from '../lib/makeCityId';
 import { searchPhotonAddresses, type AddressSuggestion } from '../lib/photonAddressSearch';
 
 type Props = {
@@ -81,16 +82,6 @@ function buildPlace(form: {
     lng,
     lat,
   };
-}
-
-/** Генерируем id города из кода страны + нормализованного названия */
-function makeCityId(countryCode: string, cityName: string): string {
-  const slug = cityName
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-zа-яё0-9-]/gi, '')
-    .slice(0, 40);
-  return `${countryCode.toLowerCase()}-${slug}`;
 }
 
 export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
@@ -184,6 +175,33 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     };
   }, [placeSearchQuery, cityCenter]);
 
+  const resolveCityFromCatalogOrCreate = (
+    name: string,
+    cc: string,
+    coords: { lat: number; lng: number },
+  ): string => {
+    const norm = (str: string) =>
+      str.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+    const nameNorm = norm(name);
+    const existing = allCities.find(
+      (c) => c.countryCode.toUpperCase() === cc && norm(c.name) === nameNorm,
+    );
+    if (existing) return existing.id;
+
+    const newId = makeCityId(cc, name);
+    if (!localCities.some((c) => c.id === newId)) {
+      const newCity: City = {
+        id: newId,
+        name,
+        countryCode: cc,
+        lat: Math.round(coords.lat * 1e4) / 1e4,
+        lng: Math.round(coords.lng * 1e4) / 1e4,
+      };
+      setLocalCities((prev) => [...prev, newCity]);
+    }
+    return newId;
+  };
+
   const applyPlaceSuggestion = (s: AddressSuggestion) => {
     setName(s.placeName);
     setAddress(s.label);
@@ -192,35 +210,27 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     if (s.googleRating != null) setRating(String(s.googleRating));
 
     let resolvedCityId: string | undefined;
+    const cc = s.countryCodeOsm?.toUpperCase();
 
-    if (s.cityName && s.countryCodeOsm) {
-      // Google Places вернул название города — ищем только по имени+стране,
-      // БЕЗ дистанционного фолбека (иначе всегда найдётся «ближайший» чужой город).
-      const cc = s.countryCodeOsm.toUpperCase();
+    if (s.cityName && cc) {
+      resolvedCityId = resolveCityFromCatalogOrCreate(s.cityName, cc, s);
+    } else if (cc && s.localityHints.length > 0) {
+      // Есть подсказки из Google, но нет locality — ищем по имени, без «ближайшего города»
       const norm = (str: string) =>
         str.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
-      const nameNorm = norm(s.cityName);
-      resolvedCityId = allCities.find(
-        (c) => c.countryCode.toUpperCase() === cc && norm(c.name) === nameNorm,
-      )?.id;
-
-      if (!resolvedCityId) {
-        // Не нашли в каталоге — создаём на лету
-        const newId = makeCityId(s.countryCodeOsm, s.cityName);
-        if (!localCities.some((c) => c.id === newId)) {
-          const newCity: City = {
-            id: newId,
-            name: s.cityName,
-            countryCode: cc,
-            lat: Math.round(s.lat * 1e4) / 1e4,
-            lng: Math.round(s.lng * 1e4) / 1e4,
-          };
-          setLocalCities((prev) => [...prev, newCity]);
+      for (const hint of s.localityHints) {
+        const match = allCities.find(
+          (c) => c.countryCode.toUpperCase() === cc && norm(c.name) === norm(hint),
+        );
+        if (match) {
+          resolvedCityId = match.id;
+          break;
         }
-        resolvedCityId = newId;
+      }
+      if (!resolvedCityId) {
+        resolvedCityId = resolveCityFromCatalogOrCreate(s.localityHints[0]!, cc, s);
       }
     } else {
-      // Нет данных о городе из Google — старый метод (имя + дистанция)
       resolvedCityId = catalogCityIdFromPhotonHints(
         { cities: allCities, places: catalog.places },
         s.lat,

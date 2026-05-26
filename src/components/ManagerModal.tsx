@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { Catalog, Place, TravelRoute } from '../data/types';
+import type { Catalog, City, Place, TravelRoute } from '../data/types';
 import { CATEGORY_LABELS } from './PlaceModal';
 import { ConfirmModal } from './ConfirmModal';
 import { USER_ROUTE_MODE_LABELS, deleteRouteById } from '../lib/apiRoutes';
+import { deleteCityById } from '../lib/apiCities';
 import { cityById } from '../data/selectors';
 
-type Tab = 'routes' | 'places';
+type Tab = 'routes' | 'places' | 'cities';
 
 type Props = {
   routes: TravelRoute[];
   catalog: Catalog;
   onClose: () => void;
   onRoutesChanged: () => void;
+  onCitiesChanged: () => void;
   onDeletePlace: (id: string) => Promise<boolean>;
   onEditPlace: (place: Place) => void;
 };
@@ -21,6 +23,39 @@ type ConfirmState = {
   message: string;
   onConfirm: () => Promise<void>;
 } | null;
+
+// ---------------------------------------------------------------------------
+// Строка города
+// ---------------------------------------------------------------------------
+function CityRow({
+  city,
+  placesCount,
+  onDeleteRequest,
+}: {
+  city: City;
+  placesCount: number;
+  onDeleteRequest: (city: City) => void;
+}) {
+  return (
+    <div className="manager-row">
+      <div className="manager-row__main">
+        <span className="manager-row__title">{city.name}</span>
+        <span className="manager-row__meta">
+          {city.countryCode} · {city.lat.toFixed(2)}, {city.lng.toFixed(2)}
+          {placesCount > 0 ? ` · ${placesCount} мест` : ''}
+        </span>
+      </div>
+      <button
+        type="button"
+        className="manager-row__delete"
+        onClick={() => onDeleteRequest(city)}
+        aria-label={`Удалить город ${city.name}`}
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Строка маршрута
@@ -99,6 +134,7 @@ export function ManagerModal({
   catalog,
   onClose,
   onRoutesChanged,
+  onCitiesChanged,
   onDeletePlace,
   onEditPlace,
 }: Props) {
@@ -158,6 +194,28 @@ export function ManagerModal({
     });
   };
 
+  const requestDeleteCity = (city: City) => {
+    const placesCount = catalog.places.filter((p) => p.cityId === city.id).length;
+    if (placesCount > 0) {
+      window.alert(
+        `Город «${city.name}» нельзя удалить: в нём ${placesCount} мест(а). Сначала удалите места.`,
+      );
+      return;
+    }
+    setConfirm({
+      title: 'Удалить город?',
+      message: `Город «${city.name}» будет удалён из каталога.`,
+      onConfirm: async () => {
+        const r = await deleteCityById(city.id);
+        if (!r.ok) {
+          window.alert(r.message);
+          return;
+        }
+        onCitiesChanged();
+      },
+    });
+  };
+
   // Места по странам
   const placesByCountry = catalog.places.reduce<Record<string, Place[]>>((acc, p) => {
     const key = p.countryCode || '??';
@@ -198,6 +256,13 @@ export function ManagerModal({
             >
               Места ({catalog.places.length})
             </button>
+            <button
+              type="button"
+              className={`manager-tabs__btn${tab === 'cities' ? ' manager-tabs__btn--active' : ''}`}
+              onClick={() => setTab('cities')}
+            >
+              Города ({catalog.cities.length})
+            </button>
           </div>
 
           <div className="manager-content">
@@ -229,6 +294,21 @@ export function ManagerModal({
                       })}
                     </div>
                   ))
+            )}
+
+            {tab === 'cities' && (
+              catalog.cities.length === 0
+                ? <p className="manager-empty">Городов пока нет.</p>
+                : [...catalog.cities]
+                    .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+                    .map((city) => (
+                      <CityRow
+                        key={city.id}
+                        city={city}
+                        placesCount={catalog.places.filter((p) => p.cityId === city.id).length}
+                        onDeleteRequest={requestDeleteCity}
+                      />
+                    ))
             )}
           </div>
         </div>

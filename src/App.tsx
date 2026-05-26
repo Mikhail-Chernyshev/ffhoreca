@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { AddCityModal } from './components/AddCityModal'
 import { AddPlaceModal } from './components/AddPlaceModal'
 import { AddRouteModal } from './components/AddRouteModal'
 import { ManagerModal } from './components/ManagerModal'
@@ -51,6 +52,7 @@ function App() {
   )
   const [remoteCatalog, setRemoteCatalog] = useState<Catalog | null>(null)
   const [catalogLoadError, setCatalogLoadError] = useState(false)
+  const [addCityOpen, setAddCityOpen] = useState(false)
   const [addPlaceOpen, setAddPlaceOpen] = useState(false)
   const [addRouteOpen, setAddRouteOpen] = useState(false)
   const [managerOpen, setManagerOpen] = useState(false)
@@ -279,8 +281,20 @@ function App() {
         </p>
       ) : null}
 
+      <header className="app-header">
+        <h1 className="app-title">Tips from trips</h1>
+        <p className="app-tagline">
+          Места, где мы были: отели, гостевые, бары и рестораны по миру
+        </p>
+      </header>
+
+      <CategoryTabs value={filter} onChange={setFilter} />
+
       {adminMode ? (
         <div className="app-admin-actions">
+          <button type="button" className="app-admin-add" onClick={() => setAddCityOpen(true)}>
+            + Город
+          </button>
           <button type="button" className="app-admin-add" onClick={() => setAddPlaceOpen(true)}>
             + Место
           </button>
@@ -292,15 +306,6 @@ function App() {
           </button>
         </div>
       ) : null}
-
-      <header className="app-header">
-        <h1 className="app-title">Tips from trips</h1>
-        <p className="app-tagline">
-          Места, где мы были: отели, гостевые, бары и рестораны по миру
-        </p>
-      </header>
-
-      <CategoryTabs value={filter} onChange={setFilter} />
 
       <MapSearchBar catalog={catalogMerged} onFlyTo={flyToOnMap} />
 
@@ -323,6 +328,21 @@ function App() {
         onPlaceDeleted={adminMode ? handlePlaceDeleted : undefined}
       />
       <CityModal city={selectedCity} onClose={() => setSelectedCity(null)} />
+      {addCityOpen ? (
+        <AddCityModal
+          catalog={catalogMerged}
+          onClose={() => setAddCityOpen(false)}
+          onSaved={async () => {
+            if (apiConfigured) {
+              try {
+                setRemoteCatalog(await fetchCatalogFromApi())
+              } catch {
+                /* оставляем старый remoteCatalog */
+              }
+            }
+          }}
+        />
+      ) : null}
       {addPlaceOpen ? (
         <AddPlaceModal
           onClose={() => setAddPlaceOpen(false)}
@@ -337,6 +357,12 @@ function App() {
           onClose={() => setManagerOpen(false)}
           onRoutesChanged={() => {
             void fetchRoutes().then((r) => setUserRoutes(r)).catch(() => {})
+          }}
+          onCitiesChanged={() => {
+            if (!apiConfigured) return
+            void fetchCatalogFromApi()
+              .then((c) => setRemoteCatalog(c))
+              .catch(() => {})
           }}
           onDeletePlace={handlePlaceDeleted}
           onEditPlace={(place) => { setSelectedPlace(place); }}

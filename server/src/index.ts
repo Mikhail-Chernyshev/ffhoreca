@@ -9,7 +9,7 @@ loadEnv({ path: path.resolve(process.cwd(), '.env.local'), override: true });
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { deletePlace, deleteRoute, getCatalog, getRoutes, openDatabase, upsertCity, upsertPlace, upsertRoute } from './db';
+import { deletePlace, deleteRoute, deleteCity, countPlacesInCity, getCatalog, getRoutes, openDatabase, upsertCity, upsertPlace, upsertRoute } from './db';
 import type { City, TravelRoute, UserRouteMode } from '../../src/data/types';
 import { isValidPlace } from './validatePlace';
 
@@ -47,7 +47,7 @@ app.use(
   }),
 );
 
-const ROUTE_MODES = new Set<UserRouteMode>(['plane', 'train', 'bus', 'boat']);
+const ROUTE_MODES = new Set<UserRouteMode>(['plane', 'train', 'bus', 'boat', 'car']);
 
 function isValidCity(x: unknown): x is City {
   if (x == null || typeof x !== 'object') return false;
@@ -85,6 +85,57 @@ app.get('/api/catalog', (c) => {
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     return c.json({ error: msg }, 500);
+  }
+});
+
+app.post('/api/cities', async (c) => {
+  if (!ADMIN_TOKEN) {
+    return c.json({ error: 'ADMIN_TOKEN не задан на сервере' }, 503);
+  }
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: 'Некорректный JSON' }, 400);
+  }
+  if (body == null || typeof body !== 'object') {
+    return c.json({ error: 'Ожидается объект' }, 400);
+  }
+  const rec = body as Record<string, unknown>;
+  if (rec.token !== ADMIN_TOKEN) {
+    return c.json({ error: 'Неверный token' }, 401);
+  }
+  if (!isValidCity(rec.city)) {
+    return c.json({ error: 'Некорректное тело city' }, 400);
+  }
+  try {
+    upsertCity(db, rec.city);
+    return c.json({ city: rec.city }, 201);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return c.json({ error: msg }, 500);
+  }
+});
+
+app.delete('/api/cities/:id', async (c) => {
+  if (!ADMIN_TOKEN) return c.json({ error: 'ADMIN_TOKEN не задан на сервере' }, 503);
+  const token = c.req.header('X-Admin-Token') ?? '';
+  if (token !== ADMIN_TOKEN) return c.json({ error: 'Неверный token' }, 401);
+  const id = c.req.param('id')?.trim() ?? '';
+  if (!id) return c.json({ error: 'Нужен id города' }, 400);
+  try {
+    const placesCount = countPlacesInCity(db, id);
+    if (placesCount > 0) {
+      return c.json(
+        { error: `В городе ${placesCount} мест(а). Сначала удалите их.` },
+        409,
+      );
+    }
+    const removed = deleteCity(db, id);
+    if (!removed) return c.json({ error: 'Город не найден' }, 404);
+    return c.json({ ok: true, id });
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
 
@@ -242,6 +293,8 @@ app.delete('/api/routes/:id', async (c) => {
 
 console.log(`ffhoreca API http://localhost:${PORT}`);
 console.log('  GET  /api/catalog');
+console.log('  POST /api/cities         { token, city }');
+console.log('  DELETE /api/cities/:id   X-Admin-Token header');
 console.log('  POST /api/places         { token, place }');
 console.log('  POST /api/places/delete  { token, id }');
 console.log('  GET  /api/routes');

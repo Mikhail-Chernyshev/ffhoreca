@@ -1,3 +1,5 @@
+import { searchLanguageForQuery, photonLangForQuery } from './searchLocale';
+
 /**
  * Поиск мест для модалки «Новое место».
  *
@@ -54,29 +56,71 @@ function parseGooglePlace(p: GooglePlace): AddressSuggestion | null {
   let countryCodeOsm: string | undefined;
   let cityName: string | undefined;
 
-  for (const comp of p.addressComponents ?? []) {
+  const hintTypes = new Set([
+    'locality',
+    'postal_town',
+    'sublocality',
+    'sublocality_level_1',
+    'neighborhood',
+    'colloquial_area',
+    'administrative_area_level_4',
+    'administrative_area_level_3',
+    'administrative_area_level_2',
+  ]);
+
+  /** Приоритет названия «города» если Google не вернул locality (напр. Lovina Beach → neighborhood) */
+  const cityNameTypes = [
+    'locality',
+    'postal_town',
+    'neighborhood',
+    'colloquial_area',
+    'sublocality',
+    'sublocality_level_1',
+    'administrative_area_level_4',
+    'administrative_area_level_3',
+    'administrative_area_level_2',
+  ] as const;
+
+  const components = p.addressComponents ?? [];
+
+  for (const comp of components) {
     const types = comp.types ?? [];
-    const longText = comp.longText ?? '';
-    const shortText = comp.shortText ?? '';
+    const longText = comp.longText?.trim() ?? '';
+    const shortText = comp.shortText?.trim() ?? '';
     if (types.includes('country') && shortText.length === 2) {
       countryCodeOsm = shortText.toUpperCase();
     }
     if (!longText) continue;
-    if (types.includes('locality')) {
-      // locality — самый точный уровень города (напр. «Санкт-Петербург»)
-      if (!cityName) cityName = longText;
-      localityHints.unshift(longText); // locality — приоритетнее остальных
-    } else if (
-      types.includes('sublocality') ||
-      types.includes('administrative_area_level_2') ||
-      types.includes('administrative_area_level_1')
-    ) {
+    if (types.some((t) => hintTypes.has(t))) {
       localityHints.push(longText);
     }
   }
 
+  const uniqueHints = [...new Set(localityHints)];
+
+  for (const priorityType of cityNameTypes) {
+    for (const comp of components) {
+      const types = comp.types ?? [];
+      const longText = comp.longText?.trim();
+      if (types.includes(priorityType) && longText) {
+        cityName = longText;
+        break;
+      }
+    }
+    if (cityName) break;
+  }
+
   const googleRating = typeof p.rating === 'number' ? p.rating : undefined;
-  return { placeName, label, lng, lat, localityHints, countryCodeOsm, cityName, googleRating };
+  return {
+    placeName,
+    label,
+    lng,
+    lat,
+    localityHints: uniqueHints,
+    countryCodeOsm,
+    cityName,
+    googleRating,
+  };
 }
 
 async function searchGooglePlaces(
@@ -87,7 +131,7 @@ async function searchGooglePlaces(
 ): Promise<AddressSuggestion[]> {
   const body: Record<string, unknown> = {
     textQuery: query,
-    languageCode: 'ru',
+    languageCode: searchLanguageForQuery(query),
     maxResultCount: 10,
   };
 
@@ -179,7 +223,11 @@ async function searchPhoton(
   bias: { lat: number; lng: number } | undefined,
   signal?: AbortSignal,
 ): Promise<AddressSuggestion[]> {
-  const params = new URLSearchParams({ q: query, limit: '10', lang: 'ru' });
+  const params = new URLSearchParams({
+    q: query,
+    limit: '10',
+    lang: photonLangForQuery(query),
+  });
   if (bias) {
     params.set('lat', String(bias.lat));
     params.set('lon', String(bias.lng));
