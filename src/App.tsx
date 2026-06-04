@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AddCityModal } from './components/AddCityModal'
 import { AddPlaceModal } from './components/AddPlaceModal'
 import { AddRouteModal } from './components/AddRouteModal'
@@ -35,6 +36,10 @@ import {
   saveDeletedPlaceIds,
 } from './lib/adminDeletedPlaceIdsStorage'
 import { LocaleToggle } from './components/LocaleToggle'
+import { AuthButton } from './components/AuthButton'
+import { UsernameModal } from './components/UsernameModal'
+import { FavoritesModal } from './components/FavoritesModal'
+import { useCurrentUser } from './hooks/useCurrentUser'
 import { useT } from './i18n/LocaleContext'
 import './App.css'
 
@@ -42,6 +47,7 @@ const EMPTY_CATALOG: Catalog = { cities: [], places: [] }
 
 function App() {
   const t = useT()
+  const navigate = useNavigate()
   const apiConfiguredAtInit = apiBaseUrl() !== ''
 
   const [filter, setFilter] = useState<CategoryFilter>('all')
@@ -62,7 +68,17 @@ function App() {
   const [userRoutes, setUserRoutes] = useState<TravelRoute[]>([])
   const [routesLoaded, setRoutesLoaded] = useState(!apiConfiguredAtInit)
   const mapRef = useRef<WorldMapRef>(null)
-  const adminMode = useAdminMode()
+  const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser()
+  const adminMode = useAdminMode(currentUser?.email)
+  const [showUsernameModal, setShowUsernameModal] = useState(false)
+  const [favoritesOpen, setFavoritesOpen] = useState(false)
+
+  // Show username modal for first-time users who haven't picked a username yet
+  useEffect(() => {
+    if (currentUser && !currentUser.username && !authLoading) {
+      setShowUsernameModal(true)
+    }
+  }, [currentUser, authLoading])
 
   const apiConfigured = apiBaseUrl() !== ''
 
@@ -282,9 +298,21 @@ function App() {
       ) : null}
 
       <header className="app-header">
-        <LocaleToggle />
-        <h1 className="app-title">Tips from trips</h1>
-        <p className="app-tagline">{t('app.tagline')}</p>
+        <div className="app-header__left">
+          <LocaleToggle />
+        </div>
+        <div className="app-header__center">
+          <h1 className="app-title">Tips from trips</h1>
+          <p className="app-tagline">{t('app.tagline')}</p>
+        </div>
+        <div className="app-header__right">
+          <AuthButton
+            user={currentUser}
+            loading={authLoading}
+            onLogout={handleLogout}
+            onOpenFavorites={() => setFavoritesOpen(true)}
+          />
+        </div>
       </header>
 
       <CategoryTabs value={filter} onChange={setFilter} />
@@ -374,6 +402,24 @@ function App() {
           onSaved={() => {
             void fetchRoutes().then((routes) => setUserRoutes(routes)).catch(() => {})
           }}
+        />
+      ) : null}
+      {showUsernameModal && currentUser ? (
+        <UsernameModal
+          user={currentUser}
+          onSave={(updated) => {
+            void refetchUser();
+            setShowUsernameModal(false);
+            if (updated.username) navigate(`/@${updated.username}`);
+          }}
+          onSkip={() => setShowUsernameModal(false)}
+        />
+      ) : null}
+      {favoritesOpen && currentUser ? (
+        <FavoritesModal
+          currentUser={currentUser}
+          onClose={() => setFavoritesOpen(false)}
+          onOpenProfile={(username) => { setFavoritesOpen(false); navigate(`/@${username}`); }}
         />
       ) : null}
       </div>

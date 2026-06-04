@@ -9,9 +9,24 @@ loadEnv({ path: path.resolve(process.cwd(), '.env.local'), override: true });
 import { serve } from '@hono/node-server';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { deletePlace, deleteRoute, deleteCity, countPlacesInCity, getCatalog, getRoutes, openDatabase, upsertCity, upsertPlace, upsertRoute } from './db';
+import type { Context, Next } from 'hono';
+import {
+  deletePlace, deleteRoute, deleteCity, countPlacesInCity,
+  getCatalog, getRoutes, openDatabase,
+  upsertCity, upsertPlace, upsertRoute,
+  findUserByGoogleId, findUserById, findUserByUsername,
+  createUser, updateUser, isUsernameAvailable, searchUsers,
+  getUserCatalog, getUserRoutes,
+  upsertUserCity, deleteUserCity, countUserPlacesInCity,
+  upsertUserPlace, deleteUserPlace,
+  upsertUserRoute, deleteUserRoute,
+  addFavorite, removeFavorite, getFavorites, isFavorite,
+  type DbUser,
+} from './db';
 import type { City, TravelRoute, UserRouteMode } from '../../src/data/types';
 import { isValidPlace } from './validatePlace';
+import { signJWT, verifyJWT, getGoogleAuthUrl, exchangeGoogleCode } from './auth';
+import { v4 as uuidv4 } from 'uuid';
 
 const PORT = Number(process.env.PORT ?? 3001);
 const DATABASE_PATH = path.resolve(
@@ -24,6 +39,26 @@ const ADMIN_TOKEN = (
   process.env.ADMIN_TOKEN ?? process.env.VITE_ADMIN_TOKEN ??
   ''
 ).trim();
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? '';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? `http://localhost:${PORT}/api/auth/google/callback`;
+const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
+
+const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,29}$/i;
+
+/** Проверяет Authorization: Bearer JWT и возвращает true если это email-admin. */
+async function isAdminByJWT(c: Context): Promise<boolean> {
+  if (!ADMIN_EMAIL) return false;
+  const header = c.req.header('Authorization') ?? '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (!token) return false;
+  const payload = await verifyJWT(token);
+  if (!payload) return false;
+  const user = findUserById(db, payload.sub);
+  return !!user && (user.email ?? '').toLowerCase() === ADMIN_EMAIL;
+}
 
 /** Несколько origin через запятую: локалка + прод на GitHub Pages.
  * Для Pages в браузере Origin всегда `https://username.github.io` (без `/repo`). */
@@ -43,9 +78,31 @@ app.use(
   cors({
     origin: corsOriginOption(),
     allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'X-Admin-Token'],
+    allowHeaders: ['Content-Type', 'X-Admin-Token', 'Authorization'],
+    credentials: true,
   }),
 );
+
+// ---- Auth middleware -------------------------------------------------------
+
+type HonoEnv = { Variables: { user: DbUser } };
+const authApp = new Hono<HonoEnv>();
+
+async function requireAuth(c: Context<HonoEnv>, next: Next) {
+  const header = c.req.header('Authorization') ?? '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (!token) return c.json({ error: 'Требуется авторизация' }, 401);
+  const payload = await verifyJWT(token);
+  if (!payload) return c.json({ error: 'Недействительный токен' }, 401);
+  const user = findUserById(db, payload.sub);
+  if (!user) return c.json({ error: 'Пользователь не найден' }, 401);
+  c.set('user', user);
+  await next();
+}
+
+function serializeUser(u: DbUser) {
+  return { id: u.id, username: u.username, name: u.name, avatar: u.avatar, email: u.email };
+}
 
 const ROUTE_MODES = new Set<UserRouteMode>(['plane', 'train', 'bus', 'boat', 'car']);
 
@@ -89,38 +146,25 @@ app.get('/api/catalog', (c) => {
 });
 
 app.post('/api/cities', async (c) => {
-  if (!ADMIN_TOKEN) {
-    return c.json({ error: 'ADMIN_TOKEN не задан на сервере' }, 503);
-  }
   let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'Некорректный JSON' }, 400);
-  }
-  if (body == null || typeof body !== 'object') {
-    return c.json({ error: 'Ожидается объект' }, 400);
-  }
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
   const rec = body as Record<string, unknown>;
-  if (rec.token !== ADMIN_TOKEN) {
-    return c.json({ error: 'Неверный token' }, 401);
-  }
-  if (!isValidCity(rec.city)) {
-    return c.json({ error: 'Некорректное тело city' }, 400);
-  }
+  const tokenOk = ADMIN_TOKEN && rec.token === ADMIN_TOKEN;
+  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!isValidCity(rec.city)) return c.json({ error: 'Некорректное тело city' }, 400);
   try {
     upsertCity(db, rec.city);
     return c.json({ city: rec.city }, 201);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return c.json({ error: msg }, 500);
+    return c.json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
 
 app.delete('/api/cities/:id', async (c) => {
-  if (!ADMIN_TOKEN) return c.json({ error: 'ADMIN_TOKEN не задан на сервере' }, 503);
   const token = c.req.header('X-Admin-Token') ?? '';
-  if (token !== ADMIN_TOKEN) return c.json({ error: 'Неверный token' }, 401);
+  const tokenOk = ADMIN_TOKEN && token === ADMIN_TOKEN;
+  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
   const id = c.req.param('id')?.trim() ?? '';
   if (!id) return c.json({ error: 'Нужен id города' }, 400);
   try {
@@ -140,68 +184,37 @@ app.delete('/api/cities/:id', async (c) => {
 });
 
 app.post('/api/places', async (c) => {
-  if (!ADMIN_TOKEN) {
-    return c.json({ error: 'ADMIN_TOKEN не задан на сервере' }, 503);
-  }
   let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'Некорректный JSON' }, 400);
-  }
-  if (body == null || typeof body !== 'object') {
-    return c.json({ error: 'Ожидается объект' }, 400);
-  }
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
   const rec = body as Record<string, unknown>;
-  if (rec.token !== ADMIN_TOKEN) {
-    return c.json({ error: 'Неверный token' }, 401);
-  }
-  if (!isValidPlace(rec.place)) {
-    return c.json({ error: 'Некорректное тело place' }, 400);
-  }
+  const tokenOk = ADMIN_TOKEN && rec.token === ADMIN_TOKEN;
+  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!isValidPlace(rec.place)) return c.json({ error: 'Некорректное тело place' }, 400);
   try {
-    // Если передан город — сохраняем его (чтобы маркер города появился на карте)
-    if (isValidCity(rec.city)) {
-      upsertCity(db, rec.city);
-    }
+    if (isValidCity(rec.city)) upsertCity(db, rec.city);
     upsertPlace(db, rec.place);
     return c.json({ place: rec.place }, 201);
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return c.json({ error: msg }, 500);
+    return c.json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
 
 app.post('/api/places/delete', async (c) => {
-  if (!ADMIN_TOKEN) {
-    return c.json({ error: 'ADMIN_TOKEN не задан на сервере' }, 503);
-  }
   let body: unknown;
-  try {
-    body = await c.req.json();
-  } catch {
-    return c.json({ error: 'Некорректный JSON' }, 400);
-  }
-  if (body == null || typeof body !== 'object') {
-    return c.json({ error: 'Ожидается объект' }, 400);
-  }
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
   const rec = body as Record<string, unknown>;
-  if (rec.token !== ADMIN_TOKEN) {
-    return c.json({ error: 'Неверный token' }, 401);
-  }
+  const tokenOk = ADMIN_TOKEN && rec.token === ADMIN_TOKEN;
+  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
   const id = typeof rec.id === 'string' ? rec.id.trim() : '';
-  if (!id) {
-    return c.json({ error: 'Нужен непустой id' }, 400);
-  }
+  if (!id) return c.json({ error: 'Нужен непустой id' }, 400);
   try {
     const removed = deletePlace(db, id);
-    if (!removed) {
-      return c.json({ error: 'Место не найдено' }, 404);
-    }
+    if (!removed) return c.json({ error: 'Место не найдено' }, 404);
     return c.json({ ok: true, id });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return c.json({ error: msg }, 500);
+    return c.json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
 
@@ -211,9 +224,9 @@ const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'im
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 app.post('/api/photos', async (c) => {
-  if (!ADMIN_TOKEN) return c.json({ error: 'ADMIN_TOKEN не задан' }, 503);
   const token = c.req.header('X-Admin-Token') ?? '';
-  if (token !== ADMIN_TOKEN) return c.json({ error: 'Неверный token' }, 401);
+  const tokenOk = ADMIN_TOKEN && token === ADMIN_TOKEN;
+  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
 
   let formData: FormData;
   try { formData = await c.req.formData(); } catch { return c.json({ error: 'Ожидается multipart/form-data' }, 400); }
@@ -262,12 +275,12 @@ app.get('/api/routes', (c) => {
 });
 
 app.post('/api/routes', async (c) => {
-  if (!ADMIN_TOKEN) return c.json({ error: 'ADMIN_TOKEN не задан на сервере' }, 503);
   let body: unknown;
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
   if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
   const rec = body as Record<string, unknown>;
-  if (rec.token !== ADMIN_TOKEN) return c.json({ error: 'Неверный token' }, 401);
+  const tokenOk = ADMIN_TOKEN && rec.token === ADMIN_TOKEN;
+  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
   if (!isValidRoute(rec.route)) return c.json({ error: 'Некорректный маршрут' }, 400);
   try {
     upsertRoute(db, rec.route);
@@ -278,9 +291,9 @@ app.post('/api/routes', async (c) => {
 });
 
 app.delete('/api/routes/:id', async (c) => {
-  if (!ADMIN_TOKEN) return c.json({ error: 'ADMIN_TOKEN не задан на сервере' }, 503);
   const token = c.req.header('X-Admin-Token') ?? '';
-  if (token !== ADMIN_TOKEN) return c.json({ error: 'Неверный token' }, 401);
+  const tokenOk = ADMIN_TOKEN && token === ADMIN_TOKEN;
+  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
   const id = c.req.param('id');
   try {
     const removed = deleteRoute(db, id);
@@ -289,6 +302,229 @@ app.delete('/api/routes/:id', async (c) => {
   } catch (e) {
     return c.json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
+});
+
+// ---- Google OAuth ----------------------------------------------------------
+
+app.get('/api/auth/google', (c) => {
+  if (!GOOGLE_CLIENT_ID) return c.json({ error: 'Google OAuth не настроен' }, 503);
+  return c.redirect(getGoogleAuthUrl(GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI));
+});
+
+app.get('/api/auth/google/callback', async (c) => {
+  const code = c.req.query('code') ?? '';
+  const error = c.req.query('error');
+  if (error || !code) {
+    return c.redirect(`${FRONTEND_URL}?auth_error=${encodeURIComponent(error ?? 'no_code')}`);
+  }
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    return c.redirect(`${FRONTEND_URL}?auth_error=not_configured`);
+  }
+
+  try {
+    const gUser = await exchangeGoogleCode(code, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
+    if (!gUser) return c.redirect(`${FRONTEND_URL}?auth_error=exchange_failed`);
+
+    let user = findUserByGoogleId(db, gUser.sub);
+    if (!user) {
+      user = createUser(db, {
+        id: uuidv4(),
+        google_id: gUser.sub,
+        email: gUser.email ?? null,
+        name: gUser.name,
+        username: null,
+        avatar: gUser.picture ?? null,
+      });
+    } else {
+      // Обновляем аватар/имя если изменились
+      user = updateUser(db, user.id, { name: gUser.name, avatar: gUser.picture ?? null }) ?? user;
+    }
+
+    const jwt = await signJWT(user.id);
+    return c.redirect(`${FRONTEND_URL}?auth_token=${encodeURIComponent(jwt)}`);
+  } catch (e) {
+    console.error('OAuth callback error:', e);
+    return c.redirect(`${FRONTEND_URL}?auth_error=server_error`);
+  }
+});
+
+app.get('/api/auth/me', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  return c.json({ user: serializeUser(user) });
+});
+
+app.post('/api/auth/username', requireAuth, async (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const username = typeof (body as Record<string,unknown>).username === 'string'
+    ? ((body as Record<string,unknown>).username as string).trim().toLowerCase()
+    : '';
+  if (!USERNAME_RE.test(username)) {
+    return c.json({ error: 'Логин: 3-30 символов, только латинские буквы, цифры, _ и -' }, 400);
+  }
+  if (!isUsernameAvailable(db, username) && user.username?.toLowerCase() !== username) {
+    return c.json({ error: 'Этот логин уже занят' }, 409);
+  }
+  const updated = updateUser(db, user.id, { username });
+  return c.json({ user: serializeUser(updated!) });
+});
+
+// ---- Public user profiles --------------------------------------------------
+
+app.get('/api/users/search', (c) => {
+  const q = (c.req.query('q') ?? '').trim();
+  if (q.length < 2) return c.json({ users: [] });
+  const users = searchUsers(db, q, 10);
+  return c.json({ users: users.map(serializeUser) });
+});
+
+app.get('/api/users/:username', (c) => {
+  const username = c.req.param('username');
+  const user = findUserByUsername(db, username);
+  if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
+  return c.json({ user: serializeUser(user) });
+});
+
+app.get('/api/users/:username/catalog', (c) => {
+  const username = c.req.param('username');
+  const user = findUserByUsername(db, username);
+  if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
+  return c.json(getUserCatalog(db, user.id));
+});
+
+app.get('/api/users/:username/routes', (c) => {
+  const username = c.req.param('username');
+  const user = findUserByUsername(db, username);
+  if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
+  return c.json(getUserRoutes(db, user.id));
+});
+
+// ---- User CRUD (own map) ---------------------------------------------------
+
+app.post('/api/user/cities', requireAuth, async (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const city = (body as Record<string,unknown>).city;
+  if (!isValidCity(city)) return c.json({ error: 'Некорректный город' }, 400);
+  try {
+    upsertUserCity(db, user.id, city);
+    return c.json({ city }, 201);
+  } catch (e) { return c.json({ error: e instanceof Error ? e.message : String(e) }, 500); }
+});
+
+app.delete('/api/user/cities/:id', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const id = c.req.param('id');
+  const placesCount = countUserPlacesInCity(db, user.id, id);
+  if (placesCount > 0) {
+    return c.json({ error: `В городе ${placesCount} мест(а). Сначала удалите их.` }, 409);
+  }
+  const removed = deleteUserCity(db, user.id, id);
+  if (!removed) return c.json({ error: 'Город не найден' }, 404);
+  return c.json({ ok: true, id });
+});
+
+app.post('/api/user/places', requireAuth, async (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const rec = body as Record<string, unknown>;
+  if (!isValidPlace(rec.place)) return c.json({ error: 'Некорректное место' }, 400);
+  try {
+    if (isValidCity(rec.city)) upsertUserCity(db, user.id, rec.city);
+    upsertUserPlace(db, user.id, rec.place);
+    return c.json({ place: rec.place }, 201);
+  } catch (e) { return c.json({ error: e instanceof Error ? e.message : String(e) }, 500); }
+});
+
+app.post('/api/user/places/delete', requireAuth, async (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const id = typeof (body as Record<string,unknown>).id === 'string' ? ((body as Record<string,unknown>).id as string).trim() : '';
+  if (!id) return c.json({ error: 'Нужен id' }, 400);
+  const removed = deleteUserPlace(db, user.id, id);
+  if (!removed) return c.json({ error: 'Место не найдено' }, 404);
+  return c.json({ ok: true, id });
+});
+
+app.post('/api/user/routes', requireAuth, async (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const route = (body as Record<string,unknown>).route;
+  if (!isValidRoute(route)) return c.json({ error: 'Некорректный маршрут' }, 400);
+  try {
+    upsertUserRoute(db, user.id, route);
+    return c.json({ route }, 201);
+  } catch (e) { return c.json({ error: e instanceof Error ? e.message : String(e) }, 500); }
+});
+
+app.delete('/api/user/routes/:id', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const id = c.req.param('id');
+  const removed = deleteUserRoute(db, user.id, id);
+  if (!removed) return c.json({ error: 'Маршрут не найден' }, 404);
+  return c.json({ ok: true, id });
+});
+
+app.post('/api/user/photos', requireAuth, async (c) => {
+  let formData: FormData;
+  try { formData = await c.req.formData(); } catch { return c.json({ error: 'Ожидается multipart/form-data' }, 400); }
+
+  const urls: string[] = [];
+  for (const [, value] of formData.entries()) {
+    if (!(value instanceof File)) continue;
+    if (!ALLOWED_IMAGE_MIME.has(value.type)) continue;
+    if (value.size > MAX_FILE_SIZE) continue;
+    const ext = value.type.split('/')[1] ?? 'jpg';
+    const filename = `${crypto.randomUUID()}.${ext}`;
+    const dest = path.join(UPLOADS_DIR, filename);
+    fs.writeFileSync(dest, Buffer.from(await value.arrayBuffer()));
+    urls.push(`/uploads/${filename}`);
+  }
+  if (urls.length === 0) return c.json({ error: 'Нет подходящих файлов' }, 400);
+  return c.json({ urls }, 201);
+});
+
+// ---- Favorites -------------------------------------------------------------
+
+app.get('/api/user/favorites', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const favs = getFavorites(db, user.id);
+  return c.json({ favorites: favs.map(serializeUser) });
+});
+
+app.post('/api/user/favorites', requireAuth, async (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const rec = body as Record<string, unknown>;
+  let target: DbUser | null = null;
+  if (typeof rec.targetId === 'string') {
+    target = findUserById(db, rec.targetId);
+  } else if (typeof rec.targetUsername === 'string') {
+    target = findUserByUsername(db, rec.targetUsername);
+  }
+  if (!target) return c.json({ error: 'Пользователь не найден' }, 404);
+  if (target.id === user.id) return c.json({ error: 'Нельзя добавить себя' }, 400);
+  addFavorite(db, user.id, target.id);
+  return c.json({ ok: true, target: serializeUser(target) }, 201);
+});
+
+app.delete('/api/user/favorites/:targetId', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const targetId = c.req.param('targetId');
+  removeFavorite(db, user.id, targetId);
+  return c.json({ ok: true });
+});
+
+app.get('/api/user/favorites/:targetId/check', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const targetId = c.req.param('targetId');
+  return c.json({ isFavorite: isFavorite(db, user.id, targetId) });
 });
 
 console.log(`ffhoreca API http://localhost:${PORT}`);

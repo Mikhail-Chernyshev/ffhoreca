@@ -9,6 +9,8 @@ type Props = {
   catalog: Catalog;
   onClose: () => void;
   onSaved: () => void | Promise<void>;
+  /** Если задан — вызывается вместо дефолтного postCity (для карт пользователей) */
+  saveCity?: (city: City) => Promise<{ ok: boolean; message: string }>;
 };
 
 function buildCity(form: {
@@ -48,7 +50,7 @@ function buildCity(form: {
   };
 }
 
-export function AddCityModal({ catalog, onClose, onSaved }: Props) {
+export function AddCityModal({ catalog, onClose, onSaved, saveCity }: Props) {
   const t = useT();
   const [name, setName] = useState('');
   const [countryCode, setCountryCode] = useState('');
@@ -157,7 +159,7 @@ export function AddCityModal({ catalog, onClose, onSaved }: Props) {
 
     setBusy(true);
     try {
-      const result = await postCity(city);
+      const result = await (saveCity ? saveCity(city) : postCity(city));
       if (!result.ok) {
         setError(result.message);
         return;

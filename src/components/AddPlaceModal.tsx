@@ -17,6 +17,8 @@ type Props = {
   onClose: () => void;
   catalog: Catalog;
   onSaved: (place: Place, city: City) => void | Promise<void>;
+  /** Если задан — вызывается вместо дефолтной загрузки фото через X-Admin-Token */
+  uploadPhotos?: (files: File[]) => Promise<string[]>;
 };
 
 const CATEGORY_VALUES: PlaceCategory[] = ['attraction', 'lodging', 'food', 'bar', 'airport'];
@@ -80,7 +82,7 @@ function buildPlace(form: {
   };
 }
 
-export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
+export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props) {
   const t = useT();
   const { locale } = useLocale();
   const [name, setName] = useState('');
@@ -270,33 +272,39 @@ export function AddPlaceModal({ onClose, catalog, onSaved }: Props) {
     // Загрузка файлов на сервер (если есть)
     let uploadedUrls: string[] = [];
     if (photoFiles.length > 0) {
-      const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
-      const token = new URLSearchParams(window.location.search).get('token') ?? '';
-      if (base && token) {
-        setPhotoUploadBusy(true);
-        try {
-          const fd = new FormData();
-          for (const file of photoFiles) fd.append('photos', file);
-          const res = await fetch(`${base.replace(/\/+$/, '')}/api/photos`, {
-            method: 'POST',
-            headers: { 'X-Admin-Token': token },
-            body: fd,
-          });
-          if (res.ok) {
-            const json = await res.json() as { urls: string[] };
-            uploadedUrls = json.urls;
-          } else {
-            setError(t('addPlace.errorPhotoUpload'));
-            setPhotoUploadBusy(false);
-            return;
+      setPhotoUploadBusy(true);
+      try {
+        if (uploadPhotos) {
+          // Пользовательский режим: JWT-авторизация
+          uploadedUrls = await uploadPhotos(photoFiles);
+        } else {
+          // Режим витрины: X-Admin-Token из URL
+          const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
+          const token = new URLSearchParams(window.location.search).get('token') ?? '';
+          if (base && token) {
+            const fd = new FormData();
+            for (const file of photoFiles) fd.append('photos', file);
+            const res = await fetch(`${base.replace(/\/+$/, '')}/api/photos`, {
+              method: 'POST',
+              headers: { 'X-Admin-Token': token },
+              body: fd,
+            });
+            if (res.ok) {
+              const json = (await res.json()) as { urls: string[] };
+              uploadedUrls = json.urls;
+            } else {
+              setError(t('addPlace.errorPhotoUpload'));
+              setPhotoUploadBusy(false);
+              return;
+            }
           }
-        } catch (e) {
-          setError(t('addPlace.errorPhotoUploadDetail', { message: e instanceof Error ? e.message : String(e) }));
-          setPhotoUploadBusy(false);
-          return;
-        } finally {
-          setPhotoUploadBusy(false);
         }
+      } catch (e) {
+        setError(t('addPlace.errorPhotoUploadDetail', { message: e instanceof Error ? e.message : String(e) }));
+        setPhotoUploadBusy(false);
+        return;
+      } finally {
+        setPhotoUploadBusy(false);
       }
     }
 

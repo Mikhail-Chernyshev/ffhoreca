@@ -17,6 +17,9 @@ type Props = {
   onCitiesChanged: () => void;
   onDeletePlace: (id: string) => Promise<boolean>;
   onEditPlace: (place: Place) => void;
+  /** Если заданы — используются вместо дефолтных admin-API (для карт пользователей) */
+  deleteRouteApi?: (id: string) => Promise<{ ok: boolean; message: string }>;
+  deleteCityApi?: (id: string) => Promise<{ ok: boolean; message: string }>;
 };
 
 type ConfirmState = {
@@ -133,6 +136,8 @@ export function ManagerModal({
   onCitiesChanged,
   onDeletePlace,
   onEditPlace,
+  deleteRouteApi,
+  deleteCityApi,
 }: Props) {
   const t = useT();
   const { locale } = useLocale();
@@ -175,7 +180,7 @@ export function ManagerModal({
       title: t('manager.confirmDeleteRouteTitle'),
       message: t('manager.confirmDeleteRouteMessage', { names }),
       onConfirm: async () => {
-        await deleteRouteById(route.id);
+        await (deleteRouteApi ? deleteRouteApi(route.id) : deleteRouteById(route.id));
         setLocalRoutes((prev) => prev.filter((r) => r.id !== route.id));
         onRoutesChanged();
       },
@@ -204,7 +209,7 @@ export function ManagerModal({
       title: t('manager.confirmDeleteCityTitle'),
       message: t('manager.confirmDeleteCityMessage', { name: city.name }),
       onConfirm: async () => {
-        const r = await deleteCityById(city.id);
+        const r = await (deleteCityApi ? deleteCityApi(city.id) : deleteCityById(city.id));
         if (!r.ok) {
           window.alert(r.message);
           return;

@@ -1,4 +1,5 @@
 import type { City, Place } from '../data/types';
+import { adminAuthHeaders } from './adminToken';
 
 export type SubmitAdminPlaceResult =
   | { ok: true; message: string }
@@ -21,7 +22,7 @@ export async function submitAdminPlaceToApi(
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
       body: JSON.stringify({ token, place, city }),
     });
     if (res.ok) {
@@ -58,7 +59,7 @@ export async function deleteAdminPlaceFromApi(
   try {
     const res = await fetch(deleteUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
       body: JSON.stringify({ token, id: placeId }),
     });
     if (res.ok) {

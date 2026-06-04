@@ -2,13 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   adminTokenFromEnv,
   isAdminUrlTokenValid,
+  isEmailAdmin,
   parseAdminTokenFromLocation,
 } from '../lib/adminToken';
 
 /**
- * Режим «добавить место»: в URL есть валидный token=…, совпадающий с VITE_ADMIN_TOKEN при сборке.
+ * Возвращает true если:
+ * - в URL есть валидный token=…, совпадающий с VITE_ADMIN_TOKEN, ИЛИ
+ * - залогиненный пользователь имеет email = VITE_ADMIN_EMAIL
  */
-export function useAdminMode(): boolean {
+export function useAdminMode(userEmail?: string | null): boolean {
   const [rev, setRev] = useState(0);
 
   useEffect(() => {
@@ -24,6 +27,8 @@ export function useAdminMode(): boolean {
   return useMemo(() => {
     void rev;
     void adminTokenFromEnv();
-    return isAdminUrlTokenValid(parseAdminTokenFromLocation());
-  }, [rev]);
+    const urlTokenAdmin = isAdminUrlTokenValid(parseAdminTokenFromLocation());
+    const emailAdmin = isEmailAdmin(userEmail);
+    return urlTokenAdmin || emailAdmin;
+  }, [rev, userEmail]);
 }

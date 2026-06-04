@@ -1,73 +1,143 @@
-# React + TypeScript + Vite
+# ffhoreca — Tips from trips
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Персональная интерактивная карта путешествий: страны, города, места (жильё, еда, бары, аэропорты, достопримечательности) и маршруты между городами.
 
-Currently, two official plugins are available:
+**Стек:** React 19 + TypeScript + Vite 8 + MapLibre GL | Hono + SQLite (Fly.io) | RU / EN
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Что умеет проект
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🗺 Карта мира
 
-## Expanding the ESLint configuration
+- Интерактивная карта на растровых тайлах OSM (CARTO) через MapLibre GL
+- **Заливка посещённых стран** — зелёная, транзитные (AZ, QA) — жёлтая
+- **Маркеры городов** с подписями; при двойном клике открывается карточка города
+- **Границы городов** — из статических GeoJSON-файлов (`public/geo/cities/{id}.json`) или Nominatim (OSM) как запасной вариант
+- **Маркеры заведений** с цветом по категории; появляются при приближении
+- Кнопки зума и сброса вида
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 🏙 Города
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Список городов из API-каталога
+- Карточка города: название, страна, координаты, краткое описание, фото, заметки
+- Фильтр «Города» — показывает только города, скрывает заведения
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### 📍 Места
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Пять категорий: **Жильё**, **Еда**, **Бары**, **Аэропорты**, **Достопримечательности**
+- Карточка места: адрес, координаты, оценка Google, описание, фото (карусель), история / впечатления
+- Фильтр по категориям через табы над картой
+- Просмотр фото в карусели
+
+### 🛫 Маршруты
+
+- Визуализация маршрутов между городами с анимированными иконками транспорта
+- 5 режимов транспорта: ✈ самолёт, 🚆 поезд, 🚌 автобус, ⛴ паром, 🚗 авто
+- **Автобус и авто** — реальный путь по дорогам (OSRM / OpenStreetMap)
+- **Остальные** — дуга большого круга
+- Цветные линии маршрутов на карте
+
+### 🔍 Поиск
+
+- Поиск по городам и местам из каталога прямо на карте
+- Транслитерация: «Лови» → находит «Lovina Beach»
+- При выборе результата — авто-прыжок камеры на карте
+
+### 🌐 Двуязычность (RU / EN)
+
+- Переключатель RU / EN в шапке страницы
+- Выбор сохраняется в `localStorage`
+- Автодетект по `navigator.language`
+- Переведён весь интерфейс: табы, поиск, модалки, формы, сообщения об ошибках
+- **Поиск городов:** при EN запрашивает латинские названия у Photon (Doha вместо الدوحة)
+
+### 🔐 Режим администратора
+
+Активируется через `?token=<секрет>` в URL.
+
+| Действие | Описание |
+|----------|----------|
+| **+ Город** | Поиск через Google Places или Photon, сохранение в каталог |
+| **+ Место** | Поиск адреса, выбор категорий, загрузка фото, оценка Google |
+| **+ Маршрут** | Выбор городов из каталога, транспортный режим |
+| **☰ Список** | Управление: удаление маршрутов, мест, городов |
+| **Редактирование места** | Правка категорий, описания, оценки, фото прямо из карточки |
+| **Удаление города** | Защита: нельзя удалить город, пока есть места |
+
+### 📡 Backend API
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| GET | `/api/catalog` | Полный каталог городов и мест |
+| POST | `/api/cities` | Добавить / обновить город |
+| DELETE | `/api/cities/:id` | Удалить город |
+| POST | `/api/places` | Добавить / обновить место |
+| POST | `/api/places/delete` | Удалить место |
+| GET | `/api/routes` | Список маршрутов |
+| POST | `/api/routes` | Добавить маршрут |
+| DELETE | `/api/routes/:id` | Удалить маршрут |
+| POST | `/api/photos` | Загрузить фото (multipart, max 10 MB) |
+| GET | `/uploads/:filename` | Отдача загруженных фото |
+
+---
+
+## Быстрый старт (локально)
+
+```bash
+# Установить зависимости
+npm install
+
+# Запустить фронт + API вместе
+npm run dev:full
+
+# Только фронт (без API, данные из localStorage)
+npm run dev
+
+# Только API
+npm run server:dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Скопировать `.env.example` в `.env` и задать переменные.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Переменные окружения
+
+| Переменная | Назначение |
+|-----------|-----------|
+| `VITE_API_BASE_URL` | URL API-сервера (без него данные из `catalog.ts` + localStorage) |
+| `VITE_ADMIN_TOKEN` | Секрет для режима администратора |
+| `VITE_GOOGLE_PLACES_API_KEY` | Google Places (поиск мест/городов); без ключа — Photon/OSM |
+| `VITE_OSRM_BASE_URL` | OSRM для дорожного роутинга (по умолчанию: `router.project-osrm.org`) |
+| `PORT` | Порт API (по умолчанию 3001) |
+| `DATABASE_PATH` | Путь к SQLite-базе |
+| `ADMIN_TOKEN` | Токен на сервере (совпадает с `VITE_ADMIN_TOKEN`) |
+| `CORS_ORIGIN` | Разрешённые origin (через запятую) |
+
+---
+
+## Структура проекта
+
 ```
+src/
+  components/   — UI-компоненты (карта, модалки, формы)
+  data/         — типы и статический каталог
+  hooks/        — useAdminMode, useAppSplash, useCityBoundaryGeography
+  i18n/         — локализация (ru/en), messages, LocaleContext
+  lib/          — API-клиенты, геометрия, поиск, утилиты
+server/
+  src/
+    index.ts    — маршруты Hono
+    db.ts       — SQLite helpers
+public/
+  geo/cities/   — GeoJSON границ городов
+docs/           — PROJECT.md, BACKEND-DEPLOY.md
+```
+
+---
+
+## Деплой
+
+- **Frontend:** GitHub Pages. Сборка — `npm run build`, деплой — Actions или вручную.
+- **Backend:** Fly.io. Обновление — `fly deploy` из корня репозитория. SQLite и фото хранятся на persistent volume.

@@ -24,8 +24,39 @@ export function adminTokenFromEnv(): string {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+export function adminEmailFromEnv(): string {
+  const v = import.meta.env.VITE_ADMIN_EMAIL;
+  return typeof v === 'string' ? v.trim() : '';
+}
+
 export function isAdminUrlTokenValid(urlToken: string | null): boolean {
   const secret = adminTokenFromEnv();
   if (!secret || urlToken == null || urlToken === '') return false;
   return urlToken === secret;
+}
+
+export function isEmailAdmin(email: string | null | undefined): boolean {
+  const adminEmail = adminEmailFromEnv();
+  return !!adminEmail && !!email && email.toLowerCase() === adminEmail.toLowerCase();
+}
+
+/**
+ * Возвращает заголовки авторизации для admin-запросов.
+ * Если есть JWT (пользователь залогинен) — используем его.
+ * Иначе — URL-токен в теле запроса (старый способ).
+ */
+export function adminAuthHeaders(): Record<string, string> {
+  const jwt = localStorage.getItem('ffhoreca_auth_token');
+  if (jwt) return { Authorization: `Bearer ${jwt}` };
+  return {};
+}
+
+/**
+ * Токен для тела запроса (старый способ через ?token=).
+ * Если есть JWT — возвращаем пустую строку (сервер проверит Authorization header).
+ */
+export function adminTokenForBody(): string {
+  const jwt = localStorage.getItem('ffhoreca_auth_token');
+  if (jwt) return '';
+  return parseAdminTokenFromLocation() ?? '';
 }

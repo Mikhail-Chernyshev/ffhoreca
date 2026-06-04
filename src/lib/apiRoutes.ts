@@ -1,11 +1,7 @@
 import type { TravelRoute } from '../data/types';
 import { apiBaseUrl } from './apiBase';
 import { apiErrorMessage, apiMessage } from './apiMessages';
-
-function parseAdminToken(): string {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('token') ?? '';
-}
+import { adminTokenForBody, adminAuthHeaders } from './adminToken';
 
 export async function fetchRoutes(): Promise<TravelRoute[]> {
   const base = apiBaseUrl();
@@ -18,10 +14,12 @@ export async function fetchRoutes(): Promise<TravelRoute[]> {
 export async function postRoute(route: TravelRoute): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
-  const token = parseAdminToken();
+  const token = adminTokenForBody();
+  const extraHeaders = adminAuthHeaders();
+
   const res = await fetch(`${base}/api/routes`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
     body: JSON.stringify({ token, route }),
   });
   const text = await res.text().catch(() => '');
@@ -32,10 +30,12 @@ export async function postRoute(route: TravelRoute): Promise<{ ok: boolean; mess
 export async function deleteRouteById(id: string): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
-  const token = parseAdminToken();
+  const token = adminTokenForBody();
+  const extraHeaders = adminAuthHeaders();
+
   const res = await fetch(`${base}/api/routes/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { 'X-Admin-Token': token },
+    headers: { 'X-Admin-Token': token, ...extraHeaders },
   });
   const text = await res.text().catch(() => '');
   if (res.ok) return { ok: true, message: apiMessage('api.routeDeleted') };

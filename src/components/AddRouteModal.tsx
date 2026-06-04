@@ -10,6 +10,7 @@ type Props = {
   catalog: Catalog;
   onClose: () => void;
   onSaved: () => void;
+  saveRoute?: (route: TravelRoute) => Promise<{ ok: boolean; message: string }>;
 };
 
 const MODES: UserRouteMode[] = ['plane', 'train', 'bus', 'boat', 'car'];
@@ -20,7 +21,7 @@ function cityToWaypoint(cityId: string, catalog: Catalog): RouteWaypoint | null 
   return { cityId: city.id, name: city.name, lat: city.lat, lng: city.lng };
 }
 
-export function AddRouteModal({ catalog, onClose, onSaved }: Props) {
+export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
   const t = useT();
   const { locale } = useLocale();
   const [mode, setMode] = useState<UserRouteMode>('plane');
@@ -81,7 +82,7 @@ export function AddRouteModal({ catalog, onClose, onSaved }: Props) {
 
     setBusy(true);
     try {
-      const result = await postRoute(route);
+      const result = await (saveRoute ? saveRoute(route) : postRoute(route));
       if (!result.ok) { setError(result.message); return; }
       onSaved();
       onClose();
