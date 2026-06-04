@@ -12,7 +12,7 @@ createRoot(document.getElementById('root')!).render(
       <HashRouter>
         <Routes>
           <Route path="/" element={<App />} />
-          <Route path="/@:username" element={<UserMapPage />} />
+          <Route path="/:username" element={<UserMapPage />} />
         </Routes>
       </HashRouter>
     </LocaleProvider>

@@ -410,7 +410,7 @@ function App() {
           onSave={(updated) => {
             void refetchUser();
             setShowUsernameModal(false);
-            if (updated.username) navigate(`/@${updated.username}`);
+            if (updated.username) navigate(`/${updated.username}`);
           }}
           onSkip={() => setShowUsernameModal(false)}
         />
@@ -419,7 +419,7 @@ function App() {
         <FavoritesModal
           currentUser={currentUser}
           onClose={() => setFavoritesOpen(false)}
-          onOpenProfile={(username) => { setFavoritesOpen(false); navigate(`/@${username}`); }}
+          onOpenProfile={(username) => { setFavoritesOpen(false); navigate(`/${username}`); }}
         />
       ) : null}
       </div>

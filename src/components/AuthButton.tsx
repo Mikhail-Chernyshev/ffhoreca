@@ -56,7 +56,7 @@ export function AuthButton({ user, loading, onLogout, onOpenFavorites }: Props) 
       {user.username
         ? (
           <Link
-            to={`/@${user.username}`}
+            to={`/${user.username}`}
             className="auth-user__name auth-user__name--link"
             title={t('auth.myMap')}
           >
