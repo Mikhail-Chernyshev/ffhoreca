@@ -21,7 +21,13 @@ import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
 import { useCityBoundaryGeography } from '../hooks/useCityBoundaryGeography';
-import type { Catalog, CategoryFilter, City, Place, TravelRoute } from '../data/types';
+import type {
+  Catalog,
+  CategoryFilter,
+  City,
+  Place,
+  TravelRoute,
+} from '../data/types';
 import { useT } from '../i18n/LocaleContext';
 import {
   atlasCountryAlpha2,
@@ -60,9 +66,7 @@ function countriesVisitedGeoJson(
     });
     const isVisited = alpha2 != null && visited.has(alpha2);
     const transitLayover =
-      isVisited &&
-      alpha2 != null &&
-      TRANSIT_LAYOVER_COUNTRY_CODES.has(alpha2);
+      isVisited && alpha2 != null && TRANSIT_LAYOVER_COUNTRY_CODES.has(alpha2);
     const prev =
       f.properties != null && typeof f.properties === 'object'
         ? (f.properties as GeoJsonProperties)
@@ -323,9 +327,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   }, []);
 
   const showCityBoundaries =
-    showCityLayer &&
-    cityBoundaryGeo != null &&
-    zoom >= CITY_BOUNDARY_MIN_ZOOM;
+    showCityLayer && cityBoundaryGeo != null && zoom >= CITY_BOUNDARY_MIN_ZOOM;
 
   useEffect(() => {
     const map = mapRef.current?.getMap();
@@ -358,13 +360,21 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     setAboutExpanded((v) => !v);
   }, []);
 
-  const handleAboutLinkClick = useCallback((e: MouseEvent<HTMLAnchorElement>) => {
-    e.preventDefault();
-    setAboutExpanded(true);
-  }, []);
+  const handleAboutLinkClick = useCallback(
+    (e: MouseEvent<HTMLAnchorElement>) => {
+      e.preventDefault();
+      setAboutExpanded(true);
+    },
+    [],
+  );
 
   const aboutParagraphs = useMemo(
-    () => [t('map.aboutIntro'), t('map.aboutLorem1'), t('map.aboutLorem2'), t('map.aboutLorem3')],
+    () => [
+      t('map.aboutIntro'),
+      t('map.aboutLorem1'),
+      t('map.aboutLorem2'),
+      t('map.aboutLorem3'),
+    ],
     [t],
   );
 
@@ -429,11 +439,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
       >
         <AttributionControl compact position='bottom-right' />
 
-        <Source
-          id='atlas-countries'
-          type='geojson'
-          data={countriesGeo}
-        >
+        <Source id='atlas-countries' type='geojson' data={countriesGeo}>
           <Layer
             id={LAYER_ATLAS_COUNTRIES_FILL}
             type='fill'
@@ -524,7 +530,12 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
               const [lng, lat] = placeCoordinates(catalog, place);
               const dotClass = `world-map-place-marker__core place-dot ${markerColorClass(place)}`;
               return (
-                <Marker key={place.id} longitude={lng} latitude={lat} anchor='center'>
+                <Marker
+                  key={place.id}
+                  longitude={lng}
+                  latitude={lat}
+                  anchor='center'
+                >
                   <button
                     type='button'
                     className='world-map-place-marker'
@@ -541,7 +552,10 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
                       }
                     }}
                   >
-                    <span className='world-map-place-marker__halo' aria-hidden />
+                    <span
+                      className='world-map-place-marker__halo'
+                      aria-hidden
+                    />
                     <span className={dotClass} />
                     <span
                       className={
@@ -577,7 +591,9 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             aria-expanded={aboutExpanded}
             aria-controls='project-about-details'
             id='project-about-summary'
-            aria-label={aboutExpanded ? t('map.aboutCollapse') : t('map.aboutExpand')}
+            aria-label={
+              aboutExpanded ? t('map.aboutCollapse') : t('map.aboutExpand')
+            }
             onClick={handleAboutChevronClick}
           >
             <span className='world-map-about__chevron-icon' aria-hidden>
@@ -605,15 +621,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           </div>
         </div>
         <p className='world-map-hint' aria-live='polite'>
-          <span className='world-map-hint__zoom'>
-            {t('map.hintBasemap')}{' '}
-          </span>{' '}
-          {t('map.hintBoundaryFiles')}{' '}
-          <code className='world-map-hint__code'>
-            public/geo/cities/{'{id}'}.json
-          </code>{' '}
-          (OSM). {t('map.hintPlaceDot')}{' '}
-          {filterHint}
+          <span className='world-map-hint__zoom'>{t('map.hintBasemap')} </span>{' '}
+          {t('map.hintPlaceDot')} {filterHint}
         </p>
       </div>
     </div>

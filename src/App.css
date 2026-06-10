@@ -336,15 +336,45 @@
 }
 
 .app-header {
-  position: relative;
-  text-align: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1.25rem;
 }
 
+.app-header__left {
+  justify-self: start;
+}
+
+.app-header__left-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.app-header__back {
+  color: var(--accent, #5fa573);
+  text-decoration: none;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.app-header__back:hover {
+  text-decoration: underline;
+}
+
+.app-header__center {
+  text-align: center;
+  min-width: 0;
+}
+
+.app-header__right {
+  justify-self: end;
+}
+
 .locale-toggle {
-  position: absolute;
-  top: 0;
-  left: 0;
   display: inline-flex;
   border: 1px solid var(--border);
   border-radius: 999px;
@@ -376,9 +406,12 @@
 }
 
 @media (max-width: 520px) {
-  .locale-toggle {
-    position: static;
-    margin: 0 auto 0.75rem;
+  .app-header {
+    gap: 0.5rem;
+  }
+
+  .app-tagline {
+    font-size: 0.9rem;
   }
 }
 
@@ -2140,27 +2173,6 @@
   border-radius: 8px;
 }
 
-/* ---- Header layout ---- */
-.app-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-.app-header__left {
-  flex-shrink: 0;
-}
-
-.app-header__center {
-  flex: 1;
-  text-align: center;
-}
-
-.app-header__right {
-  flex-shrink: 0;
-}
-
 /* ---- Auth button ---- */
 .auth-btn {
   display: inline-flex;
@@ -2483,48 +2495,12 @@
   color: var(--text-muted, #666);
 }
 
-.user-map-page__header {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
-  flex-wrap: wrap;
-}
-
 .user-map-page__back {
   color: var(--accent, #5fa573);
   text-decoration: none;
   font-size: 0.9rem;
-  flex-shrink: 0;
 }
 
 .user-map-page__back:hover {
   text-decoration: underline;
-}
-
-.user-map-page__profile {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  flex: 1;
-}
-
-.user-map-page__avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.user-map-page__name {
-  display: block;
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--text, #222);
-}
-
-.user-map-page__username {
-  display: block;
-  font-size: 0.8rem;
-  color: var(--text-muted, #888);
 }

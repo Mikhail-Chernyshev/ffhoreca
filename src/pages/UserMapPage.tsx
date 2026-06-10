@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { WorldMap, type WorldMapRef } from '../components/WorldMap';
 import { MapSearchBar } from '../components/MapSearchBar';
 import { CategoryTabs } from '../components/CategoryTabs';
@@ -20,25 +20,25 @@ import {
   userUploadPhotos,
 } from '../lib/apiUserCatalog';
 import { useT } from '../i18n/LocaleContext';
+import { useCanEditMap } from '../hooks/useCanEditMap';
 import { useCurrentUser } from '../hooks/useCurrentUser';
+import { MapEditorActions } from '../components/MapEditorActions';
+import { AppHeader } from '../components/AppHeader';
+import { AuthButton } from '../components/AuthButton';
+import { FavoritesModal } from '../components/FavoritesModal';
+import { UsernameModal } from '../components/UsernameModal';
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] };
-
-interface ProfileUser {
-  id: string;
-  name: string;
-  username: string;
-  avatar: string | null;
-}
 
 export function UserMapPage() {
   const { username } = useParams<{ username: string }>();
   const t = useT();
-  const { user: currentUser } = useCurrentUser();
-
+  const navigate = useNavigate();
+  const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser();
+  const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [catalog, setCatalog] = useState<Catalog>(EMPTY_CATALOG);
   const [routes, setRoutes] = useState<TravelRoute[]>([]);
-  const [profileUser, setProfileUser] = useState<ProfileUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -52,14 +52,19 @@ export function UserMapPage() {
 
   const mapRef = useRef<WorldMapRef>(null);
 
-  const isOwner = !!currentUser && !!username &&
-    currentUser.username?.toLowerCase() === username.toLowerCase();
+  const canEditMap = useCanEditMap(username);
+
+  useEffect(() => {
+    if (currentUser && !currentUser.username && !authLoading) {
+      setShowUsernameModal(true);
+    }
+  }, [currentUser, authLoading]);
 
   const base = apiBaseUrl();
 
   const loadCatalog = useCallback(async () => {
     if (!base || !username) return;
-    const headers = isOwner ? authHeaders() : {};
+    const headers = canEditMap ? authHeaders() : {};
     try {
       const [cat, rts] = await Promise.all([
         fetch(`${base}/api/users/${username}/catalog`, { headers }).then((r) => r.json()),
@@ -68,7 +73,7 @@ export function UserMapPage() {
       setCatalog(cat as Catalog);
       setRoutes((rts as TravelRoute[]) ?? []);
     } catch { /* ignore, stale data stays */ }
-  }, [base, username, isOwner]);
+  }, [base, username, canEditMap]);
 
   useEffect(() => {
     if (!base || !username) return;
@@ -78,9 +83,8 @@ export function UserMapPage() {
     fetch(`${base}/api/users/${username}`)
       .then((r) => r.json())
       .then((data) => {
-        const d = data as { error?: string; user?: ProfileUser };
+        const d = data as { error?: string };
         if (d.error) { setNotFound(true); return; }
-        setProfileUser(d.user!);
         return loadCatalog();
       })
       .catch(() => setNotFound(true))
@@ -141,44 +145,36 @@ export function UserMapPage() {
 
   return (
     <div className="user-map-page">
-      <div className="user-map-page__header">
-        <Link to="/" className="user-map-page__back">← Tips from trips</Link>
-        {profileUser && (
-          <div className="user-map-page__profile">
-            {profileUser.avatar && (
-              <img
-                src={profileUser.avatar}
-                alt={profileUser.name}
-                className="user-map-page__avatar"
-                referrerPolicy="no-referrer"
-              />
-            )}
-            <div>
-              <span className="user-map-page__name">{profileUser.name}</span>
-              <span className="user-map-page__username">@{profileUser.username}</span>
-            </div>
-          </div>
-        )}
-      </div>
+      <AppHeader
+        leftBelow={
+          <Link to="/" className="app-header__back">← Tips from trips</Link>
+        }
+        center={
+          <>
+            <h1 className="app-title">Tips from trips</h1>
+            <p className="app-tagline">{t('app.tagline')}</p>
+          </>
+        }
+        right={
+          <AuthButton
+            user={currentUser}
+            loading={authLoading}
+            onLogout={handleLogout}
+            onOpenFavorites={() => setFavoritesOpen(true)}
+          />
+        }
+      />
 
       <CategoryTabs value={filter} onChange={setFilter} />
 
-      {isOwner && (
-        <div className="app-admin-actions">
-          <button type="button" className="app-admin-add" onClick={() => setAddCityOpen(true)}>
-            {t('app.adminAddCity')}
-          </button>
-          <button type="button" className="app-admin-add" onClick={() => setAddPlaceOpen(true)}>
-            {t('app.adminAddPlace')}
-          </button>
-          <button type="button" className="app-admin-add" onClick={() => setAddRouteOpen(true)}>
-            {t('app.adminAddRoute')}
-          </button>
-          <button type="button" className="app-admin-add" onClick={() => setManagerOpen(true)}>
-            {t('app.adminOpenManager')}
-          </button>
-        </div>
-      )}
+      {canEditMap ? (
+        <MapEditorActions
+          onAddCity={() => setAddCityOpen(true)}
+          onAddPlace={() => setAddPlaceOpen(true)}
+          onAddRoute={() => setAddRouteOpen(true)}
+          onOpenManager={() => setManagerOpen(true)}
+        />
+      ) : null}
 
       <MapSearchBar catalog={catalog} onFlyTo={flyToOnMap} />
 
@@ -196,9 +192,9 @@ export function UserMapPage() {
         key={selectedPlace?.id ?? 'closed'}
         place={selectedPlace}
         onClose={() => setSelectedPlace(null)}
-        adminMode={isOwner}
-        onPlaceUpdated={isOwner ? handlePlaceUpdated : undefined}
-        onPlaceDeleted={isOwner ? handlePlaceDeleted : undefined}
+        adminMode={canEditMap}
+        onPlaceUpdated={canEditMap ? handlePlaceUpdated : undefined}
+        onPlaceDeleted={canEditMap ? handlePlaceDeleted : undefined}
       />
       <CityModal city={selectedCity} onClose={() => setSelectedCity(null)} />
 
@@ -248,6 +244,26 @@ export function UserMapPage() {
           onEditPlace={(place) => { setSelectedPlace(place); setManagerOpen(false); }}
         />
       )}
+
+      {showUsernameModal && currentUser ? (
+        <UsernameModal
+          user={currentUser}
+          onSave={(updated) => {
+            void refetchUser();
+            setShowUsernameModal(false);
+            if (updated.username) navigate(`/${updated.username}`);
+          }}
+          onSkip={() => setShowUsernameModal(false)}
+        />
+      ) : null}
+
+      {favoritesOpen && currentUser ? (
+        <FavoritesModal
+          currentUser={currentUser}
+          onClose={() => setFavoritesOpen(false)}
+          onOpenProfile={(uname) => { setFavoritesOpen(false); navigate(`/${uname}`); }}
+        />
+      ) : null}
     </div>
   );
 }

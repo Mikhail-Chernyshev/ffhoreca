@@ -23,8 +23,7 @@ function consumeTokenFromUrl(): string | null {
     params.delete('auth_token');
     const newUrl =
       window.location.pathname +
-      (params.toString() ? '?' + params.toString() : '') +
-      window.location.hash;
+      (params.toString() ? '?' + params.toString() : '');
     window.history.replaceState(null, '', newUrl);
     return token;
   }

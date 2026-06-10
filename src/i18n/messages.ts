@@ -19,7 +19,7 @@ const ru = {
     en: 'EN',
   },
   app: {
-    tagline: 'Места, где мы были: отели, гостевые, бары и рестораны по миру',
+    tagline: 'Места, где вы были: отели, гостевые, бары и рестораны по миру',
     catalogLoading: 'Загрузка каталога с сервера…',
     catalogLoadError:
       'Не удалось загрузить каталог с API. Данные из репозитория не подставляются — проверьте сеть, CORS и URL в VITE_API_BASE_URL.',
@@ -205,13 +205,13 @@ const ru = {
     hintFilterAirport: 'Только аэропорты (после приближения).',
     hintFilterDefault: 'Заведения по табу — после приближения.',
     aboutIntro:
-      'Здесь появится развёрнутое описание проекта ffhoreca: для кого каталог, откуда данные, как устроена карта и фильтры. Пока ниже — типографская рыба, чтобы проверить раскрытие и прокрутку.',
+      'В этом проекте сначала я хотел собирать места, которые я посетил когда-либо в путешествиях. Но во время реализации я понял, что этот функционал может быть интересен и другим путешествинникам, которые тоже любят коллекционировать свои места.',
     aboutLorem1:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vehicula, nibh non fermentum dictum, ligula ante sollicitudin odio, vel blandit augue velit nec turpis.',
+      'На главной странице вы видите карту-пример того, как работает этот инструмент. На деле это моя карта, которую изначально я делал для себя.',
     aboutLorem2:
-      'Suspendisse potenti. Mauris faucibus, nulla id ultricies lacinia, metus lacus tristique massa, vitae pulvinar lectus lacus sit amet tellus.',
+      'Чтобы вы могли создать свою карту вам достаточно залогиниться, и она сразу создастся. Изначально там не будет ни одного объекта и места, но механизм довольно простой.',
     aboutLorem3:
-      'Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.',
+      'Нажмите Добавить и воспользуйтесь поиском в открывшимся окне. Далее вы можете дать этому месту описание, оценку, название, а также фотографии. Помимо этого вы можете создавать маршруты различными видами транспорта.',
   },
   api: {
     notConfigured: 'API не настроен',

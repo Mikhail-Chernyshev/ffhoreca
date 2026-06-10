@@ -35,7 +35,9 @@ import {
   loadDeletedPlaceIds,
   saveDeletedPlaceIds,
 } from './lib/adminDeletedPlaceIdsStorage'
-import { LocaleToggle } from './components/LocaleToggle'
+import { AppHeader } from './components/AppHeader'
+import { MapEditorActions } from './components/MapEditorActions'
+import { useCanEditMap } from './hooks/useCanEditMap'
 import { AuthButton } from './components/AuthButton'
 import { UsernameModal } from './components/UsernameModal'
 import { FavoritesModal } from './components/FavoritesModal'
@@ -70,6 +72,7 @@ function App() {
   const mapRef = useRef<WorldMapRef>(null)
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser()
   const adminMode = useAdminMode(currentUser?.email)
+  const canEditShowcase = useCanEditMap()
   const [showUsernameModal, setShowUsernameModal] = useState(false)
   const [favoritesOpen, setFavoritesOpen] = useState(false)
 
@@ -297,41 +300,32 @@ function App() {
         </p>
       ) : null}
 
-      <header className="app-header">
-        <div className="app-header__left">
-          <LocaleToggle />
-        </div>
-        <div className="app-header__center">
-          <h1 className="app-title">Tips from trips</h1>
-          <p className="app-tagline">{t('app.tagline')}</p>
-        </div>
-        <div className="app-header__right">
+      <AppHeader
+        center={
+          <>
+            <h1 className="app-title">Tips from trips</h1>
+            <p className="app-tagline">{t('app.tagline')}</p>
+          </>
+        }
+        right={
           <AuthButton
             user={currentUser}
             loading={authLoading}
             onLogout={handleLogout}
             onOpenFavorites={() => setFavoritesOpen(true)}
           />
-        </div>
-      </header>
+        }
+      />
 
       <CategoryTabs value={filter} onChange={setFilter} />
 
-      {adminMode ? (
-        <div className="app-admin-actions">
-          <button type="button" className="app-admin-add" onClick={() => setAddCityOpen(true)}>
-            {t('app.adminAddCity')}
-          </button>
-          <button type="button" className="app-admin-add" onClick={() => setAddPlaceOpen(true)}>
-            {t('app.adminAddPlace')}
-          </button>
-          <button type="button" className="app-admin-add" onClick={() => setAddRouteOpen(true)}>
-            {t('app.adminAddRoute')}
-          </button>
-          <button type="button" className="app-admin-add" onClick={() => setManagerOpen(true)}>
-            {t('app.adminOpenManager')}
-          </button>
-        </div>
+      {canEditShowcase ? (
+        <MapEditorActions
+          onAddCity={() => setAddCityOpen(true)}
+          onAddPlace={() => setAddPlaceOpen(true)}
+          onAddRoute={() => setAddRouteOpen(true)}
+          onOpenManager={() => setManagerOpen(true)}
+        />
       ) : null}
 
       <MapSearchBar catalog={catalogMerged} onFlyTo={flyToOnMap} />
