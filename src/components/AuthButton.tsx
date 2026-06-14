@@ -3,6 +3,7 @@ import type { AuthUser } from '../lib/apiAuth';
 import { getLoginUrl } from '../lib/apiAuth';
 import { useT } from '../i18n/LocaleContext';
 import { apiBaseUrl } from '../lib/apiBase';
+import { OverflowMarqueeText } from './OverflowMarqueeText';
 
 interface Props {
   user: AuthUser | null;
@@ -38,13 +39,17 @@ export function AuthButton({ user, loading, onLogout, onOpenFavorites }: Props) 
     );
   }
 
+  const displayName = user.username ? `@${user.username}` : user.name;
+
   const nameEl = (
     <>
       {user.avatar
         ? <img src={user.avatar} alt={user.name} className="auth-user__avatar" referrerPolicy="no-referrer" />
         : <span className="auth-user__initials">{user.name.charAt(0).toUpperCase()}</span>
       }
-      {user.username ? `@${user.username}` : user.name}
+      <OverflowMarqueeText className="auth-user__name-label" title={displayName}>
+        {displayName}
+      </OverflowMarqueeText>
     </>
   );
 

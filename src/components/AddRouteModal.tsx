@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import type { Catalog, RouteWaypoint, TravelRoute, UserRouteMode } from '../data/types';
+import { catalogCitiesListed } from '../data/selectors';
 import { postRoute } from '../lib/apiRoutes';
 import { RouteModeIcon } from './RouteModeIcon';
 import { CitySearchSelect } from './CitySearchSelect';
@@ -108,6 +109,7 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
         <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>×</button>
 
         <h2 id="add-route-modal-title" className="modal-title">{t('addRoute.title')}</h2>
+        <p className="modal-summary modal-summary--muted">{t('addRoute.intro')}</p>
 
         <form className="add-place-form" onSubmit={handleSubmit}>
 
@@ -144,7 +146,7 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
                   {String.fromCharCode(65 + i)}
                 </span>
                 <CitySearchSelect
-                  cities={catalog.cities}
+                  cities={catalogCitiesListed(catalog)}
                   value={cityId}
                   onChange={(id) => setWaypointAt(i, id)}
                   placeholder={waypointPlaceholder(i, waypointIds.length)}

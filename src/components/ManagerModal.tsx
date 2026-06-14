@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import type { Catalog, City, Place, PlaceCategory, TravelRoute } from '../data/types';
 import { ConfirmModal } from './ConfirmModal';
 import { deleteRouteById } from '../lib/apiRoutes';
 import { deleteCityById } from '../lib/apiCities';
-import { cityById } from '../data/selectors';
+import { catalogCitiesListed, cityLabelForPlace, placesCountForCity } from '../data/selectors';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel, routeModeLabel } from '../i18n/labels';
 
@@ -38,6 +39,44 @@ function CityRow({
   onDeleteRequest: (city: City) => void;
 }) {
   const t = useT();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [tipVisible, setTipVisible] = useState(false);
+  const [tipStyle, setTipStyle] = useState<CSSProperties>({});
+  const deleteBlocked = placesCount > 0;
+  const blockedReason = deleteBlocked
+    ? t('manager.deleteCityBlockedTooltip', { name: city.name, count: placesCount })
+    : undefined;
+  const tooltipId = `manager-city-delete-tip-${city.id}`;
+
+  const updateTipPosition = useCallback(() => {
+    const el = wrapRef.current;
+    if (!el || !deleteBlocked) return;
+    const r = el.getBoundingClientRect();
+    const pad = 8;
+    const showBelow = r.top < 72;
+    setTipStyle({
+      position: 'fixed',
+      left: r.right,
+      top: showBelow ? r.bottom + pad : r.top - pad,
+      transform: showBelow ? 'translate(-100%, 0)' : 'translate(-100%, -100%)',
+      zIndex: 1300,
+    });
+  }, [deleteBlocked]);
+
+  const showTip = () => {
+    updateTipPosition();
+    setTipVisible(true);
+  };
+
+  const hideTip = () => setTipVisible(false);
+
+  useEffect(() => {
+    if (!tipVisible) return;
+    const onScroll = () => hideTip();
+    window.addEventListener('scroll', onScroll, true);
+    return () => window.removeEventListener('scroll', onScroll, true);
+  }, [tipVisible]);
+
   return (
     <div className="manager-row">
       <div className="manager-row__main">
@@ -47,14 +86,42 @@ function CityRow({
           {placesCount > 0 ? ` ${t('manager.cityPlacesCount', { count: placesCount })}` : ''}
         </span>
       </div>
-      <button
-        type="button"
-        className="manager-row__delete"
-        onClick={() => onDeleteRequest(city)}
-        aria-label={t('manager.ariaDeleteCity', { name: city.name })}
+      <div
+        ref={wrapRef}
+        className="manager-row__delete-wrap"
+        onMouseEnter={deleteBlocked ? showTip : undefined}
+        onMouseLeave={deleteBlocked ? hideTip : undefined}
+        onFocus={deleteBlocked ? showTip : undefined}
+        onBlur={deleteBlocked ? hideTip : undefined}
       >
-        ✕
-      </button>
+        <button
+          type="button"
+          className="manager-row__delete"
+          onClick={() => onDeleteRequest(city)}
+          disabled={deleteBlocked}
+          aria-label={
+            deleteBlocked
+              ? t('manager.ariaDeleteCityBlocked', { name: city.name })
+              : t('manager.ariaDeleteCity', { name: city.name })
+          }
+          aria-describedby={deleteBlocked ? tooltipId : undefined}
+        >
+          ✕
+        </button>
+      </div>
+      {deleteBlocked && tipVisible && blockedReason
+        ? createPortal(
+            <span
+              id={tooltipId}
+              className="manager-tooltip manager-tooltip--fixed"
+              style={tipStyle}
+              role="tooltip"
+            >
+              {blockedReason}
+            </span>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
@@ -198,13 +265,8 @@ export function ManagerModal({
   };
 
   const requestDeleteCity = (city: City) => {
-    const placesCount = catalog.places.filter((p) => p.cityId === city.id).length;
-    if (placesCount > 0) {
-      window.alert(
-        t('manager.alertDeleteCityBlocked', { name: city.name, count: placesCount }),
-      );
-      return;
-    }
+    const placesCount = placesCountForCity(catalog, city.id);
+    if (placesCount > 0) return;
     setConfirm({
       title: t('manager.confirmDeleteCityTitle'),
       message: t('manager.confirmDeleteCityMessage', { name: city.name }),
@@ -234,9 +296,11 @@ export function ManagerModal({
     [placesByCountry, locale],
   );
 
+  const listedCities = useMemo(() => catalogCitiesListed(catalog), [catalog]);
+
   const sortedCities = useMemo(
-    () => [...catalog.cities].sort((a, b) => a.name.localeCompare(b.name, locale)),
-    [catalog.cities, locale],
+    () => [...listedCities].sort((a, b) => a.name.localeCompare(b.name, locale)),
+    [listedCities, locale],
   );
 
   return (
@@ -276,7 +340,7 @@ export function ManagerModal({
               className={`manager-tabs__btn${tab === 'cities' ? ' manager-tabs__btn--active' : ''}`}
               onClick={() => setTab('cities')}
             >
-              {t('manager.tabCities', { count: catalog.cities.length })}
+              {t('manager.tabCities', { count: listedCities.length })}
             </button>
           </div>
 
@@ -295,30 +359,27 @@ export function ManagerModal({
                 : sortedCountries.map((cc) => (
                     <div key={cc} className="manager-group">
                       <h3 className="manager-group__heading">{cc}</h3>
-                      {placesByCountry[cc]!.map((place) => {
-                        const city = cityById(catalog, place.cityId);
-                        return (
+                      {placesByCountry[cc]!.map((place) => (
                           <PlaceRow
                             key={place.id}
                             place={place}
-                            cityName={city?.name ?? place.cityId}
+                            cityName={cityLabelForPlace(catalog, place)}
                             onEdit={() => { onEditPlace(place); onClose(); }}
                             onDeleteRequest={requestDeletePlace}
                           />
-                        );
-                      })}
+                      ))}
                     </div>
                   ))
             )}
 
             {tab === 'cities' && (
-              catalog.cities.length === 0
+              listedCities.length === 0
                 ? <p className="manager-empty">{t('manager.emptyCities')}</p>
                 : sortedCities.map((city) => (
                     <CityRow
                       key={city.id}
                       city={city}
-                      placesCount={catalog.places.filter((p) => p.cityId === city.id).length}
+                      placesCount={placesCountForCity(catalog, city.id)}
                       onDeleteRequest={requestDeleteCity}
                     />
                   ))

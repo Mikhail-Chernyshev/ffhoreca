@@ -37,7 +37,7 @@ const ru = {
     ariaTablist: 'Категории на карте',
     tab: {
       all: 'Всё',
-      places: 'Места',
+      places: 'Разное',
       cities: 'Города',
       lodging: 'Жильё',
       food: 'Еда',
@@ -45,7 +45,7 @@ const ru = {
       airport: 'Аэропорты',
     },
     label: {
-      attraction: 'Места',
+      attraction: 'Разное',
       lodging: 'Жильё',
       food: 'Еда',
       bar: 'Бары',
@@ -117,6 +117,8 @@ const ru = {
   },
   addRoute: {
     title: 'Добавить маршрут',
+    intro:
+      'В списке точек доступны только города из раздела «Города». Если нужного города нет — сначала добавьте его там.',
     transportMode: 'Вид транспорта',
     waypoints: 'Точки маршрута',
     addVia: '+ Добавить промежуточную точку',
@@ -148,7 +150,8 @@ const ru = {
       'Место «{{name}}» будет удалено без возможности восстановления.',
     confirmDeleteCityTitle: 'Удалить город?',
     confirmDeleteCityMessage: 'Город «{{name}}» будет удалён из каталога.',
-    alertDeleteCityBlocked:
+    ariaDeleteCityBlocked: 'Нельзя удалить город {{name}} — есть привязанные места',
+    deleteCityBlockedTooltip:
       'Город «{{name}}» нельзя удалить: в нём {{count}} мест(а). Сначала удалите места.',
   },
   placeModal: {
@@ -190,7 +193,8 @@ const ru = {
     ariaZoomOut: 'Отдалить',
     ariaResetView: 'Сбросить масштаб и положение карты',
     titleResetView: 'Исходный вид',
-    ariaFocusCity: 'Приблизить карту к {{name}}; двойной клик — карточка города',
+    ariaCityMarker:
+      'Город {{name}} — при дальнем зуме приблизит, при ближнем откроет карточку',
     aboutLink: 'О проекте',
     aboutExpand: 'Развернуть описание проекта',
     aboutCollapse: 'Свернуть описание проекта',
@@ -198,7 +202,7 @@ const ru = {
     hintBoundaryFiles: 'Файлы границ:',
     hintPlaceDot: 'Цветная точка — заведение.',
     hintFilterPlaces:
-      'Места (достопримечательности) и города, где они есть; заведения — после приближения.',
+      'Разное и города, где они есть; остальные заведения — после приближения.',
     hintFilterCities: 'Только города; заведения скрыты.',
     hintFilterAll:
       'Без GeoJSON у города — только точка; заведения — после приближения.',
@@ -255,6 +259,62 @@ const ru = {
   userMap: {
     notFound: 'Пользователь @{{username}} не найден',
     backToShowcase: 'Вернуться на витрину',
+    viewingMap: 'Карта @{{username}}',
+  },
+  onboarding: {
+    helpButton: 'Как пользоваться?',
+    gotIt: 'Понятно',
+    dismiss: 'Скрыть',
+    skipTour: 'Пропустить обучение',
+    startBuilding: 'Начать',
+    next: 'Далее',
+    back: 'Назад',
+    showcaseBannerGuest:
+      'Это карта-пример. Войдите через Google — и у вас появится своя пустая карта, которую можно заполнять городами и местами.',
+    showcaseBannerUser:
+      'Это витрина-пример. Ваша личная карта — по ссылке в профиле (@{{username}}).',
+    emptyTitle: 'Ваша карта пока пустая',
+    emptyBody:
+      'Начните с города — потом добавьте места, фото и маршруты. Всё появится на карте.',
+    emptyAddCity: 'Добавить первый город',
+    checklistTitle: 'С чего начать',
+    checklistAddCity: 'Добавить город',
+    checklistAddPlace: 'Добавить место',
+    checklistOpenPlace: 'Открыть карточку места',
+    checklistShare: 'Поделиться ссылкой на карту',
+    hintFirstCity:
+      'Город на карте! Полный список городов и мест — в кнопке «☰ Список».',
+    hintFirstPlace:
+      'Место добавлено. Приблизьте карту — увидите точку. Табы сверху фильтруют категории.',
+    hintFirstRoute:
+      'Маршрут сохранён — он отображается на карте. Управление маршрутами — в «☰ Список».',
+    hintFirstSearch:
+      'Поиск переносит карту к городу или месту. Работает по вашим данным на карте.',
+    hintFirstPlaceOpen:
+      'Карточка места: описание, оценка и фото. Свои места можно редактировать.',
+    tourTitle: 'Как пользоваться',
+    tourSlide1Title: 'Ваша карта путешествий',
+    tourSlide1Body:
+      'Собирайте города и места, где вы были. Карта публичная — поделитесь ссылкой с друзьями.',
+    tourSlide2Title: 'Города и места',
+    tourSlide2Body:
+      'Нажмите «+ Город» или «+ Место», найдите через поиск, добавьте описание и фото.',
+    tourSlide3Title: 'Карта и фильтры',
+    tourSlide3Body:
+      'Табы сверху фильтруют категории. Приблизьте зум — появятся точки мест. Клик — карточка.',
+    tourSlide4Title: 'Маршруты и список',
+    tourSlide4Body:
+      '«+ Маршрут» рисует путь между городами. «☰ Список» — все города, места и маршруты.',
+    tourSlide5Title: 'Поделиться',
+    tourSlide5Body:
+      'Ссылка на вашу карту: адрес с вашим логином. Чужие карты можно сохранить в избранное (★).',
+    tourShowcaseSlide1Title: 'Карта-пример',
+    tourShowcaseSlide1Body:
+      'На главной — демо-карта автора проекта. Войдите, чтобы создать свою.',
+    tourShowcaseSlide2Title: 'Своя карта',
+    tourShowcaseSlide2Body:
+      'После входа выберите логин — откроется пустая личная карта. Заполняйте с нуля.',
+    tourDontAutoOpen: 'Больше не предлагать при открытии',
   },
 } as const;
 
@@ -294,7 +354,7 @@ const en = {
     ariaTablist: 'Map categories',
     tab: {
       all: 'All',
-      places: 'Places',
+      places: 'Misc',
       cities: 'Cities',
       lodging: 'Lodging',
       food: 'Food',
@@ -302,7 +362,7 @@ const en = {
       airport: 'Airports',
     },
     label: {
-      attraction: 'Places',
+      attraction: 'Misc',
       lodging: 'Lodging',
       food: 'Food',
       bar: 'Bars',
@@ -373,6 +433,8 @@ const en = {
   },
   addRoute: {
     title: 'Add route',
+    intro:
+      'Only cities from your Cities list are available as waypoints. Add a city there first if it is missing.',
     transportMode: 'Transport mode',
     waypoints: 'Route waypoints',
     addVia: '+ Add via point',
@@ -403,7 +465,8 @@ const en = {
     confirmDeletePlaceMessage: 'Place «{{name}}» will be permanently deleted.',
     confirmDeleteCityTitle: 'Delete city?',
     confirmDeleteCityMessage: 'City «{{name}}» will be removed from the catalog.',
-    alertDeleteCityBlocked:
+    ariaDeleteCityBlocked: 'Cannot delete city {{name}} — it has linked places',
+    deleteCityBlockedTooltip:
       'Cannot delete «{{name}}»: it has {{count}} place(s). Delete places first.',
   },
   placeModal: {
@@ -442,7 +505,8 @@ const en = {
     ariaZoomOut: 'Zoom out',
     ariaResetView: 'Reset zoom and map position',
     titleResetView: 'Default view',
-    ariaFocusCity: 'Focus map on {{name}}; double-click — city card',
+    ariaCityMarker:
+      'City {{name}} — zooms in when far out, opens card when zoomed in',
     aboutLink: 'About',
     aboutExpand: 'Expand project description',
     aboutCollapse: 'Collapse project description',
@@ -450,7 +514,7 @@ const en = {
     hintBoundaryFiles: 'Boundary files:',
     hintPlaceDot: 'Colored dot — place.',
     hintFilterPlaces:
-      'Places (attractions) and cities that have them; venues after zooming in.',
+      'Misc and cities that have them; other venues after zooming in.',
     hintFilterCities: 'Cities only; venues hidden.',
     hintFilterAll: 'Without city GeoJSON — point only; venues after zooming in.',
     hintFilterAirport: 'Airports only (after zooming in).',
@@ -506,6 +570,62 @@ const en = {
   userMap: {
     notFound: 'User @{{username}} not found',
     backToShowcase: 'Back to showcase',
+    viewingMap: "@{{username}}'s map",
+  },
+  onboarding: {
+    helpButton: 'How it works?',
+    gotIt: 'Got it',
+    dismiss: 'Dismiss',
+    skipTour: 'Skip tutorial',
+    startBuilding: 'Get started',
+    next: 'Next',
+    back: 'Back',
+    showcaseBannerGuest:
+      'This is an example map. Sign in with Google to get your own empty map and fill it with cities and places.',
+    showcaseBannerUser:
+      'This is the showcase example. Your personal map is at @{{username}} in your profile.',
+    emptyTitle: 'Your map is empty',
+    emptyBody:
+      'Start with a city, then add places, photos, and routes. Everything will appear on the map.',
+    emptyAddCity: 'Add your first city',
+    checklistTitle: 'Getting started',
+    checklistAddCity: 'Add a city',
+    checklistAddPlace: 'Add a place',
+    checklistOpenPlace: 'Open a place card',
+    checklistShare: 'Share your map link',
+    hintFirstCity:
+      'City on the map! Full list of cities and places — in the «☰ List» button.',
+    hintFirstPlace:
+      'Place added. Zoom in to see the dot. Tabs above filter categories.',
+    hintFirstRoute:
+      'Route saved — it shows on the map. Manage routes in «☰ List».',
+    hintFirstSearch:
+      'Search flies the map to a city or place. It searches your map data.',
+    hintFirstPlaceOpen:
+      'Place card: description, rating, and photos. You can edit your own places.',
+    tourTitle: 'How it works',
+    tourSlide1Title: 'Your travel map',
+    tourSlide1Body:
+      'Collect cities and places you\'ve been. Your map is public — share the link with friends.',
+    tourSlide2Title: 'Cities and places',
+    tourSlide2Body:
+      'Tap «+ City» or «+ Place», search, add a description and photos.',
+    tourSlide3Title: 'Map and filters',
+    tourSlide3Body:
+      'Tabs filter categories. Zoom in for place markers. Click for the card.',
+    tourSlide4Title: 'Routes and list',
+    tourSlide4Body:
+      '«+ Route» draws paths between cities. «☰ List» — all cities, places, and routes.',
+    tourSlide5Title: 'Share',
+    tourSlide5Body:
+      'Your map link includes your username. Save others\' maps to favorites (★).',
+    tourShowcaseSlide1Title: 'Example map',
+    tourShowcaseSlide1Body:
+      'The home page is a demo map. Sign in to create your own.',
+    tourShowcaseSlide2Title: 'Your own map',
+    tourShowcaseSlide2Body:
+      'After sign-in, pick a username — you get an empty personal map to fill from scratch.',
+    tourDontAutoOpen: 'Don\'t suggest on open',
   },
 };
 

@@ -6,10 +6,15 @@ import {
   type FormEvent,
 } from 'react';
 import type { Catalog, City, Place, PlaceCategory } from '../data/types';
-import { catalogCityIdFromPhotonHints } from '../data/selectors';
+import { canonicalCity, canonicalCityId, resolvePlaceCityId } from '../data/selectors';
 import { validateNewPlaceRequired } from '../lib/validateNewPlaceForm';
 import { makeCityId } from '../lib/makeCityId';
-import { searchPhotonAddresses, type AddressSuggestion } from '../lib/photonAddressSearch';
+import {
+  isFineGrainedLocality,
+  searchPhotonAddresses,
+  preferredSettlementName,
+  type AddressSuggestion,
+} from '../lib/photonAddressSearch';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel } from '../i18n/labels';
 
@@ -179,12 +184,17 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
     name: string,
     cc: string,
     coords: { lat: number; lng: number },
-  ): string => {
+  ): string | undefined => {
+    if (isFineGrainedLocality(name)) return undefined;
+
     const norm = (str: string) =>
       str.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
     const nameNorm = norm(name);
     const existing = allCities.find(
-      (c) => c.countryCode.toUpperCase() === cc && norm(c.name) === nameNorm,
+      (c) =>
+        !isFineGrainedLocality(c.name) &&
+        c.countryCode.toUpperCase() === cc &&
+        norm(c.name) === nameNorm,
     );
     if (existing) return existing.id;
 
@@ -209,35 +219,22 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
     setLat(String(Math.round(s.lat * 1e6) / 1e6));
     if (s.googleRating != null) setRating(String(s.googleRating));
 
-    let resolvedCityId: string | undefined;
-    const cc = s.countryCodeOsm?.toUpperCase();
+    let resolvedCityId = resolvePlaceCityId(catalog, localCities, {
+      lat: s.lat,
+      lng: s.lng,
+      localityHints: s.localityHints,
+      countryCodeOsm: s.countryCodeOsm,
+      cityName: s.cityName,
+    });
 
-    if (s.cityName && cc) {
-      resolvedCityId = resolveCityFromCatalogOrCreate(s.cityName, cc, s);
-    } else if (cc && s.localityHints.length > 0) {
-      // Есть подсказки из Google, но нет locality — ищем по имени, без «ближайшего города»
-      const norm = (str: string) =>
-        str.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
-      for (const hint of s.localityHints) {
-        const match = allCities.find(
-          (c) => c.countryCode.toUpperCase() === cc && norm(c.name) === norm(hint),
-        );
-        if (match) {
-          resolvedCityId = match.id;
-          break;
+    if (!resolvedCityId) {
+      const cc = s.countryCodeOsm?.toUpperCase();
+      if (cc) {
+        const createName = preferredSettlementName(s);
+        if (createName) {
+          resolvedCityId = resolveCityFromCatalogOrCreate(createName, cc, s);
         }
       }
-      if (!resolvedCityId) {
-        resolvedCityId = resolveCityFromCatalogOrCreate(s.localityHints[0]!, cc, s);
-      }
-    } else {
-      resolvedCityId = catalogCityIdFromPhotonHints(
-        { cities: allCities, places: catalog.places },
-        s.lat,
-        s.lng,
-        s.localityHints,
-        s.countryCodeOsm,
-      );
     }
 
     if (resolvedCityId) setCityId(resolvedCityId);
@@ -268,6 +265,20 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
       setError(t('addPlace.errorSelectFromSearch'));
       return;
     }
+
+    const placeCoords =
+      lat.trim() !== '' && lng.trim() !== ''
+        ? {
+            lat: Number(lat.replace(',', '.')),
+            lng: Number(lng.replace(',', '.')),
+          }
+        : undefined;
+    const mergedCatalog: Catalog = {
+      cities: allCities,
+      places: catalog.places,
+    };
+    const canonicalId = canonicalCityId(mergedCatalog, cityId, placeCoords);
+    const canonical = canonicalCity(mergedCatalog, cityId, placeCoords) ?? city;
 
     // Загрузка файлов на сервер (если есть)
     let uploadedUrls: string[] = [];
@@ -315,7 +326,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
 
     const draft = buildPlace({
       name,
-      cityId,
+      cityId: canonicalId,
       categories: cats,
       address,
       summary,
@@ -329,10 +340,10 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
       setError(t('addPlace.errorOptionalFields'));
       return;
     }
-    const place: Place = { ...draft, countryCode: city.countryCode };
+    const place: Place = { ...draft, countryCode: canonical.countryCode };
     setBusy(true);
     try {
-      await onSaved(place, city);
+      await onSaved(place, canonical);
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

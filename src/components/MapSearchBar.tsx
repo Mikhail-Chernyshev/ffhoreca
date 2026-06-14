@@ -6,7 +6,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { cityById, placeCoordinates } from '../data/selectors';
+import { catalogCitiesListed, cityById, placeCoordinates } from '../data/selectors';
 import type { Catalog, City, Place } from '../data/types';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import {
@@ -30,7 +30,7 @@ function hitCoords(catalog: Catalog, h: MapSearchHit): [number, number] {
 
 function collectHits(catalog: Catalog): MapSearchHit[] {
   const hits: MapSearchHit[] = [];
-  for (const c of catalog.cities) hits.push({ kind: 'city', city: c });
+  for (const c of catalogCitiesListed(catalog)) hits.push({ kind: 'city', city: c });
   for (const p of catalog.places) hits.push({ kind: 'place', place: p });
   return hits;
 }
@@ -97,9 +97,10 @@ const SUGGESTION_LIMIT = 10;
 type Props = {
   catalog: Catalog;
   onFlyTo: (lng: number, lat: number) => void;
+  onSearchSelect?: () => void;
 };
 
-export function MapSearchBar({ catalog, onFlyTo }: Props) {
+export function MapSearchBar({ catalog, onFlyTo, onSearchSelect }: Props) {
   const t = useT();
   const { locale } = useLocale();
   const listId = useId();
@@ -127,10 +128,11 @@ export function MapSearchBar({ catalog, onFlyTo }: Props) {
     (h: MapSearchHit) => {
       const [lng, lat] = hitCoords(catalog, h);
       onFlyTo(lng, lat);
+      onSearchSelect?.();
       setQuery(hitName(h));
       setOpen(false);
     },
-    [catalog, onFlyTo],
+    [catalog, onFlyTo, onSearchSelect],
   );
 
   useEffect(() => {

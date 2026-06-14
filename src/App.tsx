@@ -41,6 +41,9 @@ import { useCanEditMap } from './hooks/useCanEditMap'
 import { AuthButton } from './components/AuthButton'
 import { UsernameModal } from './components/UsernameModal'
 import { FavoritesModal } from './components/FavoritesModal'
+import { MapOnboarding } from './components/MapOnboarding'
+import { OnboardingHelpControls } from './components/OnboardingHelpControls'
+import { useMapOnboarding } from './hooks/useMapOnboarding'
 import { useCurrentUser } from './hooks/useCurrentUser'
 import { useT } from './i18n/LocaleContext'
 import './App.css'
@@ -75,6 +78,9 @@ function App() {
   const canEditShowcase = useCanEditMap()
   const [showUsernameModal, setShowUsernameModal] = useState(false)
   const [favoritesOpen, setFavoritesOpen] = useState(false)
+  const onboardingEnabled = !adminMode
+  const onboarding = useMapOnboarding(onboardingEnabled)
+  const { notify: onboardingNotify, setTourOpen } = onboarding
 
   // Show username modal for first-time users who haven't picked a username yet
   useEffect(() => {
@@ -159,7 +165,8 @@ function App() {
   const openPlace = useCallback((place: Place) => {
     setSelectedCity(null)
     setSelectedPlace(place)
-  }, [])
+    onboardingNotify('placeOpened')
+  }, [onboardingNotify])
 
   const openCity = useCallback((city: City) => {
     setSelectedPlace(null)
@@ -301,6 +308,11 @@ function App() {
       ) : null}
 
       <AppHeader
+        leftBelow={
+          onboardingEnabled ? (
+            <OnboardingHelpControls onOpenTour={() => setTourOpen(true)} />
+          ) : null
+        }
         center={
           <>
             <h1 className="app-title">Tips from trips</h1>
@@ -317,6 +329,18 @@ function App() {
         }
       />
 
+      <MapOnboarding
+        mode="showcase"
+        canEdit={canEditShowcase}
+        catalog={catalogMerged}
+        routes={userRoutes}
+        isLoggedIn={!!currentUser}
+        username={currentUser?.username}
+        onAddCity={() => setAddCityOpen(true)}
+        onboarding={onboarding}
+        hideHelpControls
+      />
+
       <CategoryTabs value={filter} onChange={setFilter} />
 
       {canEditShowcase ? (
@@ -328,7 +352,11 @@ function App() {
         />
       ) : null}
 
-      <MapSearchBar catalog={catalogMerged} onFlyTo={flyToOnMap} />
+      <MapSearchBar
+        catalog={catalogMerged}
+        onFlyTo={flyToOnMap}
+        onSearchSelect={() => onboardingNotify('searchUsed')}
+      />
 
       <WorldMap
         ref={mapRef}
@@ -361,6 +389,7 @@ function App() {
                 /* оставляем старый remoteCatalog */
               }
             }
+            onboardingNotify('cityAdded')
           }}
         />
       ) : null}
@@ -368,7 +397,10 @@ function App() {
         <AddPlaceModal
           onClose={() => setAddPlaceOpen(false)}
           catalog={catalogMerged}
-          onSaved={handleAdminPlaceSaved}
+          onSaved={async (place, city) => {
+            await handleAdminPlaceSaved(place, city)
+            onboardingNotify('placeAdded')
+          }}
         />
       ) : null}
       {managerOpen ? (
@@ -395,6 +427,7 @@ function App() {
           onClose={() => setAddRouteOpen(false)}
           onSaved={() => {
             void fetchRoutes().then((routes) => setUserRoutes(routes)).catch(() => {})
+            onboardingNotify('routeAdded')
           }}
         />
       ) : null}

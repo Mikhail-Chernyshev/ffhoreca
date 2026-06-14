@@ -31,6 +31,8 @@ import type {
 import { useT } from '../i18n/LocaleContext';
 import {
   atlasCountryAlpha2,
+  citiesForMapBoundaries,
+  citiesForMapMarkers,
   markerColorClass,
   placeCoordinates,
   TRANSIT_LAYOVER_COUNTRY_CODES,
@@ -154,20 +156,21 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   ref,
 ) {
   const t = useT();
-  /** Города на карте: на табе «Города»/«Всё» — все; иначе — только с видимыми местами */
-  const citiesOnMap = useMemo(() => {
-    if (filter === 'cities' || filter === 'all') return catalog.cities;
-    const ids = new Set(places.map((p) => p.cityId));
-    return catalog.cities.filter((c) => ids.has(c.id));
-  }, [catalog.cities, filter, places]);
+  const citiesForBoundaries = useMemo(
+    () => citiesForMapBoundaries(catalog, filter, places),
+    [catalog, filter, places],
+  );
+  const citiesOnMap = useMemo(
+    () => citiesForMapMarkers(catalog, filter, places),
+    [catalog, filter, places],
+  );
 
-  const showCityLayer = citiesOnMap.length > 0;
+  const showCityLayer = citiesForBoundaries.length > 0;
   const { geography: cityBoundaryGeo } = useCityBoundaryGeography(
-    showCityLayer ? citiesOnMap : NO_CITIES,
+    showCityLayer ? citiesForBoundaries : NO_CITIES,
   );
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapRef>(null);
-  const cityClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [fillBeforeId, setFillBeforeId] = useState<string | undefined>();
@@ -273,48 +276,19 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     });
   }, []);
 
-  const handleCityZoom = useCallback(
+  /** Далеко — приближение; уже крупный план — карточка города */
+  const handleCityClick = useCallback(
     (city: City) => {
-      zoomToCity(city);
-    },
-    [zoomToCity],
-  );
-
-  const handleCityOpenCard = useCallback(
-    (city: City) => {
+      const map = mapRef.current?.getMap();
+      const currentZoom = map?.getZoom() ?? zoom;
+      if (currentZoom < CITY_FOCUS_ZOOM) {
+        zoomToCity(city);
+        return;
+      }
       onCityClick?.(city);
     },
-    [onCityClick],
+    [onCityClick, zoom, zoomToCity],
   );
-
-  /** Одиночный клик с задержкой, чтобы dblclick успел отменить зум и открыть только карточку. */
-  const scheduleCityZoomOnClick = useCallback(
-    (city: City) => {
-      if (cityClickTimerRef.current) {
-        clearTimeout(cityClickTimerRef.current);
-      }
-      cityClickTimerRef.current = setTimeout(() => {
-        cityClickTimerRef.current = null;
-        handleCityZoom(city);
-      }, 280);
-    },
-    [handleCityZoom],
-  );
-
-  const cancelScheduledCityZoom = useCallback(() => {
-    if (cityClickTimerRef.current) {
-      clearTimeout(cityClickTimerRef.current);
-      cityClickTimerRef.current = null;
-    }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (cityClickTimerRef.current) {
-        clearTimeout(cityClickTimerRef.current);
-      }
-    };
-  }, []);
 
   useEffect(() => {
     const el = mapWrapRef.current;
@@ -488,22 +462,16 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
                 <button
                   type='button'
                   className='world-map-city-marker'
-                  aria-label={t('map.ariaFocusCity', { name: city.name })}
+                  aria-label={t('map.ariaCityMarker', { name: city.name })}
                   onMouseDown={(e) => e.stopPropagation()}
                   onClick={(e) => {
                     e.stopPropagation();
-                    scheduleCityZoomOnClick(city);
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    cancelScheduledCityZoom();
-                    handleCityOpenCard(city);
+                    handleCityClick(city);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      cancelScheduledCityZoom();
-                      handleCityZoom(city);
+                      handleCityClick(city);
                     }
                   }}
                 >

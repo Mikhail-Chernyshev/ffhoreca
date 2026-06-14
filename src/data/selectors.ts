@@ -1,4 +1,5 @@
 import { numericToAlpha2 } from 'i18n-iso-countries';
+import { isFineGrainedLocality } from '../lib/photonAddressSearch';
 import type {
   Catalog,
   CategoryFilter,
@@ -58,15 +59,153 @@ export function cityById(catalog: Catalog, id: string): City | undefined {
   return catalog.cities.find((c) => c.id === id);
 }
 
+/** Подрайон (khwaeng и т.п.) — не город для заливки и метки на табах категорий */
+export function isFineGrainedCity(city: City): boolean {
+  if (isFineGrainedLocality(city.name)) return true;
+  return city.id.toLowerCase().includes('khwaeng');
+}
+
+/** Место в подрайоне привязываем к ближайшему «настоящему» городу той же страны */
+function parentCityForPlaceCity(
+  catalog: Catalog,
+  placeCityId: string,
+  coords?: { lat: number; lng: number },
+): City | undefined {
+  const city = cityById(catalog, placeCityId);
+  if (!city) return undefined;
+  if (!isFineGrainedCity(city)) return city;
+
+  const cc = city.countryCode.toUpperCase();
+  const lat = coords?.lat ?? city.lat;
+  const lng = coords?.lng ?? city.lng;
+  let best: City | undefined;
+  let bestDist = Infinity;
+  for (const c of catalog.cities) {
+    if (isFineGrainedCity(c) || c.countryCode.toUpperCase() !== cc) continue;
+    const d = distanceKm(lat, lng, c.lat, c.lng);
+    if (d < bestDist) {
+      bestDist = d;
+      best = c;
+    }
+  }
+  return best && bestDist <= PARENT_CITY_MAX_KM ? best : undefined;
+}
+
+/** Город каталога для места: подрайон → ближайший «настоящий» город */
+export function canonicalCity(
+  catalog: Catalog,
+  cityId: string,
+  coords?: { lat: number; lng: number },
+): City | undefined {
+  return parentCityForPlaceCity(catalog, cityId, coords) ?? cityById(catalog, cityId);
+}
+
+export function canonicalCityId(
+  catalog: Catalog,
+  cityId: string,
+  coords?: { lat: number; lng: number },
+): string {
+  return canonicalCity(catalog, cityId, coords)?.id ?? cityId;
+}
+
+function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const r = Math.PI / 180;
+  const dLat = (bLat - aLat) * r;
+  const dLng = (bLng - aLng) * r;
+  const x =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(aLat * r) * Math.cos(bLat * r) * Math.sin(dLng / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x));
+}
+
+const PARENT_CITY_MAX_KM = 80;
+
+/** Сколько мест привязано к городу (включая записи через подрайоны) */
+export function placesCountForCity(catalog: Catalog, cityId: string): number {
+  return catalog.places.filter((p) => {
+    const coords =
+      p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : undefined;
+    return canonicalCityId(catalog, p.cityId, coords) === cityId;
+  }).length;
+}
+
+/** Города для списков UI (менеджер, маршруты, поиск) — без подрайонов */
+export function catalogCitiesListed(catalog: Catalog): City[] {
+  return catalog.cities.filter((c) => !isFineGrainedCity(c));
+}
+
+function citiesFromVisiblePlaces(catalog: Catalog, visiblePlaces: Place[]): City[] {
+  const byId = new Map<string, City>();
+  for (const p of visiblePlaces) {
+    const coords =
+      p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : undefined;
+    const resolved =
+      parentCityForPlaceCity(catalog, p.cityId, coords) ?? cityById(catalog, p.cityId);
+    if (resolved && !isFineGrainedCity(resolved)) byId.set(resolved.id, resolved);
+  }
+  return [...byId.values()];
+}
+
+/** Название города для отображения у места (подрайон → ближайший город) */
+export function cityLabelForPlace(catalog: Catalog, place: Place): string {
+  const coords =
+    place.lat != null && place.lng != null
+      ? { lat: place.lat, lng: place.lng }
+      : undefined;
+  const resolved =
+    parentCityForPlaceCity(catalog, place.cityId, coords) ??
+    cityById(catalog, place.cityId);
+  return resolved?.name ?? place.cityId;
+}
+
+/** Города для заливки и меток на «Всё»/«Города» — без подрайонов внутри основного города */
+function allCatalogCitiesForMap(catalog: Catalog): City[] {
+  return catalog.cities.filter((c) => !isFineGrainedCity(c));
+}
+
+/** Границы на карте: на «Всё»/«Города» — все города; на табах категорий — только релевантные */
+export function citiesForMapBoundaries(
+  catalog: Catalog,
+  filter: CategoryFilter,
+  visiblePlaces: Place[],
+): City[] {
+  if (filter === 'cities' || filter === 'all') {
+    return allCatalogCitiesForMap(catalog);
+  }
+  return citiesFromVisiblePlaces(catalog, visiblePlaces);
+}
+
+/** Метки городов: на «Всё»/«Города» — без подрайонов; на табах категорий — только с видимыми местами */
+export function citiesForMapMarkers(
+  catalog: Catalog,
+  filter: CategoryFilter,
+  visiblePlaces: Place[],
+): City[] {
+  if (filter === 'cities' || filter === 'all') return allCatalogCitiesForMap(catalog);
+  return citiesFromVisiblePlaces(catalog, visiblePlaces);
+}
+
 function normalizeCityToken(s: string): string {
   return s.trim().toLowerCase().replace(/\s+/g, ' ').replace(/ё/g, 'е');
 }
 
 const PHOTON_NEAREST_MAX_KM = 35;
 
+function citiesForMatching(pool: City[]): City[] {
+  return pool.filter((c) => !isFineGrainedCity(c));
+}
+
+function orderedLocalityHints(hints: readonly string[]): string[] {
+  return [...hints].sort((a, b) => {
+    const af = isFineGrainedLocality(a) ? 1 : 0;
+    const bf = isFineGrainedLocality(b) ? 1 : 0;
+    return af - bf;
+  });
+}
+
 /**
  * Подобрать id города из каталога по данным Photon (названия + координаты).
- * Если уверенного совпадения нет — возвращает undefined (оставить текущий выбор в форме).
+ * Подрайоны в каталоге и в подсказках игнорируются.
  */
 export function catalogCityIdFromPhotonHints(
   catalog: Catalog,
@@ -78,14 +217,17 @@ export function catalogCityIdFromPhotonHints(
   if (catalog.cities.length === 0) return undefined;
 
   const cc = countryCodeOsm?.toUpperCase();
-  const hints = localityHints.map(normalizeCityToken).filter(Boolean);
+  const hints = orderedLocalityHints(localityHints).map(normalizeCityToken).filter(Boolean);
 
   const inCountry = cc
     ? catalog.cities.filter((c) => c.countryCode.toUpperCase() === cc)
     : catalog.cities;
 
+  const matchPool = citiesForMatching(inCountry.length > 0 ? inCountry : catalog.cities);
+
   const tryExact = (pool: City[]) => {
     for (const h of hints) {
+      if (isFineGrainedLocality(h)) continue;
       for (const city of pool) {
         if (normalizeCityToken(city.name) === h) return city.id;
       }
@@ -93,16 +235,12 @@ export function catalogCityIdFromPhotonHints(
     return undefined;
   };
 
-  const exactInCountry = tryExact(inCountry.length > 0 ? inCountry : catalog.cities);
-  if (exactInCountry) return exactInCountry;
-
-  if (cc && inCountry.length > 0) {
-    const exactAny = tryExact(catalog.cities);
-    if (exactAny) return exactAny;
-  }
+  const exact = tryExact(matchPool);
+  if (exact) return exact;
 
   const tryPartial = (pool: City[]) => {
     for (const h of hints) {
+      if (isFineGrainedLocality(h)) continue;
       for (const city of pool) {
         const cn = normalizeCityToken(city.name);
         if (h.includes(cn) || cn.includes(h)) return city.id;
@@ -111,27 +249,88 @@ export function catalogCityIdFromPhotonHints(
     return undefined;
   };
 
-  const partial = tryPartial(inCountry.length > 0 ? inCountry : catalog.cities);
+  const partial = tryPartial(matchPool);
   if (partial) return partial;
 
-  const pool = inCountry.length > 0 ? inCountry : catalog.cities;
-  const R = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const havKm = (la1: number, lo1: number, la2: number, lo2: number) => {
-    const dLat = toRad(la2 - la1);
-    const dLon = toRad(lo2 - lo1);
-    const a =
-      Math.sin(dLat / 2) ** 2 +
-      Math.cos(toRad(la1)) * Math.cos(toRad(la2)) * Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.min(1, Math.sqrt(a)));
-  };
-
   let best: { id: string; d: number } | null = null;
-  for (const city of pool) {
-    const d = havKm(lat, lng, city.lat, city.lng);
+  for (const city of matchPool) {
+    const d = distanceKm(lat, lng, city.lat, city.lng);
     if (!best || d < best.d) best = { id: city.id, d };
   }
   if (best && best.d <= PHOTON_NEAREST_MAX_KM) return best.id;
+
+  return undefined;
+}
+
+export type PlaceCitySuggestion = {
+  lat: number;
+  lng: number;
+  localityHints: readonly string[];
+  countryCodeOsm?: string;
+  cityName?: string;
+};
+
+/**
+ * Id города для нового места: только «настоящие» города, без подрайонов.
+ */
+export function resolvePlaceCityId(
+  catalog: Catalog,
+  extraCities: City[],
+  suggestion: PlaceCitySuggestion,
+): string | undefined {
+  const allCities = [...catalog.cities, ...extraCities];
+  const merged: Catalog = { cities: allCities, places: catalog.places };
+  const cc = suggestion.countryCodeOsm?.toUpperCase();
+  const norm = (str: string) =>
+    str.trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+
+  let resolved = catalogCityIdFromPhotonHints(
+    merged,
+    suggestion.lat,
+    suggestion.lng,
+    suggestion.localityHints,
+    suggestion.countryCodeOsm,
+  );
+
+  if (!resolved && cc) {
+    const namesToTry = orderedLocalityHints([
+      ...(suggestion.cityName ? [suggestion.cityName] : []),
+      ...suggestion.localityHints,
+    ]);
+
+    for (const name of namesToTry) {
+      if (isFineGrainedLocality(name)) continue;
+      const match = citiesForMatching(allCities).find(
+        (c) => c.countryCode.toUpperCase() === cc && norm(c.name) === norm(name),
+      );
+      if (match) {
+        resolved = match.id;
+        break;
+      }
+    }
+  }
+
+  if (resolved) {
+    return canonicalCityId(merged, resolved, {
+      lat: suggestion.lat,
+      lng: suggestion.lng,
+    });
+  }
+
+  if (!cc) return undefined;
+
+  const createName = [
+    suggestion.cityName,
+    ...orderedLocalityHints(suggestion.localityHints),
+  ].find((n) => typeof n === 'string' && n.trim() && !isFineGrainedLocality(n));
+
+  if (!createName) return undefined;
+
+  const nameNorm = norm(createName);
+  const existing = citiesForMatching(allCities).find(
+    (c) => c.countryCode.toUpperCase() === cc && norm(c.name) === nameNorm,
+  );
+  if (existing) return existing.id;
 
   return undefined;
 }

@@ -59,26 +59,23 @@ function parseGooglePlace(p: GooglePlace): AddressSuggestion | null {
   const hintTypes = new Set([
     'locality',
     'postal_town',
+    'administrative_area_level_1',
+    'administrative_area_level_2',
+    'colloquial_area',
+    'neighborhood',
     'sublocality',
     'sublocality_level_1',
-    'neighborhood',
-    'colloquial_area',
-    'administrative_area_level_4',
     'administrative_area_level_3',
-    'administrative_area_level_2',
+    'administrative_area_level_4',
   ]);
 
-  /** Приоритет названия «города» если Google не вернул locality (напр. Lovina Beach → neighborhood) */
+  /** Приоритет названия «города» — широкие единицы, не подрайоны (Khwaeng и т.п.) */
   const cityNameTypes = [
+    'administrative_area_level_1',
+    'administrative_area_level_2',
     'locality',
     'postal_town',
-    'neighborhood',
     'colloquial_area',
-    'sublocality',
-    'sublocality_level_1',
-    'administrative_area_level_4',
-    'administrative_area_level_3',
-    'administrative_area_level_2',
   ] as const;
 
   const components = p.addressComponents ?? [];
@@ -102,7 +99,7 @@ function parseGooglePlace(p: GooglePlace): AddressSuggestion | null {
     for (const comp of components) {
       const types = comp.types ?? [];
       const longText = comp.longText?.trim();
-      if (types.includes(priorityType) && longText) {
+      if (types.includes(priorityType) && longText && !isFineGrainedLocality(longText)) {
         cityName = longText;
         break;
       }
@@ -110,13 +107,16 @@ function parseGooglePlace(p: GooglePlace): AddressSuggestion | null {
     if (cityName) break;
   }
 
+  const broadHints = uniqueHints.filter((h) => !isFineGrainedLocality(h));
+  const orderedHints = [...broadHints, ...uniqueHints.filter((h) => isFineGrainedLocality(h))];
+
   const googleRating = typeof p.rating === 'number' ? p.rating : undefined;
   return {
     placeName,
     label,
     lng,
     lat,
-    localityHints: uniqueHints,
+    localityHints: orderedHints,
     countryCodeOsm,
     cityName,
     googleRating,
@@ -192,14 +192,21 @@ function formatPhotonLabel(p: Record<string, unknown>): string {
   return s || 'Без названия';
 }
 
+function cityNameFromPhotonProps(p: Record<string, unknown>): string | undefined {
+  const city = (p.city || p.town || p.village) as string | undefined;
+  return typeof city === 'string' && city.trim() ? city.trim() : undefined;
+}
+
 function localityHintsFromPhotonProps(p: Record<string, unknown>): string[] {
-  const keys = ['city', 'locality', 'town', 'village', 'district', 'county'] as const;
+  const keys = ['city', 'town', 'village', 'locality', 'district', 'county'] as const;
   const out: string[] = [];
   for (const k of keys) {
     const v = p[k];
     if (typeof v === 'string' && v.trim()) out.push(v.trim());
   }
-  return [...new Set(out)];
+  const unique = [...new Set(out)];
+  const broad = unique.filter((h) => !isFineGrainedLocality(h));
+  return [...broad, ...unique.filter((h) => isFineGrainedLocality(h))];
 }
 
 function countryCodeFromPhotonProps(p: Record<string, unknown>): string | undefined {
@@ -255,6 +262,7 @@ async function searchPhoton(
       lat,
       localityHints: localityHintsFromPhotonProps(p),
       countryCodeOsm: countryCodeFromPhotonProps(p),
+      cityName: cityNameFromPhotonProps(p),
     });
   }
   return out;
@@ -263,6 +271,26 @@ async function searchPhoton(
 // ---------------------------------------------------------------------------
 // Публичная функция
 // ---------------------------------------------------------------------------
+
+/** Подрайон / khwaeng — не подходит как «город» в каталоге */
+export function isFineGrainedLocality(name: string): boolean {
+  const n = name.trim().toLowerCase();
+  if (!n) return true;
+  if (/^(khwaeng|แขวง)\b/.test(n)) return true;
+  if (/\bkhwaeng\b/.test(n)) return true;
+  return false;
+}
+
+/** Лучшее название для привязки к городу, если в каталоге нет совпадения */
+export function preferredSettlementName(s: AddressSuggestion): string | undefined {
+  if (s.cityName && !isFineGrainedLocality(s.cityName)) return s.cityName;
+
+  for (const hint of s.localityHints) {
+    if (!isFineGrainedLocality(hint)) return hint;
+  }
+
+  return s.localityHints[0] ?? s.cityName;
+}
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_PLACES_API_KEY as string | undefined;
 

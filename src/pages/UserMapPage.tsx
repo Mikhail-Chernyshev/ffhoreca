@@ -27,6 +27,9 @@ import { AppHeader } from '../components/AppHeader';
 import { AuthButton } from '../components/AuthButton';
 import { FavoritesModal } from '../components/FavoritesModal';
 import { UsernameModal } from '../components/UsernameModal';
+import { MapOnboarding } from '../components/MapOnboarding';
+import { OnboardingHelpControls } from '../components/OnboardingHelpControls';
+import { useMapOnboarding } from '../hooks/useMapOnboarding';
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] };
 
@@ -53,6 +56,9 @@ export function UserMapPage() {
   const mapRef = useRef<WorldMapRef>(null);
 
   const canEditMap = useCanEditMap(username);
+  const mapMode = canEditMap ? 'ownMap' as const : 'sharedMap' as const;
+  const onboarding = useMapOnboarding(mapMode !== 'sharedMap');
+  const { notify: onboardingNotify, setTourOpen, skipAll, skipped } = onboarding;
 
   useEffect(() => {
     if (currentUser && !currentUser.username && !authLoading) {
@@ -95,6 +101,11 @@ export function UserMapPage() {
     mapRef.current?.flyToLngLat(lng, lat);
   }, []);
 
+  const handlePlaceClick = useCallback((place: Place) => {
+    setSelectedPlace(place);
+    onboardingNotify('placeOpened');
+  }, [onboardingNotify]);
+
   const visiblePlaces = useMemo(() => placesForFilter(catalog, filter), [catalog, filter]);
 
   // ---- Owner place handlers ----
@@ -103,7 +114,8 @@ export function UserMapPage() {
     const r = await userPostPlace(place, city);
     if (!r.ok) { window.alert(r.message); return; }
     await loadCatalog();
-  }, [loadCatalog]);
+    onboardingNotify('placeAdded');
+  }, [loadCatalog, onboardingNotify]);
 
   const handlePlaceDeleted = useCallback(async (placeId: string): Promise<boolean> => {
     const r = await userDeletePlace(placeId);
@@ -147,7 +159,16 @@ export function UserMapPage() {
     <div className="user-map-page">
       <AppHeader
         leftBelow={
-          <Link to="/" className="app-header__back">← Tips from trips</Link>
+          <>
+            <Link to="/" className="app-header__back">← Tips from trips</Link>
+            {mapMode !== 'sharedMap' ? (
+              <OnboardingHelpControls
+                onOpenTour={() => setTourOpen(true)}
+                onSkip={skipAll}
+                showSkip={canEditMap && !skipped}
+              />
+            ) : null}
+          </>
         }
         center={
           <>
@@ -165,6 +186,19 @@ export function UserMapPage() {
         }
       />
 
+      <MapOnboarding
+        mode={mapMode}
+        canEdit={canEditMap}
+        catalog={catalog}
+        routes={routes}
+        isLoggedIn={!!currentUser}
+        username={currentUser?.username}
+        profileUsername={username}
+        onAddCity={() => setAddCityOpen(true)}
+        onboarding={onboarding}
+        hideHelpControls
+      />
+
       <CategoryTabs value={filter} onChange={setFilter} />
 
       {canEditMap ? (
@@ -176,7 +210,11 @@ export function UserMapPage() {
         />
       ) : null}
 
-      <MapSearchBar catalog={catalog} onFlyTo={flyToOnMap} />
+      <MapSearchBar
+        catalog={catalog}
+        onFlyTo={flyToOnMap}
+        onSearchSelect={() => onboardingNotify('searchUsed')}
+      />
 
       <WorldMap
         ref={mapRef}
@@ -184,7 +222,7 @@ export function UserMapPage() {
         filter={filter}
         places={visiblePlaces}
         userRoutes={routes}
-        onPlaceClick={setSelectedPlace}
+        onPlaceClick={handlePlaceClick}
         onCityClick={setSelectedCity}
       />
 
@@ -206,6 +244,7 @@ export function UserMapPage() {
           onSaved={async () => {
             await loadCatalog();
             setAddCityOpen(false);
+            onboardingNotify('cityAdded');
           }}
         />
       )}
@@ -227,6 +266,7 @@ export function UserMapPage() {
           onSaved={async () => {
             await loadCatalog();
             setAddRouteOpen(false);
+            onboardingNotify('routeAdded');
           }}
         />
       )}
