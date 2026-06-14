@@ -35,11 +35,6 @@ const DATABASE_PATH = path.resolve(
 );
 const UPLOADS_DIR = path.resolve(process.cwd(), process.env.UPLOADS_DIR ?? 'server/data/uploads');
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-const ADMIN_TOKEN = (
-  process.env.ADMIN_TOKEN ?? process.env.VITE_ADMIN_TOKEN ??
-  ''
-).trim();
-
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? '';
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? `http://localhost:${PORT}/api/auth/google/callback`;
@@ -48,16 +43,17 @@ const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,29}$/i;
 
-/** Проверяет Authorization: Bearer JWT и возвращает true если это email-admin. */
-async function isAdminByJWT(c: Context): Promise<boolean> {
-  if (!ADMIN_EMAIL) return false;
+/** Витрину может редактировать только залогиненный пользователь с ADMIN_EMAIL. */
+async function requireShowcaseAdmin(c: Context): Promise<DbUser | null> {
+  if (!ADMIN_EMAIL) return null;
   const header = c.req.header('Authorization') ?? '';
   const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
-  if (!token) return false;
+  if (!token) return null;
   const payload = await verifyJWT(token);
-  if (!payload) return false;
+  if (!payload) return null;
   const user = findUserById(db, payload.sub);
-  return !!user && (user.email ?? '').toLowerCase() === ADMIN_EMAIL;
+  if (!user || (user.email ?? '').toLowerCase() !== ADMIN_EMAIL) return null;
+  return user;
 }
 
 /** Несколько origin через запятую: локалка + прод на GitHub Pages.
@@ -150,8 +146,7 @@ app.post('/api/cities', async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
   if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
   const rec = body as Record<string, unknown>;
-  const tokenOk = ADMIN_TOKEN && rec.token === ADMIN_TOKEN;
-  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   if (!isValidCity(rec.city)) return c.json({ error: 'Некорректное тело city' }, 400);
   try {
     upsertCity(db, rec.city);
@@ -162,9 +157,7 @@ app.post('/api/cities', async (c) => {
 });
 
 app.delete('/api/cities/:id', async (c) => {
-  const token = c.req.header('X-Admin-Token') ?? '';
-  const tokenOk = ADMIN_TOKEN && token === ADMIN_TOKEN;
-  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   const id = c.req.param('id')?.trim() ?? '';
   if (!id) return c.json({ error: 'Нужен id города' }, 400);
   try {
@@ -188,8 +181,7 @@ app.post('/api/places', async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
   if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
   const rec = body as Record<string, unknown>;
-  const tokenOk = ADMIN_TOKEN && rec.token === ADMIN_TOKEN;
-  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   if (!isValidPlace(rec.place)) return c.json({ error: 'Некорректное тело place' }, 400);
   try {
     if (isValidCity(rec.city)) upsertCity(db, rec.city);
@@ -205,8 +197,7 @@ app.post('/api/places/delete', async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
   if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
   const rec = body as Record<string, unknown>;
-  const tokenOk = ADMIN_TOKEN && rec.token === ADMIN_TOKEN;
-  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   const id = typeof rec.id === 'string' ? rec.id.trim() : '';
   if (!id) return c.json({ error: 'Нужен непустой id' }, 400);
   try {
@@ -224,9 +215,7 @@ const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'im
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 app.post('/api/photos', async (c) => {
-  const token = c.req.header('X-Admin-Token') ?? '';
-  const tokenOk = ADMIN_TOKEN && token === ADMIN_TOKEN;
-  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
 
   let formData: FormData;
   try { formData = await c.req.formData(); } catch { return c.json({ error: 'Ожидается multipart/form-data' }, 400); }
@@ -279,8 +268,7 @@ app.post('/api/routes', async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
   if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
   const rec = body as Record<string, unknown>;
-  const tokenOk = ADMIN_TOKEN && rec.token === ADMIN_TOKEN;
-  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   if (!isValidRoute(rec.route)) return c.json({ error: 'Некорректный маршрут' }, 400);
   try {
     upsertRoute(db, rec.route);
@@ -291,9 +279,7 @@ app.post('/api/routes', async (c) => {
 });
 
 app.delete('/api/routes/:id', async (c) => {
-  const token = c.req.header('X-Admin-Token') ?? '';
-  const tokenOk = ADMIN_TOKEN && token === ADMIN_TOKEN;
-  if (!tokenOk && !(await isAdminByJWT(c))) return c.json({ error: 'Не авторизован' }, 401);
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   const id = c.req.param('id');
   try {
     const removed = deleteRoute(db, id);

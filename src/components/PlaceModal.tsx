@@ -214,9 +214,8 @@ export function PlaceModal({
   const handlePhotoFiles = async (files: File[]) => {
     if (files.length === 0) return;
     const base = apiBaseUrl();
-    const token =
-      new URLSearchParams(window.location.search).get('token') ?? '';
-    if (!base || !token) {
+    const jwt = localStorage.getItem('ffhoreca_auth_token');
+    if (!base || !jwt) {
       window.alert(t('placeModal.alertUploadNeedsApi'));
       return;
     }
@@ -226,7 +225,7 @@ export function PlaceModal({
       for (const file of files) fd.append('photos', file);
       const res = await fetch(`${base}/api/photos`, {
         method: 'POST',
-        headers: { 'X-Admin-Token': token },
+        headers: { Authorization: `Bearer ${jwt}` },
         body: fd,
       });
       if (!res.ok) {

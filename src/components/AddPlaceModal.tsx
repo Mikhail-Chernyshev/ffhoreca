@@ -278,15 +278,15 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
           // Пользовательский режим: JWT-авторизация
           uploadedUrls = await uploadPhotos(photoFiles);
         } else {
-          // Режим витрины: X-Admin-Token из URL
+          // Режим витрины: JWT админа
           const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
-          const token = new URLSearchParams(window.location.search).get('token') ?? '';
-          if (base && token) {
+          const jwt = localStorage.getItem('ffhoreca_auth_token');
+          if (base && jwt) {
             const fd = new FormData();
             for (const file of photoFiles) fd.append('photos', file);
             const res = await fetch(`${base.replace(/\/+$/, '')}/api/photos`, {
               method: 'POST',
-              headers: { 'X-Admin-Token': token },
+              headers: { Authorization: `Bearer ${jwt}` },
               body: fd,
             });
             if (res.ok) {

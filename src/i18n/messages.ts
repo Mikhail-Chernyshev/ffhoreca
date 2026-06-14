@@ -31,7 +31,7 @@ const ru = {
     alertPlaceRejectedLocal:
       'Сохраняю копию в этом браузере (localStorage).',
     alertPlaceDeleteFailed: 'Не удалось удалить место:',
-    errorMissingApiOrToken: 'Нет URL API или токена админа в URL',
+    errorMissingApiOrToken: 'Войдите под учётной записью администратора витрины',
   },
   category: {
     ariaTablist: 'Категории на карте',
@@ -176,7 +176,7 @@ const ru = {
     alertSummaryRequired: 'Краткое описание не может быть пустым.',
     alertStoryRequired: 'Текст впечатлений не может быть пустым.',
     alertRatingRange: 'Введите оценку от 0 до 5.',
-    alertUploadNeedsApi: 'Загрузка файлов требует настроенного API и токена в URL.',
+    alertUploadNeedsApi: 'Загрузка файлов требует входа под учётной записью администратора витрины.',
     alertPhotoUploadFailed: 'Ошибка загрузки фото на сервер.',
     alertGenericError: 'Ошибка: {{message}}',
   },
@@ -215,7 +215,7 @@ const ru = {
   },
   api: {
     notConfigured: 'API не настроен',
-    noAdminToken: 'Нет токена админа в URL',
+    noAdminToken: 'Войдите под учётной записью администратора витрины',
     routeSaved: 'Маршрут сохранён',
     routeDeleted: 'Маршрут удалён',
     citySaved: 'Город сохранён',
@@ -429,7 +429,7 @@ const en = {
     alertSummaryRequired: 'Summary cannot be empty.',
     alertStoryRequired: 'Story text cannot be empty.',
     alertRatingRange: 'Enter a rating from 0 to 5.',
-    alertUploadNeedsApi: 'File upload requires configured API and token in URL.',
+    alertUploadNeedsApi: 'File upload requires logging in as the showcase admin.',
     alertPhotoUploadFailed: 'Photo upload to server failed.',
     alertGenericError: 'Error: {{message}}',
   },
@@ -456,17 +456,17 @@ const en = {
     hintFilterAirport: 'Airports only (after zooming in).',
     hintFilterDefault: 'Venues for the selected tab — after zooming in.',
     aboutIntro:
-      'A full description of ffhoreca will appear here: audience, data sources, map and filters. Below is placeholder text to test expand and scroll.',
+      'When I started this project, I wanted to collect places I’ve visited on my travels. As I built it, I realized this could be interesting for other travelers who also like to collect the places they’ve been.',
     aboutLorem1:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer vehicula, nibh non fermentum dictum, ligula ante sollicitudin odio, vel blandit augue velit nec turpis.',
+      'On the main page you see an example map of how this tool works. In fact, it’s my own map that I originally built for myself.',
     aboutLorem2:
-      'Suspendisse potenti. Mauris faucibus, nulla id ultricies lacinia, metus lacus tristique massa, vitae pulvinar lectus lacus sit amet tellus.',
+      'To create your own map, just sign in — it will be created right away. At first there won’t be any cities or places on it, but the process is quite straightforward.',
     aboutLorem3:
-      'Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.',
+      'Click Add and use the search in the window that opens. Then you can give the place a description, rating, name, and photos. You can also create routes using different modes of transport.',
   },
   api: {
     notConfigured: 'API not configured',
-    noAdminToken: 'No admin token in URL',
+    noAdminToken: 'Log in with the showcase admin account',
     routeSaved: 'Route saved',
     routeDeleted: 'Route deleted',
     citySaved: 'City saved',

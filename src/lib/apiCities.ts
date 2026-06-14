@@ -1,21 +1,20 @@
 import type { City } from '../data/types';
 import { apiBaseUrl } from './apiBase';
 import { apiErrorMessage, apiMessage } from './apiMessages';
-import { adminTokenForBody, adminAuthHeaders } from './adminToken';
+import { adminAuthHeaders } from './adminToken';
 
 export async function postCity(city: City): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
-  const token = adminTokenForBody();
   const extraHeaders = adminAuthHeaders();
-  if (!token && !extraHeaders.Authorization) {
+  if (!extraHeaders.Authorization) {
     return { ok: false, message: apiMessage('api.noAdminToken') };
   }
 
   const res = await fetch(`${base}/api/cities`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...extraHeaders },
-    body: JSON.stringify({ token, city }),
+    body: JSON.stringify({ city }),
   });
   const text = await res.text().catch(() => '');
   if (res.ok) return { ok: true, message: apiMessage('api.citySaved') };
@@ -25,15 +24,14 @@ export async function postCity(city: City): Promise<{ ok: boolean; message: stri
 export async function deleteCityById(id: string): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
-  const token = adminTokenForBody();
   const extraHeaders = adminAuthHeaders();
-  if (!token && !extraHeaders.Authorization) {
+  if (!extraHeaders.Authorization) {
     return { ok: false, message: apiMessage('api.noAdminToken') };
   }
 
   const res = await fetch(`${base}/api/cities/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { 'X-Admin-Token': token, ...extraHeaders },
+    headers: { ...extraHeaders },
   });
   const text = await res.text().catch(() => '');
   if (res.ok) return { ok: true, message: apiMessage('api.cityDeleted') };

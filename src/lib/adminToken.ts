@@ -40,23 +40,13 @@ export function isEmailAdmin(email: string | null | undefined): boolean {
   return !!adminEmail && !!email && email.toLowerCase() === adminEmail.toLowerCase();
 }
 
-/**
- * Возвращает заголовки авторизации для admin-запросов.
- * Если есть JWT (пользователь залогинен) — используем его.
- * Иначе — URL-токен в теле запроса (старый способ).
- */
+/** JWT для запросов к API витрины (только ADMIN_EMAIL на сервере). */
 export function adminAuthHeaders(): Record<string, string> {
   const jwt = localStorage.getItem('ffhoreca_auth_token');
   if (jwt) return { Authorization: `Bearer ${jwt}` };
   return {};
 }
 
-/**
- * Токен для тела запроса (старый способ через ?token=).
- * Если есть JWT — возвращаем пустую строку (сервер проверит Authorization header).
- */
-export function adminTokenForBody(): string {
-  const jwt = localStorage.getItem('ffhoreca_auth_token');
-  if (jwt) return '';
-  return parseAdminTokenFromLocation() ?? '';
+export function hasShowcaseAdminAuth(): boolean {
+  return !!localStorage.getItem('ffhoreca_auth_token');
 }
