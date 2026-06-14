@@ -352,6 +352,16 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 0.45rem;
+  min-width: 0;
+}
+
+.app-header__left-below {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .onboarding-help-controls {
@@ -412,13 +422,156 @@
   outline-offset: -2px;
 }
 
-@media (max-width: 520px) {
+/* ---- Responsive: header & content above tabs ---- */
+@media (max-width: 799px) {
   .app-header {
-    gap: 0.5rem;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'center center'
+      'left right';
+    align-items: start;
+    gap: 0.75rem 0.65rem;
+    margin-bottom: 1rem;
+  }
+
+  .app-header__center {
+    grid-area: center;
+  }
+
+  .app-header__left {
+    grid-area: left;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-header__right {
+    grid-area: right;
+    justify-self: end;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .app-header__left-stack {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
+  }
+
+  .app-header__left-below {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .app-tagline {
-    font-size: 0.9rem;
+    font-size: 0.92rem;
+    line-height: 1.4;
+  }
+
+  .auth-user {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 100%;
+  }
+
+  .onboarding-help-btn,
+  .onboarding-skip-btn {
+    font-size: 0.78rem;
+    padding: 0.32rem 0.6rem;
+  }
+
+  .onboarding-banner__text {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 599px) {
+  .app,
+  .user-map-page {
+    padding: 0.85rem 0.65rem 2rem;
+  }
+
+  .app-header {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'center'
+      'left'
+      'right';
+    gap: 0.65rem;
+  }
+
+  .app-header__left,
+  .app-header__right {
+    width: 100%;
+  }
+
+  .app-header__right {
+    justify-self: start;
+  }
+
+  .app-header__left-stack {
+    width: 100%;
+  }
+
+  .app-title {
+    font-size: 1.55rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .app-tagline {
+    font-size: 0.85rem;
+  }
+
+  .app-header__back {
+    font-size: 0.8rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .auth-user {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .auth-user__name {
+    max-width: min(12rem, 100%);
+  }
+
+  .onboarding-banner {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0.65rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .onboarding-banner__text {
+    font-size: 0.85rem;
+  }
+
+  .onboarding-banner__dismiss {
+    align-self: flex-end;
+  }
+
+  .onboarding-viewer-chip {
+    font-size: 0.8rem;
+    padding: 0.4rem 0.6rem;
+    overflow-wrap: anywhere;
+  }
+
+  .onboarding-empty {
+    padding: 1rem 0.75rem;
+  }
+
+  .onboarding-empty__title {
+    font-size: 1.05rem;
+  }
+
+  .onboarding-empty__body {
+    font-size: 0.88rem;
+  }
+
+  .onboarding-checklist {
+    padding: 0.65rem 0.75rem;
   }
 }
 

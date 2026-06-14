@@ -186,7 +186,7 @@ const ru = {
   cityModal: {
     emptySummaryHint:
       'Описание можно добавить в каталоге: поля summary и story у города.',
-    notesHeading: 'Заметки',
+    notesHeading: 'Описание',
   },
   map: {
     ariaZoomIn: 'Приблизить',
@@ -498,7 +498,7 @@ const en = {
   },
   cityModal: {
     emptySummaryHint: 'Add description in catalog: summary and story fields for the city.',
-    notesHeading: 'Notes',
+    notesHeading: 'Description',
   },
   map: {
     ariaZoomIn: 'Zoom in',

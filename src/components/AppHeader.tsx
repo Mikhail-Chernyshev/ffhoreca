@@ -13,7 +13,7 @@ export function AppHeader({ center, right, leftBelow }: Props) {
       <div className="app-header__left">
         <div className="app-header__left-stack">
           <LocaleToggle />
-          {leftBelow}
+          {leftBelow ? <div className="app-header__left-below">{leftBelow}</div> : null}
         </div>
       </div>
       <div className="app-header__center">{center}</div>
