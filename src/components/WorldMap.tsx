@@ -118,7 +118,9 @@ function firstSymbolLayerId(map: MapLibreMap): string | undefined {
 }
 
 function applyMapProjection(map: MapLibreMap, globe: boolean): void {
-  const projection: ProjectionSpecification = { type: globe ? 'globe' : 'mercator' };
+  const projection: ProjectionSpecification = {
+    type: globe ? 'globe' : 'mercator',
+  };
   map.setProjection(projection);
   if (!globe) {
     map.easeTo({ bearing: 0, pitch: 0, duration: 400 });
@@ -424,7 +426,9 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
               ? 'world-map-zoom-controls__globe world-map-zoom-controls__globe--active'
               : 'world-map-zoom-controls__globe'
           }
-          aria-label={globeMode ? t('map.ariaToggleFlat') : t('map.ariaToggleGlobe')}
+          aria-label={
+            globeMode ? t('map.ariaToggleFlat') : t('map.ariaToggleGlobe')
+          }
           title={globeMode ? t('map.titleFlatMode') : t('map.titleGlobeMode')}
           aria-pressed={globeMode}
           onClick={handleToggleGlobe}
@@ -432,13 +436,39 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           <span className='world-map-zoom-controls__globe-icon' aria-hidden>
             {globeMode ? (
               <svg viewBox='0 0 20 20' width='16' height='16'>
-                <rect x='2' y='4' width='16' height='12' rx='1.5' fill='none' stroke='currentColor' strokeWidth='1.5' />
-                <path d='M2 8h16M7 4v12M13 4v12' fill='none' stroke='currentColor' strokeWidth='1.2' />
+                <rect
+                  x='2'
+                  y='4'
+                  width='16'
+                  height='12'
+                  rx='1.5'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='1.5'
+                />
+                <path
+                  d='M2 8h16M7 4v12M13 4v12'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='1.2'
+                />
               </svg>
             ) : (
               <svg viewBox='0 0 20 20' width='16' height='16'>
-                <circle cx='10' cy='10' r='7.5' fill='none' stroke='currentColor' strokeWidth='1.5' />
-                <path d='M2.5 10h15M10 2.5c2 2.4 2 12.6 0 15M10 2.5c-2 2.4-2 12.6 0 15' fill='none' stroke='currentColor' strokeWidth='1.2' />
+                <circle
+                  cx='10'
+                  cy='10'
+                  r='7.5'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='1.5'
+                />
+                <path
+                  d='M2.5 10h15M10 2.5c2 2.4 2 12.6 0 15M10 2.5c-2 2.4-2 12.6 0 15'
+                  fill='none'
+                  stroke='currentColor'
+                  strokeWidth='1.2'
+                />
               </svg>
             )}
           </span>

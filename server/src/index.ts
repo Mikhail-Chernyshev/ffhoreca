@@ -37,6 +37,7 @@ import {
 import { isValidPlace } from './validatePlace';
 import { signJWT, verifyJWT, getGoogleAuthUrl, exchangeGoogleCode } from './auth';
 import { sendFeedbackEmail } from './feedbackMail';
+import { rateLimitOrResponse } from './rateLimit';
 import { v4 as uuidv4 } from 'uuid';
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -107,15 +108,21 @@ async function requireAuth(c: Context<HonoEnv>, next: Next) {
   await next();
 }
 
-function serializeUser(u: DbUser) {
+function serializePublicUser(u: DbUser) {
   return {
     id: u.id,
     username: u.username,
     name: u.name,
     avatar: u.avatar,
-    email: u.email,
     subscription: normalizeSubscription(u.subscription),
     map_visibility: normalizeMapVisibility(u.map_visibility),
+  };
+}
+
+function serializeAuthUser(u: DbUser) {
+  return {
+    ...serializePublicUser(u),
+    email: u.email,
   };
 }
 
@@ -373,7 +380,7 @@ app.get('/api/auth/google/callback', async (c) => {
 app.get('/api/auth/me', requireAuth, (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
   return c.json({
-    user: serializeUser(user),
+    user: serializeAuthUser(user),
     usage: getUserUsage(db, user.id),
   });
 });
@@ -396,7 +403,7 @@ app.patch('/api/auth/settings', requireAuth, async (c) => {
   }
   const updated = updateUser(db, user.id, updates);
   return c.json({
-    user: serializeUser(updated!),
+    user: serializeAuthUser(updated!),
     usage: getUserUsage(db, user.id),
   });
 });
@@ -415,16 +422,18 @@ app.post('/api/auth/username', requireAuth, async (c) => {
     return c.json({ error: 'Этот логин уже занят' }, 409);
   }
   const updated = updateUser(db, user.id, { username });
-  return c.json({ user: serializeUser(updated!) });
+  return c.json({ user: serializeAuthUser(updated!) });
 });
 
 // ---- Public user profiles --------------------------------------------------
 
 app.get('/api/users/search', (c) => {
+  const limited = rateLimitOrResponse(c, 'users-search', 40, 60_000);
+  if (limited) return limited;
   const q = (c.req.query('q') ?? '').trim();
   if (q.length < 2) return c.json({ users: [] });
   const users = searchUsers(db, q, 10);
-  return c.json({ users: users.map(serializeUser) });
+  return c.json({ users: users.map(serializePublicUser) });
 });
 
 app.get('/api/users/:username', async (c) => {
@@ -434,7 +443,7 @@ app.get('/api/users/:username', async (c) => {
   const viewer = await optionalAuthUser(c);
   const canView = canViewUserMap(viewer, user);
   return c.json({
-    user: serializeUser(user),
+    user: serializePublicUser(user),
     map_access: canView ? 'full' : 'restricted',
     required_subscription: normalizeSubscription(user.subscription),
   });
@@ -465,6 +474,8 @@ app.get('/api/users/:username/routes', async (c) => {
 // ---- User CRUD (own map) ---------------------------------------------------
 
 app.post('/api/user/cities', requireAuth, async (c) => {
+  const limited = rateLimitOrResponse(c, 'user-write', 90, 60_000);
+  if (limited) return limited;
   const user = (c as unknown as Context<HonoEnv>).get('user');
   let body: unknown;
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
@@ -493,6 +504,8 @@ app.delete('/api/user/cities/:id', requireAuth, (c) => {
 });
 
 app.post('/api/user/places', requireAuth, async (c) => {
+  const limited = rateLimitOrResponse(c, 'user-write', 90, 60_000);
+  if (limited) return limited;
   const user = (c as unknown as Context<HonoEnv>).get('user');
   let body: unknown;
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
@@ -520,6 +533,8 @@ app.post('/api/user/places/delete', requireAuth, async (c) => {
 });
 
 app.post('/api/user/routes', requireAuth, async (c) => {
+  const limited = rateLimitOrResponse(c, 'user-write', 90, 60_000);
+  if (limited) return limited;
   const user = (c as unknown as Context<HonoEnv>).get('user');
   let body: unknown;
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
@@ -543,6 +558,8 @@ app.delete('/api/user/routes/:id', requireAuth, (c) => {
 });
 
 app.post('/api/user/photos', requireAuth, async (c) => {
+  const limited = rateLimitOrResponse(c, 'user-upload', 30, 600_000);
+  if (limited) return limited;
   let formData: FormData;
   try { formData = await c.req.formData(); } catch { return c.json({ error: 'Ожидается multipart/form-data' }, 400); }
 
@@ -566,7 +583,7 @@ app.post('/api/user/photos', requireAuth, async (c) => {
 app.get('/api/user/favorites', requireAuth, (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
   const favs = getFavorites(db, user.id);
-  return c.json({ favorites: favs.map(serializeUser) });
+  return c.json({ favorites: favs.map(serializePublicUser) });
 });
 
 app.post('/api/user/favorites', requireAuth, async (c) => {
@@ -583,7 +600,7 @@ app.post('/api/user/favorites', requireAuth, async (c) => {
   if (!target) return c.json({ error: 'Пользователь не найден' }, 404);
   if (target.id === user.id) return c.json({ error: 'Нельзя добавить себя' }, 400);
   addFavorite(db, user.id, target.id);
-  return c.json({ ok: true, target: serializeUser(target) }, 201);
+  return c.json({ ok: true, target: serializePublicUser(target) }, 201);
 });
 
 app.delete('/api/user/favorites/:targetId', requireAuth, (c) => {
@@ -599,24 +616,9 @@ app.get('/api/user/favorites/:targetId/check', requireAuth, (c) => {
   return c.json({ isFavorite: isFavorite(db, user.id, targetId) });
 });
 
-const feedbackRateLimit = new Map<string, number>();
-const FEEDBACK_RATE_MS = 60_000;
-
-function feedbackUserHint(viewer: DbUser | null): string | undefined {
-  if (!viewer) return undefined;
-  if (viewer.username) return `@${viewer.username} (${viewer.email ?? viewer.name})`;
-  return viewer.email ?? viewer.name;
-}
-
 app.post('/api/feedback', async (c) => {
-  const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
-    ?? c.req.header('x-real-ip')
-    ?? 'unknown';
-  const now = Date.now();
-  const last = feedbackRateLimit.get(ip) ?? 0;
-  if (now - last < FEEDBACK_RATE_MS) {
-    return c.json({ error: 'Подождите минуту перед повторной отправкой' }, 429);
-  }
+  const limited = rateLimitOrResponse(c, 'feedback', 5, 60_000);
+  if (limited) return limited;
 
   let body: unknown;
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
@@ -646,7 +648,6 @@ app.post('/api/feedback', async (c) => {
       message,
       userHint: feedbackUserHint(viewer),
     });
-    feedbackRateLimit.set(ip, now);
     return c.json({ ok: true });
   } catch (e) {
     if (e instanceof Error && e.message === 'SMTP_NOT_CONFIGURED') {
@@ -656,6 +657,12 @@ app.post('/api/feedback', async (c) => {
     return c.json({ error: 'Не удалось отправить сообщение' }, 500);
   }
 });
+
+function feedbackUserHint(viewer: DbUser | null): string | undefined {
+  if (!viewer) return undefined;
+  if (viewer.username) return `@${viewer.username} (${viewer.email ?? viewer.name})`;
+  return viewer.email ?? viewer.name;
+}
 
 console.log(`ffhoreca API http://localhost:${PORT}`);
 console.log('  GET  /api/catalog');

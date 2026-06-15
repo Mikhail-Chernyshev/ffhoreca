@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { AuthUser, UserUsage } from '../lib/apiAuth';
 import {
   fetchAuthAccount,
@@ -245,6 +246,12 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
             </label>
           </div>
         </section>
+
+        <p className="account-modal__legal">
+          <Link to="/privacy" onClick={onClose}>{t('legal.privacyLink')}</Link>
+          <span aria-hidden> · </span>
+          <Link to="/terms" onClick={onClose}>{t('legal.termsLink')}</Link>
+        </p>
 
         {error ? <p className="account-modal__error" role="alert">{error}</p> : null}
         {settingsBusy ? <p className="account-modal__busy">{t('common.busy')}</p> : null}

@@ -24,6 +24,7 @@ import { useCanEditMap } from '../hooks/useCanEditMap';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { MapEditorActions } from '../components/MapEditorActions';
 import { AppHeader } from '../components/AppHeader';
+import { AppFooter } from '../components/AppFooter';
 import { AuthButton } from '../components/AuthButton';
 import { FavoritesModal } from '../components/FavoritesModal';
 import { AccountModal } from '../components/AccountModal';
@@ -378,6 +379,7 @@ export function UserMapPage() {
           }}
         />
       ) : null}
+      <AppFooter />
     </div>
   );
 }

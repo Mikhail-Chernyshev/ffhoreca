@@ -216,13 +216,20 @@ const ru = {
     hintFilterAirport: 'Только аэропорты (после приближения).',
     hintFilterDefault: 'Заведения по табу — после приближения.',
     aboutIntro:
-      'В этом проекте сначала я хотел собирать места, которые я посетил когда-либо в путешествиях. Но во время реализации я понял, что этот функционал может быть интересен и другим путешествинникам, которые тоже любят коллекционировать свои места.',
+      'В этом проекте сначала я хотел собирать места, которые я посетил когда-либо в путешествиях. Но во время реализации я понял, что этот функционал может быть интересен и другим путешественникам, которые тоже любят коллекционировать свои места.',
     aboutLorem1:
       'На главной странице вы видите карту-пример того, как работает этот инструмент. На деле это моя карта, которую изначально я делал для себя.',
     aboutLorem2:
       'Чтобы вы могли создать свою карту вам достаточно залогиниться, и она сразу создастся. Изначально там не будет ни одного объекта и места, но механизм довольно простой.',
     aboutLorem3:
       'Нажмите Добавить и воспользуйтесь поиском в открывшимся окне. Далее вы можете дать этому месту описание, оценку, название, а также фотографии. Помимо этого вы можете создавать маршруты различными видами транспорта.',
+  },
+  legal: {
+    footerNav: 'Правовая информация',
+    privacyLink: 'Конфиденциальность',
+    termsLink: 'Соглашение',
+    backHome: '← На главную',
+    updated: 'Обновлено: {{date}}',
   },
   feedback: {
     link: 'Обратная связь',
@@ -608,6 +615,13 @@ const en = {
       'To create your own map, just sign in — it will be created right away. At first there won’t be any cities or places on it, but the process is quite straightforward.',
     aboutLorem3:
       'Click Add and use the search in the window that opens. Then you can give the place a description, rating, name, and photos. You can also create routes using different modes of transport.',
+  },
+  legal: {
+    footerNav: 'Legal',
+    privacyLink: 'Privacy',
+    termsLink: 'Terms',
+    backHome: '← Back to map',
+    updated: 'Updated: {{date}}',
   },
   feedback: {
     link: 'Feedback',

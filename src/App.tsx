@@ -36,6 +36,7 @@ import {
   saveDeletedPlaceIds,
 } from './lib/adminDeletedPlaceIdsStorage'
 import { AppHeader } from './components/AppHeader'
+import { AppFooter } from './components/AppFooter'
 import { MapEditorActions } from './components/MapEditorActions'
 import { useCanEditMap } from './hooks/useCanEditMap'
 import { AuthButton } from './components/AuthButton'
@@ -444,6 +445,7 @@ function App() {
           }}
         />
       ) : null}
+      <AppFooter />
       </div>
     </div>
   )
