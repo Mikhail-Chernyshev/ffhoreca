@@ -2125,6 +2125,86 @@
   cursor: not-allowed;
 }
 
+.modal-place-actions__report {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border: 1px solid rgba(120, 120, 120, 0.35);
+  background: transparent;
+  color: var(--text-muted, #666);
+  font-size: 0.82rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.modal-place-actions__report:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-h);
+}
+
+.modal-place-actions__report:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.place-report-dialog {
+  background: var(--surface, #fff);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  max-width: 28rem;
+  width: calc(100% - 2rem);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+
+.place-report-dialog__title {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+}
+
+.place-report-dialog__subtitle {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: var(--text-muted, #666);
+}
+
+.place-report-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.place-report-dialog__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.place-report-dialog__field input,
+.place-report-dialog__field select,
+.place-report-dialog__field textarea {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 6px;
+}
+
+.place-report-dialog__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #c62828;
+}
+
+.place-report-dialog__success {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: #2e7d32;
+}
+
 @media (prefers-color-scheme: dark) {
   .modal-place-actions__delete {
     border-color: rgba(239, 154, 154, 0.55);

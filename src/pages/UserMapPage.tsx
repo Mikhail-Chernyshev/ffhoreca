@@ -298,6 +298,7 @@ export function UserMapPage() {
         adminMode={canEditMap}
         onPlaceUpdated={canEditMap ? handlePlaceUpdated : undefined}
         onPlaceDeleted={canEditMap ? handlePlaceDeleted : undefined}
+        reportOwnerUsername={!canEditMap && username ? username : undefined}
       />
       <CityModal city={selectedCity} onClose={() => setSelectedCity(null)} />
 

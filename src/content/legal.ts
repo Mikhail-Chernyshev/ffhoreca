@@ -133,9 +133,19 @@ const termsRu: LegalDocument = {
     {
       heading: 'Аккаунт и контент',
       paragraphs: [
-        'Вы отвечаете за содержимое своей карты и соблюдение законов. Запрещены незаконный контент, спам и попытки взлома сервиса.',
+        'Вы отвечаете за содержимое своей карты и соблюдение применимого законодательства.',
+        'Запрещено размещать: материалы с сексуальным насилием над детями (CSAM); откровенный сексуальный контент (18+) в публично доступных картах; насилие и экстремизм; разжигание ненависти; публикацию чужих персональных или интимных данных без согласия; спам, фишинг и попытки взлома сервиса.',
         'Юзернейм выбираете вы; мы можем освободить имя при нарушении правил или по жалобе.',
         'Загружая фото и тексты, вы подтверждаете право их публиковать в рамках выбранной видимости карты.',
+      ],
+    },
+    {
+      heading: 'Жалобы на контент',
+      paragraphs: [
+        'Если вы видите неприемлемое место на чужой карте, нажмите «Пожаловаться» в карточке этого места и укажите причину. Жалоба уходит оператору на tipsfromtripsapp@gmail.com.',
+        'Мы рассматриваем жалобы в разумный срок (обычно до 48 часов). При подтверждённом нарушении контент удаляется, аккаунт может быть ограничен или заблокирован.',
+        'Материалы с участием несовершеннолетней сексуальной эксплуатации удаляются немедленно; при необходимости сведения передаются в компетентные органы.',
+        'Альтернативно можно написать на tipsfromtripsapp@gmail.com или в Telegram @mishachernyshev, указав ссылку на карту и название места.',
       ],
     },
     {
@@ -181,9 +191,19 @@ const termsEn: LegalDocument = {
     {
       heading: 'Account and content',
       paragraphs: [
-        'You are responsible for your map content and compliance with applicable laws. No illegal content, spam, or abuse.',
+        'You are responsible for your map content and compliance with applicable laws.',
+        'Prohibited content includes: child sexual abuse material (CSAM); explicit sexual content (18+) on publicly accessible maps; violence and extremism; hate speech; publishing others\' personal or intimate data without consent; spam, phishing, and attempts to compromise the service.',
         'You choose your username; we may reclaim it for policy violations.',
         'By uploading photos and text you confirm you may publish them under your visibility settings.',
+      ],
+    },
+    {
+      heading: 'Content reports',
+      paragraphs: [
+        'If you see unacceptable content on someone else\'s map, use Report in that place\'s card and select a reason. Reports are sent to tipsfromtripsapp@gmail.com.',
+        'We review reports within a reasonable time (typically within 48 hours). Confirmed violations are removed; accounts may be restricted or banned.',
+        'Child sexual abuse material is removed immediately and may be reported to competent authorities where required by law.',
+        'You may also email tipsfromtripsapp@gmail.com or Telegram @mishachernyshev with the map link and place name.',
       ],
     },
     {

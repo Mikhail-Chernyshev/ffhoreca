@@ -37,6 +37,7 @@ import {
 import { isValidPlace } from './validatePlace';
 import { signJWT, verifyJWT, getGoogleAuthUrl, exchangeGoogleCode } from './auth';
 import { sendFeedbackEmail } from './feedbackMail';
+import { isValidReportReason, sendPlaceReportEmail } from './reportMail';
 import { rateLimitOrResponse } from './rateLimit';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -658,6 +659,76 @@ app.post('/api/feedback', async (c) => {
   }
 });
 
+app.post('/api/report', async (c) => {
+  const limited = rateLimitOrResponse(c, 'report', 5, 60_000);
+  if (limited) return limited;
+
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const rec = body as Record<string, unknown>;
+
+  const placeId = typeof rec.placeId === 'string' ? rec.placeId.trim() : '';
+  const placeName = typeof rec.placeName === 'string' ? rec.placeName.trim() : '';
+  const ownerUsername = typeof rec.ownerUsername === 'string' ? rec.ownerUsername.trim().toLowerCase() : '';
+  const reason = rec.reason;
+  const message = typeof rec.message === 'string' ? rec.message.trim() : '';
+  const name = typeof rec.name === 'string' ? rec.name.trim() : '';
+  let email = typeof rec.email === 'string' ? rec.email.trim() : '';
+
+  if (!placeId || !placeName) {
+    return c.json({ error: 'Укажите место' }, 400);
+  }
+  if (!ownerUsername || !USERNAME_RE.test(ownerUsername)) {
+    return c.json({ error: 'Некорректный username владельца' }, 400);
+  }
+  if (!isValidReportReason(reason)) {
+    return c.json({ error: 'Укажите причину жалобы' }, 400);
+  }
+  if (message.length > 2000) {
+    return c.json({ error: 'Комментарий слишком длинный' }, 400);
+  }
+  if (reason === 'other' && message.length < 10) {
+    return c.json({ error: 'Для причины «Другое» нужен комментарий (не короче 10 символов)' }, 400);
+  }
+  if (name.length > 100) {
+    return c.json({ error: 'Имя слишком длинное' }, 400);
+  }
+
+  const viewer = await optionalAuthUser(c);
+  if (!email && viewer?.email) email = viewer.email.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return c.json({ error: 'Укажите корректный email' }, 400);
+  }
+
+  const owner = findUserByUsername(db, ownerUsername);
+  if (!owner) {
+    return c.json({ error: 'Карта не найдена' }, 404);
+  }
+
+  const mapUrl = `${FRONTEND_URL.replace(/\/+$/, '')}/${ownerUsername}`;
+
+  try {
+    await sendPlaceReportEmail({
+      placeId,
+      placeName,
+      ownerUsername,
+      mapUrl,
+      reason,
+      message: message || undefined,
+      reporterEmail: email,
+      reporterName: name || undefined,
+      userHint: feedbackUserHint(viewer),
+    });
+    return c.json({ ok: true });
+  } catch (e) {
+    if (e instanceof Error && e.message === 'SMTP_NOT_CONFIGURED') {
+      return c.json({ error: 'Отправка писем временно недоступна' }, 503);
+    }
+    console.error('Report email error:', e);
+    return c.json({ error: 'Не удалось отправить жалобу' }, 500);
+  }
+});
+
 function feedbackUserHint(viewer: DbUser | null): string | undefined {
   if (!viewer) return undefined;
   if (viewer.username) return `@${viewer.username} (${viewer.email ?? viewer.name})`;
@@ -675,6 +746,7 @@ console.log('  POST /api/routes         { token, route }');
 console.log('  DELETE /api/routes/:id   X-Admin-Token header');
 console.log('  POST /api/photos         multipart/form-data, X-Admin-Token header');
 console.log('  POST /api/feedback');
+console.log('  POST /api/report');
 console.log('  GET  /uploads/:filename');
 
 serve({

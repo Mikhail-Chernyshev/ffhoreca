@@ -3,6 +3,7 @@ import type { Place, PlaceCategory } from '../data/types';
 import { apiBaseUrl, mediaUrl } from '../lib/apiBase';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel } from '../i18n/labels';
+import { PlaceReportDialog } from './PlaceReportDialog';
 
 const CATEGORY_ORDER: PlaceCategory[] = [
   'attraction',
@@ -20,6 +21,8 @@ type Props = {
   onPlaceUpdated?: (place: Place) => void | Promise<void>;
   /** Удалить место (возвращает true при успехе) */
   onPlaceDeleted?: (placeId: string) => Promise<boolean>;
+  /** Жалоба на место на чужой карте */
+  reportOwnerUsername?: string;
 };
 
 export function ModalPhotoCarousel({ photos }: { photos: string[] }) {
@@ -72,6 +75,7 @@ export function PlaceModal({
   adminMode = false,
   onPlaceUpdated,
   onPlaceDeleted,
+  reportOwnerUsername,
 }: Props) {
   const t = useT();
   const { locale } = useLocale();
@@ -85,6 +89,9 @@ export function PlaceModal({
   const [fileUploadBusy, setFileUploadBusy] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  const canReport = !!reportOwnerUsername && !adminMode;
 
   const onKey = useCallback(
     (e: KeyboardEvent) => {
@@ -93,13 +100,17 @@ export function PlaceModal({
         setDeleteConfirmOpen(false);
         return;
       }
+      if (reportOpen) {
+        setReportOpen(false);
+        return;
+      }
       if (cardEditing) {
         setCardEditing(false);
         return;
       }
       onClose();
     },
-    [onClose, deleteConfirmOpen, cardEditing],
+    [onClose, deleteConfirmOpen, cardEditing, reportOpen],
   );
 
   useEffect(() => {
@@ -407,23 +418,33 @@ export function PlaceModal({
           </>
         )}
 
-        {!cardEditing && (canEdit || canDeletePlace) ? (
+        {!cardEditing && (canEdit || canDeletePlace || canReport) ? (
           <div className='modal-place-actions'>
             {canEdit ? (
               <button
                 type='button'
                 className='modal-place-actions__edit'
-                disabled={deleteBusy || deleteConfirmOpen}
+                disabled={deleteBusy || deleteConfirmOpen || reportOpen}
                 onClick={startCardEdit}
               >
                 {t('placeModal.edit')}
+              </button>
+            ) : null}
+            {canReport ? (
+              <button
+                type='button'
+                className='modal-place-actions__report'
+                disabled={deleteBusy || deleteConfirmOpen || reportOpen}
+                onClick={() => setReportOpen(true)}
+              >
+                {t('placeModal.report')}
               </button>
             ) : null}
             {canDeletePlace ? (
               <button
                 type='button'
                 className='modal-place-actions__delete'
-                disabled={deleteBusy || cardBusy || deleteConfirmOpen}
+                disabled={deleteBusy || cardBusy || deleteConfirmOpen || reportOpen}
                 onClick={() => setDeleteConfirmOpen(true)}
               >
                 {deleteBusy ? t('common.deleting') : t('placeModal.delete')}
@@ -432,6 +453,14 @@ export function PlaceModal({
           </div>
         ) : null}
       </div>
+
+      {reportOpen && reportOwnerUsername ? (
+        <PlaceReportDialog
+          place={place}
+          ownerUsername={reportOwnerUsername}
+          onClose={() => setReportOpen(false)}
+        />
+      ) : null}
 
       {deleteConfirmOpen ? (
         <div
