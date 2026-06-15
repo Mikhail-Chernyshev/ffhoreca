@@ -134,6 +134,7 @@ const ru = {
   },
   manager: {
     title: 'Управление',
+    titleBrowse: 'Список',
     tabRoutes: 'Маршруты ({{count}})',
     tabPlaces: 'Места ({{count}})',
     tabCities: 'Города ({{count}})',
@@ -368,6 +369,7 @@ const ru = {
     notFound: 'Пользователь @{{username}} не найден',
     backToShowcase: 'Вернуться на витрину',
     viewingMap: 'Карта @{{username}}',
+    openList: '☰ Список',
   },
   onboarding: {
     helpButton: 'Как пользоваться?',
@@ -558,6 +560,7 @@ const en = {
   },
   manager: {
     title: 'Manage',
+    titleBrowse: 'List',
     tabRoutes: 'Routes ({{count}})',
     tabPlaces: 'Places ({{count}})',
     tabCities: 'Cities ({{count}})',
@@ -787,6 +790,7 @@ const en = {
     notFound: 'User @{{username}} not found',
     backToShowcase: 'Back to showcase',
     viewingMap: "@{{username}}'s map",
+    openList: '☰ List',
   },
   onboarding: {
     helpButton: 'How it works?',

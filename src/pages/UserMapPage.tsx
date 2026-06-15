@@ -262,6 +262,16 @@ export function UserMapPage() {
           onAddRoute={() => setAddRouteOpen(true)}
           onOpenManager={() => setManagerOpen(true)}
         />
+      ) : !mapRestricted ? (
+        <div className="app-admin-actions">
+          <button
+            type="button"
+            className="app-admin-add"
+            onClick={() => setManagerOpen(true)}
+          >
+            {t('userMap.openList')}
+          </button>
+        </div>
       ) : null}
 
       <MapSearchBar
@@ -347,15 +357,16 @@ export function UserMapPage() {
 
       {managerOpen && (
         <ManagerModal
+          readOnly={!canEditMap}
           routes={routes}
           catalog={catalog}
           onClose={() => setManagerOpen(false)}
-          deleteRouteApi={userDeleteRoute}
-          deleteCityApi={userDeleteCity}
-          onRoutesChanged={() => void loadCatalog()}
-          onCitiesChanged={() => void loadCatalog()}
-          onDeletePlace={handlePlaceDeleted}
-          onEditPlace={(place) => { setSelectedPlace(place); setManagerOpen(false); }}
+          onEditPlace={(place) => setSelectedPlace(place)}
+          onRoutesChanged={canEditMap ? () => void loadCatalog() : undefined}
+          onCitiesChanged={canEditMap ? () => void loadCatalog() : undefined}
+          onDeletePlace={canEditMap ? handlePlaceDeleted : undefined}
+          deleteRouteApi={canEditMap ? userDeleteRoute : undefined}
+          deleteCityApi={canEditMap ? userDeleteCity : undefined}
         />
       )}
 

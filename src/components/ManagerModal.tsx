@@ -14,10 +14,12 @@ type Props = {
   routes: TravelRoute[];
   catalog: Catalog;
   onClose: () => void;
-  onRoutesChanged: () => void;
-  onCitiesChanged: () => void;
-  onDeletePlace: (id: string) => Promise<boolean>;
-  onEditPlace: (place: Place) => void;
+  /** Только просмотр: без удаления, клик по месту открывает карточку */
+  readOnly?: boolean;
+  onRoutesChanged?: () => void;
+  onCitiesChanged?: () => void;
+  onDeletePlace?: (id: string) => Promise<boolean>;
+  onEditPlace?: (place: Place) => void;
   /** Если заданы — используются вместо дефолтных admin-API (для карт пользователей) */
   deleteRouteApi?: (id: string) => Promise<{ ok: boolean; message: string }>;
   deleteCityApi?: (id: string) => Promise<{ ok: boolean; message: string }>;
@@ -32,10 +34,12 @@ type ConfirmState = {
 function CityRow({
   city,
   placesCount,
+  readOnly,
   onDeleteRequest,
 }: {
   city: City;
   placesCount: number;
+  readOnly?: boolean;
   onDeleteRequest: (city: City) => void;
 }) {
   const t = useT();
@@ -86,30 +90,32 @@ function CityRow({
           {placesCount > 0 ? ` ${t('manager.cityPlacesCount', { count: placesCount })}` : ''}
         </span>
       </div>
-      <div
-        ref={wrapRef}
-        className="manager-row__delete-wrap"
-        onMouseEnter={deleteBlocked ? showTip : undefined}
-        onMouseLeave={deleteBlocked ? hideTip : undefined}
-        onFocus={deleteBlocked ? showTip : undefined}
-        onBlur={deleteBlocked ? hideTip : undefined}
-      >
-        <button
-          type="button"
-          className="manager-row__delete"
-          onClick={() => onDeleteRequest(city)}
-          disabled={deleteBlocked}
-          aria-label={
-            deleteBlocked
-              ? t('manager.ariaDeleteCityBlocked', { name: city.name })
-              : t('manager.ariaDeleteCity', { name: city.name })
-          }
-          aria-describedby={deleteBlocked ? tooltipId : undefined}
+      {!readOnly ? (
+        <div
+          ref={wrapRef}
+          className="manager-row__delete-wrap"
+          onMouseEnter={deleteBlocked ? showTip : undefined}
+          onMouseLeave={deleteBlocked ? hideTip : undefined}
+          onFocus={deleteBlocked ? showTip : undefined}
+          onBlur={deleteBlocked ? hideTip : undefined}
         >
-          ✕
-        </button>
-      </div>
-      {deleteBlocked && tipVisible && blockedReason
+          <button
+            type="button"
+            className="manager-row__delete"
+            onClick={() => onDeleteRequest(city)}
+            disabled={deleteBlocked}
+            aria-label={
+              deleteBlocked
+                ? t('manager.ariaDeleteCityBlocked', { name: city.name })
+                : t('manager.ariaDeleteCity', { name: city.name })
+            }
+            aria-describedby={deleteBlocked ? tooltipId : undefined}
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+      {!readOnly && deleteBlocked && tipVisible && blockedReason
         ? createPortal(
             <span
               id={tooltipId}
@@ -128,9 +134,11 @@ function CityRow({
 
 function RouteRow({
   route,
+  readOnly,
   onDeleteRequest,
 }: {
   route: TravelRoute;
+  readOnly?: boolean;
   onDeleteRequest: (route: TravelRoute) => void;
 }) {
   const t = useT();
@@ -143,14 +151,16 @@ function RouteRow({
         <span className="manager-row__title">{waypointNames}</span>
         <span className="manager-row__meta">{routeModeLabel(locale, route.mode)}</span>
       </div>
-      <button
-        type="button"
-        className="manager-row__delete"
-        onClick={() => onDeleteRequest(route)}
-        aria-label={t('manager.ariaDeleteRoute')}
-      >
-        ✕
-      </button>
+      {!readOnly ? (
+        <button
+          type="button"
+          className="manager-row__delete"
+          onClick={() => onDeleteRequest(route)}
+          aria-label={t('manager.ariaDeleteRoute')}
+        >
+          ✕
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -158,11 +168,13 @@ function RouteRow({
 function PlaceRow({
   place,
   cityName,
+  readOnly,
   onEdit,
   onDeleteRequest,
 }: {
   place: Place;
   cityName: string;
+  readOnly?: boolean;
   onEdit: () => void;
   onDeleteRequest: (place: Place) => void;
 }) {
@@ -183,14 +195,16 @@ function PlaceRow({
           {place.googleRating != null ? ` · ★ ${place.googleRating.toFixed(1)}` : ''}
         </span>
       </div>
-      <button
-        type="button"
-        className="manager-row__delete"
-        onClick={() => onDeleteRequest(place)}
-        aria-label={t('manager.ariaDeletePlace')}
-      >
-        ✕
-      </button>
+      {!readOnly ? (
+        <button
+          type="button"
+          className="manager-row__delete"
+          onClick={() => onDeleteRequest(place)}
+          aria-label={t('manager.ariaDeletePlace')}
+        >
+          ✕
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -199,6 +213,7 @@ export function ManagerModal({
   routes,
   catalog,
   onClose,
+  readOnly = false,
   onRoutesChanged,
   onCitiesChanged,
   onDeletePlace,
@@ -242,6 +257,7 @@ export function ManagerModal({
   };
 
   const requestDeleteRoute = (route: TravelRoute) => {
+    if (readOnly) return;
     const names = route.waypoints.map((w) => w.name).join(' → ');
     setConfirm({
       title: t('manager.confirmDeleteRouteTitle'),
@@ -249,12 +265,13 @@ export function ManagerModal({
       onConfirm: async () => {
         await (deleteRouteApi ? deleteRouteApi(route.id) : deleteRouteById(route.id));
         setLocalRoutes((prev) => prev.filter((r) => r.id !== route.id));
-        onRoutesChanged();
+        onRoutesChanged?.();
       },
     });
   };
 
   const requestDeletePlace = (place: Place) => {
+    if (readOnly || !onDeletePlace) return;
     setConfirm({
       title: t('manager.confirmDeletePlaceTitle'),
       message: t('manager.confirmDeletePlaceMessage', { name: place.name }),
@@ -265,6 +282,7 @@ export function ManagerModal({
   };
 
   const requestDeleteCity = (city: City) => {
+    if (readOnly) return;
     const placesCount = placesCountForCity(catalog, city.id);
     if (placesCount > 0) return;
     setConfirm({
@@ -276,9 +294,14 @@ export function ManagerModal({
           window.alert(r.message);
           return;
         }
-        onCitiesChanged();
+        onCitiesChanged?.();
       },
     });
+  };
+
+  const openPlace = (place: Place) => {
+    onEditPlace?.(place);
+    onClose();
   };
 
   const placesByCountry = useMemo(
@@ -325,7 +348,7 @@ export function ManagerModal({
 
               <div className="manager-boarding-pass__title-row">
                 <h2 id="manager-modal-title" className="modal-title manager-boarding-pass__title">
-                  {t('manager.title')}
+                  {readOnly ? t('manager.titleBrowse') : t('manager.title')}
                 </h2>
                 <button
                   type="button"
@@ -366,7 +389,12 @@ export function ManagerModal({
                   localRoutes.length === 0
                     ? <p className="manager-empty">{t('manager.emptyRoutes')}</p>
                     : localRoutes.map((route) => (
-                        <RouteRow key={route.id} route={route} onDeleteRequest={requestDeleteRoute} />
+                        <RouteRow
+                          key={route.id}
+                          route={route}
+                          readOnly={readOnly}
+                          onDeleteRequest={requestDeleteRoute}
+                        />
                       ))
                 )}
 
@@ -381,7 +409,8 @@ export function ManagerModal({
                                 key={place.id}
                                 place={place}
                                 cityName={cityLabelForPlace(catalog, place)}
-                                onEdit={() => { onEditPlace(place); onClose(); }}
+                                readOnly={readOnly}
+                                onEdit={() => openPlace(place)}
                                 onDeleteRequest={requestDeletePlace}
                               />
                           ))}
@@ -397,6 +426,7 @@ export function ManagerModal({
                           key={city.id}
                           city={city}
                           placesCount={placesCountForCity(catalog, city.id)}
+                          readOnly={readOnly}
                           onDeleteRequest={requestDeleteCity}
                         />
                       ))
