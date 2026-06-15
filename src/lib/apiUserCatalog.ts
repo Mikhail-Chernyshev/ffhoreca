@@ -5,6 +5,7 @@
 import type { City, Place, TravelRoute } from '../data/types';
 import type { LimitCode } from './limitMessages';
 import { apiBaseUrl, apiFetch } from './apiBase';
+import { authHeaders } from './apiAuth';
 
 export type UserApiResult = {
   ok: boolean;
@@ -99,6 +100,7 @@ export async function userUploadPhotos(files: File[]): Promise<string[]> {
   for (const f of files) fd.append('photos', f);
   const res = await apiFetch(`${base}/api/user/photos`, {
     method: 'POST',
+    headers: authHeaders(),
     body: fd,
   });
   if (!res.ok) throw new Error(`Фото: HTTP ${res.status}`);

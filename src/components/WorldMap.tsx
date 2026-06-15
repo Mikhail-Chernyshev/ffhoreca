@@ -383,13 +383,13 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     [t],
   );
 
-  const filterHint = useMemo(() => {
-    if (filter === 'places') return t('map.hintFilterPlaces');
-    if (filter === 'cities') return t('map.hintFilterCities');
-    if (filter === 'all') return t('map.hintFilterAll');
-    if (filter === 'airport') return t('map.hintFilterAirport');
-    return t('map.hintFilterDefault');
-  }, [filter, t]);
+  // const filterHint = useMemo(() => {
+  //   if (filter === 'places') return t('map.hintFilterPlaces');
+  //   if (filter === 'cities') return t('map.hintFilterCities');
+  //   if (filter === 'all') return t('map.hintFilterAll');
+  //   if (filter === 'airport') return t('map.hintFilterAirport');
+  //   return t('map.hintFilterDefault');
+  // }, [filter, t]);
 
   return (
     <div className='world-map-wrap' ref={mapWrapRef}>

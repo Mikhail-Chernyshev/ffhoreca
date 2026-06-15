@@ -39,9 +39,9 @@ export function clearSessionToken(): void {
   localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 
-/** @deprecated use clearSessionToken */
+/** Удаляет устаревший токен localStorage (миграция на sessionStorage). */
 export function clearLegacyToken(): void {
-  clearSessionToken();
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 
 export function authHeaders(): Record<string, string> {
