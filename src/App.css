@@ -1224,6 +1224,114 @@
   margin-bottom: 0;
 }
 
+.world-map-feedback {
+  border-top: 1px solid var(--border);
+}
+
+.world-map-feedback__inner {
+  padding: 0.35rem 1rem 0.85rem;
+  max-width: 28rem;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.world-map-feedback__intro {
+  margin: 0 0 0.65rem;
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.world-map-feedback__contacts {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  font-size: 0.88rem;
+}
+
+.world-map-feedback__contacts li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.world-map-feedback__contact-label {
+  color: var(--text-muted);
+  min-width: 5.5rem;
+}
+
+.world-map-feedback__contacts a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.world-map-feedback__form-title {
+  margin: 0 0 0.65rem;
+  font-size: 0.92rem;
+}
+
+.world-map-feedback__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.world-map-feedback__field input,
+.world-map-feedback__field textarea {
+  font: inherit;
+  font-size: 0.88rem;
+  color: var(--text-h);
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  resize: vertical;
+}
+
+.world-map-feedback__field input:focus,
+.world-map-feedback__field textarea:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent, #5fa573) 40%, transparent);
+  outline-offset: 1px;
+}
+
+.world-map-feedback__error {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: #c0392b;
+}
+
+.world-map-feedback__success {
+  margin: 0 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--accent, #5fa573);
+}
+
+.world-map-feedback__submit {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.45rem 1rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent, #5fa573);
+  color: #fff;
+  cursor: pointer;
+}
+
+.world-map-feedback__submit:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.world-map-feedback__submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .world-map-hint {
   margin: 0;
   padding: 0.65rem 0.85rem;

@@ -36,6 +36,7 @@ import {
 } from './subscription';
 import { isValidPlace } from './validatePlace';
 import { signJWT, verifyJWT, getGoogleAuthUrl, exchangeGoogleCode } from './auth';
+import { sendFeedbackEmail } from './feedbackMail';
 import { v4 as uuidv4 } from 'uuid';
 
 const PORT = Number(process.env.PORT ?? 3001);
@@ -598,6 +599,64 @@ app.get('/api/user/favorites/:targetId/check', requireAuth, (c) => {
   return c.json({ isFavorite: isFavorite(db, user.id, targetId) });
 });
 
+const feedbackRateLimit = new Map<string, number>();
+const FEEDBACK_RATE_MS = 60_000;
+
+function feedbackUserHint(viewer: DbUser | null): string | undefined {
+  if (!viewer) return undefined;
+  if (viewer.username) return `@${viewer.username} (${viewer.email ?? viewer.name})`;
+  return viewer.email ?? viewer.name;
+}
+
+app.post('/api/feedback', async (c) => {
+  const ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
+    ?? c.req.header('x-real-ip')
+    ?? 'unknown';
+  const now = Date.now();
+  const last = feedbackRateLimit.get(ip) ?? 0;
+  if (now - last < FEEDBACK_RATE_MS) {
+    return c.json({ error: 'Подождите минуту перед повторной отправкой' }, 429);
+  }
+
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const rec = body as Record<string, unknown>;
+  const email = typeof rec.email === 'string' ? rec.email.trim() : '';
+  const message = typeof rec.message === 'string' ? rec.message.trim() : '';
+  const name = typeof rec.name === 'string' ? rec.name.trim() : '';
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return c.json({ error: 'Укажите корректный email' }, 400);
+  }
+  if (message.length < 10) {
+    return c.json({ error: 'Сообщение слишком короткое' }, 400);
+  }
+  if (message.length > 5000) {
+    return c.json({ error: 'Сообщение слишком длинное' }, 400);
+  }
+  if (name.length > 100) {
+    return c.json({ error: 'Имя слишком длинное' }, 400);
+  }
+
+  const viewer = await optionalAuthUser(c);
+  try {
+    await sendFeedbackEmail({
+      fromEmail: email,
+      fromName: name || undefined,
+      message,
+      userHint: feedbackUserHint(viewer),
+    });
+    feedbackRateLimit.set(ip, now);
+    return c.json({ ok: true });
+  } catch (e) {
+    if (e instanceof Error && e.message === 'SMTP_NOT_CONFIGURED') {
+      return c.json({ error: 'Отправка писем временно недоступна' }, 503);
+    }
+    console.error('Feedback email error:', e);
+    return c.json({ error: 'Не удалось отправить сообщение' }, 500);
+  }
+});
+
 console.log(`ffhoreca API http://localhost:${PORT}`);
 console.log('  GET  /api/catalog');
 console.log('  POST /api/cities         { token, city }');
@@ -608,6 +667,7 @@ console.log('  GET  /api/routes');
 console.log('  POST /api/routes         { token, route }');
 console.log('  DELETE /api/routes/:id   X-Admin-Token header');
 console.log('  POST /api/photos         multipart/form-data, X-Admin-Token header');
+console.log('  POST /api/feedback');
 console.log('  GET  /uploads/:filename');
 
 serve({

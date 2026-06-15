@@ -20,6 +20,7 @@ import type { Map as MapLibreMap, ProjectionSpecification } from 'maplibre-gl';
 import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
+import { FeedbackPanel } from './FeedbackPanel';
 import { useCityBoundaryGeography } from '../hooks/useCityBoundaryGeography';
 import type {
   Catalog,
@@ -642,9 +643,10 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             ))}
           </div>
         </div>
+        <FeedbackPanel />
         <p className='world-map-hint' aria-live='polite'>
-          <span className='world-map-hint__zoom'>{t('map.hintBasemap')} </span>{' '}
-          {t('map.hintPlaceDot')} {filterHint}
+          {/* <span className='world-map-hint__zoom'>{t('map.hintBasemap')} </span>{' '} */}
+          {/* {t('map.hintPlaceDot')} {filterHint} */}
         </p>
       </div>
     </div>
