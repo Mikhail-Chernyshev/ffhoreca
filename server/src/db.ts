@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 import type { Catalog, City, Place, TravelRoute } from '../../src/data/types';
+import type { MapVisibility, UserSubscription } from '../../src/data/subscription';
 
 export interface DbUser {
   id: string;
@@ -10,7 +11,15 @@ export interface DbUser {
   name: string;
   username: string | null;
   avatar: string | null;
+  subscription: UserSubscription;
+  map_visibility: MapVisibility;
   created_at: number;
+}
+
+export interface UserUsage {
+  countries: number;
+  routes: number;
+  places: number;
 }
 
 function normalizePlaceRow(raw: unknown): Place {
@@ -63,6 +72,16 @@ export function openDatabase(dbPath: string): Database.Database {
   for (const table of ['cities', 'places', 'routes'] as const) {
     try {
       db.exec(`ALTER TABLE ${table} ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE`);
+    } catch (e) {
+      if (!(e instanceof Error && e.message.includes('duplicate column name'))) throw e;
+    }
+  }
+  for (const col of [
+    "subscription TEXT NOT NULL DEFAULT 'freemium'",
+    "map_visibility TEXT NOT NULL DEFAULT 'public'",
+  ]) {
+    try {
+      db.exec(`ALTER TABLE users ADD COLUMN ${col}`);
     } catch (e) {
       if (!(e instanceof Error && e.message.includes('duplicate column name'))) throw e;
     }
@@ -167,21 +186,28 @@ export function findUserByUsername(db: Database.Database, username: string): DbU
 
 export function createUser(db: Database.Database, user: Omit<DbUser, 'created_at'>): DbUser {
   db.prepare(
-    'INSERT INTO users (id, google_id, email, name, username, avatar) VALUES (@id, @google_id, @email, @name, @username, @avatar)',
-  ).run(user);
+    `INSERT INTO users (id, google_id, email, name, username, avatar, subscription, map_visibility)
+     VALUES (@id, @google_id, @email, @name, @username, @avatar, @subscription, @map_visibility)`,
+  ).run({
+    ...user,
+    subscription: user.subscription ?? 'freemium',
+    map_visibility: user.map_visibility ?? 'public',
+  });
   return db.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as DbUser;
 }
 
 export function updateUser(
   db: Database.Database,
   id: string,
-  updates: Partial<Pick<DbUser, 'username' | 'name' | 'avatar'>>,
+  updates: Partial<Pick<DbUser, 'username' | 'name' | 'avatar' | 'subscription' | 'map_visibility'>>,
 ): DbUser | null {
   const fields: string[] = [];
   const values: Record<string, unknown> = { id };
   if (updates.username !== undefined) { fields.push('username = @username'); values.username = updates.username; }
   if (updates.name !== undefined) { fields.push('name = @name'); values.name = updates.name; }
   if (updates.avatar !== undefined) { fields.push('avatar = @avatar'); values.avatar = updates.avatar; }
+  if (updates.subscription !== undefined) { fields.push('subscription = @subscription'); values.subscription = updates.subscription; }
+  if (updates.map_visibility !== undefined) { fields.push('map_visibility = @map_visibility'); values.map_visibility = updates.map_visibility; }
   if (fields.length === 0) return findUserById(db, id);
   db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = @id`).run(values);
   return findUserById(db, id);
@@ -255,6 +281,45 @@ export function upsertUserRoute(db: Database.Database, userId: string, route: Tr
 export function deleteUserRoute(db: Database.Database, userId: string, routeId: string): boolean {
   const r = db.prepare('DELETE FROM routes WHERE id = ? AND user_id = ?').run(routeId, userId);
   return r.changes > 0;
+}
+
+export function countUserPlaces(db: Database.Database, userId: string): number {
+  const row = db.prepare('SELECT COUNT(*) AS n FROM places WHERE user_id = ?').get(userId) as { n: number };
+  return row.n;
+}
+
+export function countUserRoutes(db: Database.Database, userId: string): number {
+  const row = db.prepare('SELECT COUNT(*) AS n FROM routes WHERE user_id = ?').get(userId) as { n: number };
+  return row.n;
+}
+
+/** Уникальные страны по городам пользователя */
+export function countUserCountries(db: Database.Database, userId: string): number {
+  const rows = db.prepare('SELECT json FROM cities WHERE user_id = ?').all(userId) as { json: string }[];
+  const codes = new Set<string>();
+  for (const row of rows) {
+    const city = JSON.parse(row.json) as City;
+    if (city.countryCode?.trim()) codes.add(city.countryCode.toUpperCase());
+  }
+  return codes.size;
+}
+
+export function getUserUsage(db: Database.Database, userId: string): UserUsage {
+  return {
+    countries: countUserCountries(db, userId),
+    routes: countUserRoutes(db, userId),
+    places: countUserPlaces(db, userId),
+  };
+}
+
+export function userCountryCodes(db: Database.Database, userId: string): Set<string> {
+  const rows = db.prepare('SELECT json FROM cities WHERE user_id = ?').all(userId) as { json: string }[];
+  const codes = new Set<string>();
+  for (const row of rows) {
+    const city = JSON.parse(row.json) as City;
+    if (city.countryCode?.trim()) codes.add(city.countryCode.toUpperCase());
+  }
+  return codes;
 }
 
 // ---- Favorites -------------------------------------------------------------

@@ -41,6 +41,7 @@ import { useCanEditMap } from './hooks/useCanEditMap'
 import { AuthButton } from './components/AuthButton'
 import { UsernameModal } from './components/UsernameModal'
 import { FavoritesModal } from './components/FavoritesModal'
+import { AccountModal } from './components/AccountModal'
 import { MapOnboarding } from './components/MapOnboarding'
 import { OnboardingHelpControls } from './components/OnboardingHelpControls'
 import { useMapOnboarding } from './hooks/useMapOnboarding'
@@ -78,6 +79,7 @@ function App() {
   const canEditShowcase = useCanEditMap()
   const [showUsernameModal, setShowUsernameModal] = useState(false)
   const [favoritesOpen, setFavoritesOpen] = useState(false)
+  const [accountOpen, setAccountOpen] = useState(false)
   const onboardingEnabled = !adminMode
   const onboarding = useMapOnboarding(onboardingEnabled)
   const { notify: onboardingNotify, setTourOpen } = onboarding
@@ -320,6 +322,7 @@ function App() {
             loading={authLoading}
             onLogout={handleLogout}
             onOpenFavorites={() => setFavoritesOpen(true)}
+            onOpenAccount={() => setAccountOpen(true)}
           />
         }
       />
@@ -442,6 +445,13 @@ function App() {
           currentUser={currentUser}
           onClose={() => setFavoritesOpen(false)}
           onOpenProfile={(username) => { setFavoritesOpen(false); navigate(`/${username}`); }}
+        />
+      ) : null}
+      {accountOpen && currentUser ? (
+        <AccountModal
+          user={currentUser}
+          onClose={() => setAccountOpen(false)}
+          onUserUpdated={() => { void refetchUser(); }}
         />
       ) : null}
       </div>

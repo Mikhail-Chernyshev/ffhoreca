@@ -10,9 +10,10 @@ interface Props {
   loading: boolean;
   onLogout: () => void;
   onOpenFavorites: () => void;
+  onOpenAccount: () => void;
 }
 
-export function AuthButton({ user, loading, onLogout, onOpenFavorites }: Props) {
+export function AuthButton({ user, loading, onLogout, onOpenFavorites, onOpenAccount }: Props) {
   const t = useT();
 
   if (!apiBaseUrl()) return null;
@@ -58,22 +59,31 @@ export function AuthButton({ user, loading, onLogout, onOpenFavorites }: Props) 
       <button className="auth-user__favorites" onClick={onOpenFavorites} title={t('auth.favorites')}>
         ★
       </button>
-      {user.username
-        ? (
-          <Link
-            to={`/${user.username}`}
-            className="auth-user__name auth-user__name--link"
-            title={t('auth.myMap')}
-          >
-            {nameEl}
-          </Link>
-        )
-        : (
-          <span className="auth-user__name" title={user.email ?? user.name}>
-            {nameEl}
-          </span>
-        )
-      }
+      <div className="auth-user__identity">
+        {user.username
+          ? (
+            <Link
+              to={`/${user.username}`}
+              className="auth-user__name auth-user__name--link"
+              title={t('auth.myMap')}
+            >
+              {nameEl}
+            </Link>
+          )
+          : (
+            <span className="auth-user__name" title={user.email ?? user.name}>
+              {nameEl}
+            </span>
+          )
+        }
+        <button
+          type="button"
+          className="auth-user__account"
+          onClick={onOpenAccount}
+        >
+          {t('auth.account')}
+        </button>
+      </div>
       <button className="auth-user__logout" onClick={onLogout} title={t('auth.logout')}>
         ✕
       </button>

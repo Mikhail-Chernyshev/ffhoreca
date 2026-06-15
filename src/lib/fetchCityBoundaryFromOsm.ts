@@ -1,5 +1,6 @@
 import type { City } from '../data/types';
 import { cityBoundarySearchQueries } from './cityBoundaryLookup';
+import { latinSearchHint } from './transliterate';
 
 interface NominatimResult {
   lat?: string;

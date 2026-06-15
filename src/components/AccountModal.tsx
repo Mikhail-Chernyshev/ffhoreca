@@ -1,0 +1,249 @@
+import { useEffect, useState } from 'react';
+import type { AuthUser, UserUsage } from '../lib/apiAuth';
+import {
+  fetchAuthAccount,
+  updateAccountSettings,
+} from '../lib/apiAuth';
+import { FREEMIUM_LIMITS, type MapVisibility, type UserSubscription } from '../data/subscription';
+import { useT } from '../i18n/LocaleContext';
+
+type Props = {
+  user: AuthUser;
+  onClose: () => void;
+  onUserUpdated: (user: AuthUser) => void;
+};
+
+export function AccountModal({ user, onClose, onUserUpdated }: Props) {
+  const t = useT();
+  const [usage, setUsage] = useState<UserUsage | null>(null);
+  const [mapVisibility, setMapVisibility] = useState<MapVisibility>(user.map_visibility);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    void fetchAuthAccount()
+      .then((data) => {
+        if (cancelled) return;
+        if (!data) {
+          setError(t('account.loadError'));
+          return;
+        }
+        setUsage(data.usage);
+        setMapVisibility(data.user.map_visibility);
+      })
+      .catch(() => {
+        if (!cancelled) setError(t('account.loadError'));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [t]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  const saveVisibility = async (next: MapVisibility) => {
+    setMapVisibility(next);
+    setBusy(true);
+    setError(null);
+    try {
+      const data = await updateAccountSettings(next);
+      setUsage(data.usage);
+      onUserUpdated(data.user);
+    } catch (e) {
+      setMapVisibility(user.map_visibility);
+      setError(e instanceof Error ? e.message : t('account.saveError'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const displayName = user.username ? `@${user.username}` : user.name;
+  const subscription = user.subscription;
+
+  return (
+    <div
+      className="modal-root"
+      role="presentation"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="modal-dialog modal-dialog--wide account-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="account-modal-title"
+      >
+        <button
+          type="button"
+          className="modal-close"
+          onClick={onClose}
+          aria-label={t('common.close')}
+        >
+          ×
+        </button>
+
+        <h2 id="account-modal-title" className="modal-title">
+          {t('account.title')}
+        </h2>
+
+        <div className="account-modal__profile">
+          {user.avatar ? (
+            <img
+              src={user.avatar}
+              alt=""
+              className="account-modal__avatar"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <span className="account-modal__initials">
+              {user.name.charAt(0).toUpperCase()}
+            </span>
+          )}
+          <div className="account-modal__profile-text">
+            <p className="account-modal__name">{user.name}</p>
+            <p className="account-modal__handle">{displayName}</p>
+            {user.email ? (
+              <p className="account-modal__email">{user.email}</p>
+            ) : null}
+          </div>
+        </div>
+
+        <section className="account-modal__section">
+          <h3 className="account-modal__section-title">{t('account.subscriptionTitle')}</h3>
+          <div className="account-modal__plans">
+            <PlanCard
+              plan="freemium"
+              active={subscription === 'freemium'}
+              t={t}
+              usage={usage}
+              loading={loading}
+            />
+            <PlanCard
+              plan="premium"
+              active={subscription === 'premium'}
+              t={t}
+              usage={usage}
+              loading={loading}
+            />
+          </div>
+        </section>
+
+        <section className="account-modal__section">
+          <h3 className="account-modal__section-title">{t('account.visibilityTitle')}</h3>
+          <p className="account-modal__hint">{t('account.visibilityHint')}</p>
+          <div className="account-modal__visibility">
+            <label className="account-modal__radio">
+              <input
+                type="radio"
+                name="map_visibility"
+                checked={mapVisibility === 'public'}
+                disabled={busy}
+                onChange={() => void saveVisibility('public')}
+              />
+              <span>
+                <strong>{t('account.visibilityPublic')}</strong>
+                <small>{t('account.visibilityPublicHint')}</small>
+              </span>
+            </label>
+            <label className="account-modal__radio">
+              <input
+                type="radio"
+                name="map_visibility"
+                checked={mapVisibility === 'subscribers'}
+                disabled={busy}
+                onChange={() => void saveVisibility('subscribers')}
+              />
+              <span>
+                <strong>{t('account.visibilitySubscribers')}</strong>
+                <small>{t('account.visibilitySubscribersHint')}</small>
+              </span>
+            </label>
+          </div>
+        </section>
+
+        {error ? <p className="account-modal__error" role="alert">{error}</p> : null}
+        {busy ? <p className="account-modal__busy">{t('common.busy')}</p> : null}
+      </div>
+    </div>
+  );
+}
+
+function PlanCard({
+  plan,
+  active,
+  t,
+  usage,
+  loading,
+}: {
+  plan: UserSubscription;
+  active: boolean;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+  usage: UserUsage | null;
+  loading: boolean;
+}) {
+  const isFreemium = plan === 'freemium';
+
+  return (
+    <div
+      className={
+        active
+          ? 'account-plan account-plan--active'
+          : 'account-plan'
+      }
+    >
+      {active ? (
+        <span className="account-plan__badge">{t('account.currentPlan')}</span>
+      ) : null}
+      <h4 className="account-plan__name">
+        {isFreemium ? t('account.planFreemium') : t('account.planPremium')}
+      </h4>
+      <p className="account-plan__price">
+        {isFreemium ? t('account.planFreemiumPrice') : t('account.planPremiumPrice')}
+      </p>
+      <ul className="account-plan__features">
+        {isFreemium ? (
+          <>
+            <li>{t('account.limitCountries', { n: FREEMIUM_LIMITS.countries })}</li>
+            <li>{t('account.limitRoutes', { n: FREEMIUM_LIMITS.routes })}</li>
+            <li>{t('account.limitPlaces', { n: FREEMIUM_LIMITS.places })}</li>
+          </>
+        ) : (
+          <>
+            <li>{t('account.premiumUnlimitedCountries')}</li>
+            <li>{t('account.premiumUnlimitedRoutes')}</li>
+            <li>{t('account.premiumUnlimitedPlaces')}</li>
+          </>
+        )}
+      </ul>
+      {active && isFreemium && usage && !loading ? (
+        <div className="account-plan__usage">
+          <p>{t('account.usageCountries', { used: usage.countries, max: FREEMIUM_LIMITS.countries })}</p>
+          <p>{t('account.usageRoutes', { used: usage.routes, max: FREEMIUM_LIMITS.routes })}</p>
+          <p>{t('account.usagePlaces', { used: usage.places, max: FREEMIUM_LIMITS.places })}</p>
+        </div>
+      ) : null}
+      {!isFreemium ? (
+        <button type="button" className="account-plan__cta" disabled>
+          {t('account.comingSoon')}
+        </button>
+      ) : null}
+    </div>
+  );
+}

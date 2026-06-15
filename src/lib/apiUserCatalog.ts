@@ -3,10 +3,18 @@
  * Все запросы используют Authorization: Bearer <jwt> вместо ADMIN_TOKEN.
  */
 import type { City, Place, TravelRoute } from '../data/types';
+import type { LimitCode } from './limitMessages';
 import { apiBaseUrl } from './apiBase';
 import { authHeaders } from './apiAuth';
 
-async function userPost(path: string, body: unknown): Promise<{ ok: boolean; message: string }> {
+export type UserApiResult = {
+  ok: boolean;
+  message: string;
+  code?: LimitCode;
+  limitReached?: boolean;
+};
+
+async function userPost(path: string, body: unknown): Promise<UserApiResult> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: 'API не настроен' };
   try {
@@ -18,8 +26,22 @@ async function userPost(path: string, body: unknown): Promise<{ ok: boolean; mes
     const text = await res.text().catch(() => '');
     if (res.ok) return { ok: true, message: '' };
     let msg = '';
-    try { msg = (JSON.parse(text) as { error?: string }).error ?? text; } catch { msg = text; }
-    return { ok: false, message: msg || `HTTP ${res.status}` };
+    let code: LimitCode | undefined;
+    try {
+      const parsed = JSON.parse(text) as { error?: string; code?: LimitCode };
+      msg = parsed.error ?? text;
+      if (parsed.code === 'countries' || parsed.code === 'routes' || parsed.code === 'places') {
+        code = parsed.code;
+      }
+    } catch {
+      msg = text;
+    }
+    return {
+      ok: false,
+      message: msg || `HTTP ${res.status}`,
+      code,
+      limitReached: res.status === 403 && Boolean(code),
+    };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e) };
   }

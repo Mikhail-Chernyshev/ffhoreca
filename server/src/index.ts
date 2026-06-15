@@ -21,9 +21,19 @@ import {
   upsertUserPlace, deleteUserPlace,
   upsertUserRoute, deleteUserRoute,
   addFavorite, removeFavorite, getFavorites, isFavorite,
+  getUserUsage,
   type DbUser,
 } from './db';
 import type { City, TravelRoute, UserRouteMode } from '../../src/data/types';
+import type { MapVisibility } from '../../src/data/subscription';
+import {
+  canViewUserMap,
+  checkFreemiumCityLimit,
+  checkFreemiumPlaceLimit,
+  checkFreemiumRouteLimit,
+  normalizeMapVisibility,
+  normalizeSubscription,
+} from './subscription';
 import { isValidPlace } from './validatePlace';
 import { signJWT, verifyJWT, getGoogleAuthUrl, exchangeGoogleCode } from './auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -97,7 +107,30 @@ async function requireAuth(c: Context<HonoEnv>, next: Next) {
 }
 
 function serializeUser(u: DbUser) {
-  return { id: u.id, username: u.username, name: u.name, avatar: u.avatar, email: u.email };
+  return {
+    id: u.id,
+    username: u.username,
+    name: u.name,
+    avatar: u.avatar,
+    email: u.email,
+    subscription: normalizeSubscription(u.subscription),
+    map_visibility: normalizeMapVisibility(u.map_visibility),
+  };
+}
+
+async function optionalAuthUser(c: Context): Promise<DbUser | null> {
+  const header = c.req.header('Authorization') ?? '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  if (!token) return null;
+  const payload = await verifyJWT(token);
+  if (!payload) return null;
+  return findUserById(db, payload.sub);
+}
+
+function limitErrorMessage(code: 'countries' | 'routes' | 'places', limit: number): string {
+  if (code === 'countries') return `Лимит Freemium: не более ${limit} стран. Перейдите на Premium.`;
+  if (code === 'routes') return `Лимит Freemium: не более ${limit} маршрутов. Перейдите на Premium.`;
+  return `Лимит Freemium: не более ${limit} мест. Перейдите на Premium.`;
 }
 
 const ROUTE_MODES = new Set<UserRouteMode>(['plane', 'train', 'bus', 'boat', 'car']);
@@ -320,6 +353,8 @@ app.get('/api/auth/google/callback', async (c) => {
         name: gUser.name,
         username: null,
         avatar: gUser.picture ?? null,
+        subscription: 'freemium',
+        map_visibility: 'public',
       });
     } else {
       // Обновляем аватар/имя если изменились
@@ -336,7 +371,33 @@ app.get('/api/auth/google/callback', async (c) => {
 
 app.get('/api/auth/me', requireAuth, (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
-  return c.json({ user: serializeUser(user) });
+  return c.json({
+    user: serializeUser(user),
+    usage: getUserUsage(db, user.id),
+  });
+});
+
+app.patch('/api/auth/settings', requireAuth, async (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  let body: unknown;
+  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
+  const rec = body as Record<string, unknown>;
+  const updates: Partial<Pick<DbUser, 'map_visibility'>> = {};
+  if (rec.map_visibility !== undefined) {
+    const v = rec.map_visibility;
+    if (v !== 'public' && v !== 'subscribers') {
+      return c.json({ error: 'map_visibility: public или subscribers' }, 400);
+    }
+    updates.map_visibility = v as MapVisibility;
+  }
+  if (Object.keys(updates).length === 0) {
+    return c.json({ error: 'Нет полей для обновления' }, 400);
+  }
+  const updated = updateUser(db, user.id, updates);
+  return c.json({
+    user: serializeUser(updated!),
+    usage: getUserUsage(db, user.id),
+  });
 });
 
 app.post('/api/auth/username', requireAuth, async (c) => {
@@ -365,24 +426,38 @@ app.get('/api/users/search', (c) => {
   return c.json({ users: users.map(serializeUser) });
 });
 
-app.get('/api/users/:username', (c) => {
+app.get('/api/users/:username', async (c) => {
   const username = c.req.param('username');
   const user = findUserByUsername(db, username);
   if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
-  return c.json({ user: serializeUser(user) });
+  const viewer = await optionalAuthUser(c);
+  const canView = canViewUserMap(viewer, user);
+  return c.json({
+    user: serializeUser(user),
+    map_access: canView ? 'full' : 'restricted',
+    required_subscription: normalizeSubscription(user.subscription),
+  });
 });
 
-app.get('/api/users/:username/catalog', (c) => {
+app.get('/api/users/:username/catalog', async (c) => {
   const username = c.req.param('username');
   const user = findUserByUsername(db, username);
   if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
+  const viewer = await optionalAuthUser(c);
+  if (!canViewUserMap(viewer, user)) {
+    return c.json({ error: 'Карта доступна только подписчикам с таким же тарифом', restricted: true }, 403);
+  }
   return c.json(getUserCatalog(db, user.id));
 });
 
-app.get('/api/users/:username/routes', (c) => {
+app.get('/api/users/:username/routes', async (c) => {
   const username = c.req.param('username');
   const user = findUserByUsername(db, username);
   if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
+  const viewer = await optionalAuthUser(c);
+  if (!canViewUserMap(viewer, user)) {
+    return c.json({ error: 'Карта доступна только подписчикам с таким же тарифом', restricted: true }, 403);
+  }
   return c.json(getUserRoutes(db, user.id));
 });
 
@@ -394,9 +469,13 @@ app.post('/api/user/cities', requireAuth, async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
   const city = (body as Record<string,unknown>).city;
   if (!isValidCity(city)) return c.json({ error: 'Некорректный город' }, 400);
+  const cityObj = city as City;
+  const exists = db.prepare('SELECT 1 FROM cities WHERE id = ? AND user_id = ?').get(cityObj.id, user.id);
+  const limit = checkFreemiumCityLimit(db, user, cityObj, Boolean(exists));
+  if (!limit.ok) return c.json({ error: limitErrorMessage(limit.code, limit.limit), code: limit.code }, 403);
   try {
-    upsertUserCity(db, user.id, city);
-    return c.json({ city }, 201);
+    upsertUserCity(db, user.id, cityObj);
+    return c.json({ city: cityObj }, 201);
   } catch (e) { return c.json({ error: e instanceof Error ? e.message : String(e) }, 500); }
 });
 
@@ -418,6 +497,9 @@ app.post('/api/user/places', requireAuth, async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
   const rec = body as Record<string, unknown>;
   if (!isValidPlace(rec.place)) return c.json({ error: 'Некорректное место' }, 400);
+  const place = rec.place as { id: string };
+  const limit = checkFreemiumPlaceLimit(db, user, place.id);
+  if (!limit.ok) return c.json({ error: limitErrorMessage(limit.code, limit.limit), code: limit.code }, 403);
   try {
     if (isValidCity(rec.city)) upsertUserCity(db, user.id, rec.city);
     upsertUserPlace(db, user.id, rec.place);
@@ -442,9 +524,12 @@ app.post('/api/user/routes', requireAuth, async (c) => {
   try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
   const route = (body as Record<string,unknown>).route;
   if (!isValidRoute(route)) return c.json({ error: 'Некорректный маршрут' }, 400);
+  const routeObj = route as TravelRoute;
+  const limit = checkFreemiumRouteLimit(db, user, routeObj.id);
+  if (!limit.ok) return c.json({ error: limitErrorMessage(limit.code, limit.limit), code: limit.code }, 403);
   try {
-    upsertUserRoute(db, user.id, route);
-    return c.json({ route }, 201);
+    upsertUserRoute(db, user.id, routeObj);
+    return c.json({ route: routeObj }, 201);
   } catch (e) { return c.json({ error: e instanceof Error ? e.message : String(e) }, 500); }
 });
 

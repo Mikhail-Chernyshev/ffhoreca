@@ -1,4 +1,11 @@
 import { apiBaseUrl } from './apiBase';
+import type { MapVisibility, UserSubscription } from '../data/subscription';
+
+export interface UserUsage {
+  countries: number;
+  routes: number;
+  places: number;
+}
 
 export interface AuthUser {
   id: string;
@@ -6,6 +13,13 @@ export interface AuthUser {
   name: string;
   avatar: string | null;
   email: string | null;
+  subscription: UserSubscription;
+  map_visibility: MapVisibility;
+}
+
+export interface AuthAccount {
+  user: AuthUser;
+  usage: UserUsage;
 }
 
 const TOKEN_KEY = 'ffhoreca_auth_token';
@@ -40,11 +54,88 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
       if (res.status === 401) clearToken();
       return null;
     }
-    const data = (await res.json()) as { user: AuthUser };
-    return data.user;
+    const data = (await res.json()) as { user: Partial<AuthUser> };
+    const u = data.user;
+    return {
+      id: u.id!,
+      username: u.username ?? null,
+      name: u.name!,
+      avatar: u.avatar ?? null,
+      email: u.email ?? null,
+      subscription: u.subscription === 'premium' ? 'premium' : 'freemium',
+      map_visibility: u.map_visibility === 'subscribers' ? 'subscribers' : 'public',
+    };
   } catch {
     return null;
   }
+}
+
+export async function fetchAuthAccount(): Promise<AuthAccount | null> {
+  const token = getStoredToken();
+  if (!token) return null;
+  try {
+    const res = await fetch(`${apiBaseUrl()}/api/auth/me`, { headers: authHeaders() });
+    if (!res.ok) {
+      if (res.status === 401) clearToken();
+      return null;
+    }
+    const data = (await res.json()) as {
+      user: Partial<AuthUser>;
+      usage?: Partial<UserUsage>;
+    };
+    const u = data.user;
+    return {
+      user: {
+        id: u.id!,
+        username: u.username ?? null,
+        name: u.name!,
+        avatar: u.avatar ?? null,
+        email: u.email ?? null,
+        subscription: u.subscription === 'premium' ? 'premium' : 'freemium',
+        map_visibility: u.map_visibility === 'subscribers' ? 'subscribers' : 'public',
+      },
+      usage: {
+        countries: data.usage?.countries ?? 0,
+        routes: data.usage?.routes ?? 0,
+        places: data.usage?.places ?? 0,
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function updateAccountSettings(
+  map_visibility: MapVisibility,
+): Promise<AuthAccount> {
+  const res = await fetch(`${apiBaseUrl()}/api/auth/settings`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ map_visibility }),
+  });
+  const data = (await res.json()) as {
+    user?: Partial<AuthUser>;
+    usage?: Partial<UserUsage>;
+    error?: string;
+  };
+  if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+  const u = data.user!;
+  return {
+    user: {
+      id: u.id!,
+      username: u.username ?? null,
+      name: u.name!,
+      avatar: u.avatar ?? null,
+      email: u.email ?? null,
+      subscription: u.subscription === 'premium' ? 'premium' : 'freemium',
+      map_visibility: u.map_visibility === 'subscribers' ? 'subscribers' : 'public',
+    },
+    usage: {
+      countries: data.usage?.countries ?? 0,
+      routes: data.usage?.routes ?? 0,
+      places: data.usage?.places ?? 0,
+    },
+  };
 }
 
 export async function setUsername(username: string): Promise<AuthUser> {
@@ -55,7 +146,16 @@ export async function setUsername(username: string): Promise<AuthUser> {
   });
   const data = (await res.json()) as { user?: AuthUser; error?: string };
   if (!res.ok) throw new Error(data.error ?? 'Ошибка');
-  return data.user!;
+  const u = data.user!;
+  return {
+    id: u.id!,
+    username: u.username ?? null,
+    name: u.name!,
+    avatar: u.avatar ?? null,
+    email: u.email ?? null,
+    subscription: u.subscription === 'premium' ? 'premium' : 'freemium',
+    map_visibility: u.map_visibility === 'subscribers' ? 'subscribers' : 'public',
+  };
 }
 
 export async function searchUsers(q: string): Promise<AuthUser[]> {

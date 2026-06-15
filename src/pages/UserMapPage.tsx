@@ -26,10 +26,19 @@ import { MapEditorActions } from '../components/MapEditorActions';
 import { AppHeader } from '../components/AppHeader';
 import { AuthButton } from '../components/AuthButton';
 import { FavoritesModal } from '../components/FavoritesModal';
+import { AccountModal } from '../components/AccountModal';
+import { MapRestrictedOverlay } from '../components/MapRestrictedOverlay';
 import { UsernameModal } from '../components/UsernameModal';
 import { MapOnboarding } from '../components/MapOnboarding';
 import { OnboardingHelpControls } from '../components/OnboardingHelpControls';
 import { useMapOnboarding } from '../hooks/useMapOnboarding';
+import { useUserUsage } from '../hooks/useUserUsage';
+import { useFreemiumWarnings } from '../hooks/useFreemiumWarnings';
+import { useToast } from '../components/ToastProvider';
+import { limitReachedMessage } from '../lib/limitMessages';
+import type { AuthUser } from '../lib/apiAuth';
+import type { UserSubscription } from '../data/subscription';
+import type { UserApiResult } from '../lib/apiUserCatalog';
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] };
 
@@ -39,11 +48,15 @@ export function UserMapPage() {
   const navigate = useNavigate();
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser();
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [catalog, setCatalog] = useState<Catalog>(EMPTY_CATALOG);
   const [routes, setRoutes] = useState<TravelRoute[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [mapRestricted, setMapRestricted] = useState(false);
+  const [profileUser, setProfileUser] = useState<AuthUser | null>(null);
+  const [requiredSubscription, setRequiredSubscription] = useState<UserSubscription>('freemium');
 
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
@@ -59,6 +72,15 @@ export function UserMapPage() {
   const mapMode = canEditMap ? 'ownMap' as const : 'sharedMap' as const;
   const onboarding = useMapOnboarding(mapMode !== 'sharedMap');
   const { notify: onboardingNotify, setTourOpen, skipAll, skipped } = onboarding;
+  const { push: pushToast } = useToast();
+  const { usage, refresh: refreshUsage } = useUserUsage(canEditMap);
+  useFreemiumWarnings(currentUser?.subscription, usage);
+
+  const handleUserApiError = useCallback((result: UserApiResult) => {
+    if (result.limitReached && result.code) {
+      pushToast(limitReachedMessage(t, result.code), 'error');
+    }
+  }, [pushToast, t]);
 
   useEffect(() => {
     if (currentUser && !currentUser.username && !authLoading) {
@@ -69,33 +91,70 @@ export function UserMapPage() {
   const base = apiBaseUrl();
 
   const loadCatalog = useCallback(async () => {
-    if (!base || !username) return;
-    const headers = canEditMap ? authHeaders() : {};
+    if (!base || !username) return false;
+    const headers = authHeaders();
     try {
+      const [catRes, routesRes] = await Promise.all([
+        fetch(`${base}/api/users/${username}/catalog`, { headers }),
+        fetch(`${base}/api/users/${username}/routes`, { headers }),
+      ]);
+      if (catRes.status === 403 || routesRes.status === 403) {
+        setMapRestricted(true);
+        setCatalog(EMPTY_CATALOG);
+        setRoutes([]);
+        return false;
+      }
       const [cat, rts] = await Promise.all([
-        fetch(`${base}/api/users/${username}/catalog`, { headers }).then((r) => r.json()),
-        fetch(`${base}/api/users/${username}/routes`, { headers }).then((r) => r.json()),
+        catRes.json(),
+        routesRes.json(),
       ]);
       setCatalog(cat as Catalog);
       setRoutes((rts as TravelRoute[]) ?? []);
-    } catch { /* ignore, stale data stays */ }
-  }, [base, username, canEditMap]);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [base, username]);
 
   useEffect(() => {
     if (!base || !username) return;
     setLoading(true);
     setNotFound(false);
+    setMapRestricted(false);
+    setProfileUser(null);
 
-    fetch(`${base}/api/users/${username}`)
-      .then((r) => r.json())
-      .then((data) => {
-        const d = data as { error?: string };
-        if (d.error) { setNotFound(true); return; }
-        return loadCatalog();
+    fetch(`${base}/api/users/${username}`, { headers: authHeaders() })
+      .then(async (r) => {
+        if (r.status === 404) {
+          setNotFound(true);
+          return;
+        }
+        const data = await r.json() as {
+          user?: AuthUser;
+          map_access?: 'full' | 'restricted';
+          required_subscription?: UserSubscription;
+          error?: string;
+        };
+        if (!data.user) {
+          setNotFound(true);
+          return;
+        }
+        setProfileUser(data.user);
+        const restricted = data.map_access === 'restricted';
+        setMapRestricted(restricted);
+        setRequiredSubscription(
+          data.required_subscription === 'premium' ? 'premium' : 'freemium',
+        );
+        if (!restricted) {
+          await loadCatalog();
+        } else {
+          setCatalog(EMPTY_CATALOG);
+          setRoutes([]);
+        }
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [base, username, loadCatalog]);
+  }, [base, username, currentUser?.id, loadCatalog]);
 
   const flyToOnMap = useCallback((lng: number, lat: number) => {
     mapRef.current?.flyToLngLat(lng, lat);
@@ -112,10 +171,15 @@ export function UserMapPage() {
 
   const handlePlaceSaved = useCallback(async (place: Place, city: City) => {
     const r = await userPostPlace(place, city);
-    if (!r.ok) { window.alert(r.message); return; }
+    if (!r.ok) {
+      handleUserApiError(r);
+      window.alert(r.message);
+      return;
+    }
     await loadCatalog();
+    await refreshUsage();
     onboardingNotify('placeAdded');
-  }, [loadCatalog, onboardingNotify]);
+  }, [loadCatalog, onboardingNotify, handleUserApiError, refreshUsage]);
 
   const handlePlaceDeleted = useCallback(async (placeId: string): Promise<boolean> => {
     const r = await userDeletePlace(placeId);
@@ -174,6 +238,7 @@ export function UserMapPage() {
             loading={authLoading}
             onLogout={handleLogout}
             onOpenFavorites={() => setFavoritesOpen(true)}
+            onOpenAccount={() => setAccountOpen(true)}
           />
         }
       />
@@ -208,15 +273,24 @@ export function UserMapPage() {
         onSearchSelect={() => onboardingNotify('searchUsed')}
       />
 
-      <WorldMap
-        ref={mapRef}
-        catalog={catalog}
-        filter={filter}
-        places={visiblePlaces}
-        userRoutes={routes}
-        onPlaceClick={handlePlaceClick}
-        onCityClick={setSelectedCity}
-      />
+      <div className={mapRestricted ? 'map-shell map-shell--restricted' : 'map-shell'}>
+        <WorldMap
+          ref={mapRef}
+          catalog={catalog}
+          filter={filter}
+          places={visiblePlaces}
+          userRoutes={routes}
+          onPlaceClick={handlePlaceClick}
+          onCityClick={setSelectedCity}
+        />
+        {mapRestricted && profileUser ? (
+          <MapRestrictedOverlay
+            ownerName={profileUser.name}
+            requiredSubscription={requiredSubscription}
+            isLoggedIn={!!currentUser}
+          />
+        ) : null}
+      </div>
 
       <PlaceModal
         key={selectedPlace?.id ?? 'closed'}
@@ -232,9 +306,14 @@ export function UserMapPage() {
         <AddCityModal
           catalog={catalog}
           onClose={() => setAddCityOpen(false)}
-          saveCity={userPostCity}
+          saveCity={async (city) => {
+            const r = await userPostCity(city);
+            if (!r.ok) handleUserApiError(r);
+            return r;
+          }}
           onSaved={async () => {
             await loadCatalog();
+            await refreshUsage();
             setAddCityOpen(false);
             onboardingNotify('cityAdded');
           }}
@@ -254,9 +333,14 @@ export function UserMapPage() {
         <AddRouteModal
           catalog={catalog}
           onClose={() => setAddRouteOpen(false)}
-          saveRoute={userPostRoute}
+          saveRoute={async (route) => {
+            const r = await userPostRoute(route);
+            if (!r.ok) handleUserApiError(r);
+            return r;
+          }}
           onSaved={async () => {
             await loadCatalog();
+            await refreshUsage();
             setAddRouteOpen(false);
             onboardingNotify('routeAdded');
           }}
@@ -294,6 +378,17 @@ export function UserMapPage() {
           currentUser={currentUser}
           onClose={() => setFavoritesOpen(false)}
           onOpenProfile={(uname) => { setFavoritesOpen(false); navigate(`/${uname}`); }}
+        />
+      ) : null}
+
+      {accountOpen && currentUser ? (
+        <AccountModal
+          user={currentUser}
+          onClose={() => setAccountOpen(false)}
+          onUserUpdated={() => {
+            void refetchUser();
+            void refreshUsage();
+          }}
         />
       ) : null}
     </div>

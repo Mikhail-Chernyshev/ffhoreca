@@ -5,16 +5,19 @@ import './index.css'
 import App from './App.tsx'
 import { UserMapPage } from './pages/UserMapPage.tsx'
 import { LocaleProvider } from './i18n/LocaleContext'
+import { ToastProvider } from './components/ToastProvider'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LocaleProvider>
+      <ToastProvider>
       <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
         <Routes>
           <Route path="/" element={<App />} />
           <Route path="/:username" element={<UserMapPage />} />
         </Routes>
       </BrowserRouter>
+      </ToastProvider>
     </LocaleProvider>
   </StrictMode>,
 )
