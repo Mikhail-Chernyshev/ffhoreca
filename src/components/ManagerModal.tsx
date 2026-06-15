@@ -311,79 +311,111 @@ export function ManagerModal({
         onMouseDown={(e) => { if (e.target === e.currentTarget && !confirm) onClose(); }}
       >
         <div
-          className="modal-dialog modal-dialog--wide modal-dialog--manager"
+          className="modal-dialog modal-dialog--wide modal-dialog--manager manager-boarding-pass"
           role="dialog"
           aria-modal="true"
           aria-labelledby="manager-modal-title"
         >
-          <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>×</button>
+          <div className="manager-boarding-pass__inner">
+            <div className="manager-boarding-pass__main">
+              <div className="manager-boarding-pass__header-band" aria-hidden>
+                <span className="manager-boarding-pass__airline">Tips from trips</span>
+                <span className="manager-boarding-pass__label">{t('manager.boardingPassLabel')}</span>
+              </div>
 
-          <h2 id="manager-modal-title" className="modal-title">{t('manager.title')}</h2>
+              <div className="manager-boarding-pass__title-row">
+                <h2 id="manager-modal-title" className="modal-title manager-boarding-pass__title">
+                  {t('manager.title')}
+                </h2>
+                <button
+                  type="button"
+                  className="modal-close manager-boarding-pass__close"
+                  onClick={onClose}
+                  aria-label={t('common.close')}
+                >
+                  ×
+                </button>
+              </div>
 
-          <div className="manager-tabs">
-            <button
-              type="button"
-              className={`manager-tabs__btn${tab === 'routes' ? ' manager-tabs__btn--active' : ''}`}
-              onClick={() => setTab('routes')}
-            >
-              {t('manager.tabRoutes', { count: localRoutes.length })}
-            </button>
-            <button
-              type="button"
-              className={`manager-tabs__btn${tab === 'places' ? ' manager-tabs__btn--active' : ''}`}
-              onClick={() => setTab('places')}
-            >
-              {t('manager.tabPlaces', { count: catalog.places.length })}
-            </button>
-            <button
-              type="button"
-              className={`manager-tabs__btn${tab === 'cities' ? ' manager-tabs__btn--active' : ''}`}
-              onClick={() => setTab('cities')}
-            >
-              {t('manager.tabCities', { count: listedCities.length })}
-            </button>
-          </div>
+              <div className="manager-tabs">
+                <button
+                  type="button"
+                  className={`manager-tabs__btn${tab === 'routes' ? ' manager-tabs__btn--active' : ''}`}
+                  onClick={() => setTab('routes')}
+                >
+                  {t('manager.tabRoutes', { count: localRoutes.length })}
+                </button>
+                <button
+                  type="button"
+                  className={`manager-tabs__btn${tab === 'places' ? ' manager-tabs__btn--active' : ''}`}
+                  onClick={() => setTab('places')}
+                >
+                  {t('manager.tabPlaces', { count: catalog.places.length })}
+                </button>
+                <button
+                  type="button"
+                  className={`manager-tabs__btn${tab === 'cities' ? ' manager-tabs__btn--active' : ''}`}
+                  onClick={() => setTab('cities')}
+                >
+                  {t('manager.tabCities', { count: listedCities.length })}
+                </button>
+              </div>
 
-          <div className="manager-content">
-            {tab === 'routes' && (
-              localRoutes.length === 0
-                ? <p className="manager-empty">{t('manager.emptyRoutes')}</p>
-                : localRoutes.map((route) => (
-                    <RouteRow key={route.id} route={route} onDeleteRequest={requestDeleteRoute} />
-                  ))
-            )}
+              <div className="manager-content">
+                {tab === 'routes' && (
+                  localRoutes.length === 0
+                    ? <p className="manager-empty">{t('manager.emptyRoutes')}</p>
+                    : localRoutes.map((route) => (
+                        <RouteRow key={route.id} route={route} onDeleteRequest={requestDeleteRoute} />
+                      ))
+                )}
 
-            {tab === 'places' && (
-              catalog.places.length === 0
-                ? <p className="manager-empty">{t('manager.emptyPlaces')}</p>
-                : sortedCountries.map((cc) => (
-                    <div key={cc} className="manager-group">
-                      <h3 className="manager-group__heading">{cc}</h3>
-                      {placesByCountry[cc]!.map((place) => (
-                          <PlaceRow
-                            key={place.id}
-                            place={place}
-                            cityName={cityLabelForPlace(catalog, place)}
-                            onEdit={() => { onEditPlace(place); onClose(); }}
-                            onDeleteRequest={requestDeletePlace}
-                          />
-                      ))}
-                    </div>
-                  ))
-            )}
+                {tab === 'places' && (
+                  catalog.places.length === 0
+                    ? <p className="manager-empty">{t('manager.emptyPlaces')}</p>
+                    : sortedCountries.map((cc) => (
+                        <div key={cc} className="manager-group">
+                          <h3 className="manager-group__heading">{cc}</h3>
+                          {placesByCountry[cc]!.map((place) => (
+                              <PlaceRow
+                                key={place.id}
+                                place={place}
+                                cityName={cityLabelForPlace(catalog, place)}
+                                onEdit={() => { onEditPlace(place); onClose(); }}
+                                onDeleteRequest={requestDeletePlace}
+                              />
+                          ))}
+                        </div>
+                      ))
+                )}
 
-            {tab === 'cities' && (
-              listedCities.length === 0
-                ? <p className="manager-empty">{t('manager.emptyCities')}</p>
-                : sortedCities.map((city) => (
-                    <CityRow
-                      key={city.id}
-                      city={city}
-                      placesCount={placesCountForCity(catalog, city.id)}
-                      onDeleteRequest={requestDeleteCity}
-                    />
-                  ))
-            )}
+                {tab === 'cities' && (
+                  listedCities.length === 0
+                    ? <p className="manager-empty">{t('manager.emptyCities')}</p>
+                    : sortedCities.map((city) => (
+                        <CityRow
+                          key={city.id}
+                          city={city}
+                          placesCount={placesCountForCity(catalog, city.id)}
+                          onDeleteRequest={requestDeleteCity}
+                        />
+                      ))
+                )}
+              </div>
+            </div>
+
+            <div className="manager-boarding-pass__tear" aria-hidden>
+              <span className="manager-boarding-pass__tear-notch manager-boarding-pass__tear-notch--top" />
+              <span className="manager-boarding-pass__tear-line" />
+              <span className="manager-boarding-pass__tear-notch manager-boarding-pass__tear-notch--bottom" />
+            </div>
+
+            <aside className="manager-boarding-pass__stub" aria-hidden>
+              <div className="manager-boarding-pass__stub-brand">TFT</div>
+              <div className="manager-boarding-pass__barcode" />
+              {/* <div className="manager-boarding-pass__stub-class">{t('manager.boardingPassClass')}</div> */}
+              <div className="manager-boarding-pass__stub-icons">✈</div>
+            </aside>
           </div>
         </div>
       </div>

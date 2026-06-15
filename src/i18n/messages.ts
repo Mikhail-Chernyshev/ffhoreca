@@ -153,6 +153,8 @@ const ru = {
     ariaDeleteCityBlocked: 'Нельзя удалить город {{name}} — есть привязанные места',
     deleteCityBlockedTooltip:
       'Город «{{name}}» нельзя удалить: в нём {{count}} мест(а). Сначала удалите места.',
+    boardingPassLabel: 'ПОСАДОЧНЫЙ ТАЛОН',
+    boardingPassClass: 'ПУТЕШЕСТВЕННИК',
   },
   placeModal: {
     edit: 'Редактировать',
@@ -472,6 +474,8 @@ const en = {
     ariaDeleteCityBlocked: 'Cannot delete city {{name}} — it has linked places',
     deleteCityBlockedTooltip:
       'Cannot delete «{{name}}»: it has {{count}} place(s). Delete places first.',
+    boardingPassLabel: 'BOARDING PASS',
+    boardingPassClass: 'TRAVELER',
   },
   placeModal: {
     edit: 'Edit',
