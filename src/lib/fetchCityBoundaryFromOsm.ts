@@ -1,5 +1,5 @@
 import type { City } from '../data/types';
-import { latinSearchHint } from './transliterate';
+import { cityBoundarySearchQueries } from './cityBoundaryLookup';
 
 interface NominatimResult {
   lat?: string;
@@ -207,16 +207,13 @@ export async function fetchCityBoundaryFromOsm(
   signal?: AbortSignal,
 ): Promise<unknown | null> {
   const cached = osmBoundaryCache.get(city.id);
-  if (cached !== undefined) {
-    return isAreaGeojson(cached) ? cached : null;
+  if (cached != null && isAreaGeojson(cached)) {
+    return cached;
   }
 
   let searchResult: NominatimResult | null = null;
 
-  const searchQueries = [
-    city.name,
-    latinSearchHint(city.name),
-  ].filter((q): q is string => typeof q === 'string' && q.trim().length >= 2);
+  const searchQueries = cityBoundarySearchQueries(city);
 
   try {
     for (const q of searchQueries) {
@@ -242,7 +239,9 @@ export async function fetchCityBoundaryFromOsm(
 
   const picked = chooseBetterBoundary(searchResult, reverseResult, city);
   const geojson = geojsonFromResult(picked);
-  osmBoundaryCache.set(city.id, geojson);
+  if (geojson) {
+    osmBoundaryCache.set(city.id, geojson);
+  }
   return geojson;
 }
 

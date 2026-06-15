@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rewindGeoJson } from '../lib/geojsonRewind';
+import { localGeoBoundaryIds } from '../lib/cityBoundaryLookup';
 import {
   fetchCityBoundaryFromOsm,
   NOMINATIM_MIN_INTERVAL_MS,
@@ -97,6 +98,23 @@ function normalizeCityBoundaryJson(raw: unknown): FeatureCollection | null {
   return null;
 }
 
+async function fetchLocalCityBoundary(
+  city: City,
+): Promise<FeatureCollection | null> {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  for (const id of localGeoBoundaryIds(city)) {
+    try {
+      const res = await fetch(`${base}/geo/cities/${encodeURIComponent(id)}.json`);
+      if (!res.ok) continue;
+      const gj = normalizeCityBoundaryJson(await res.json());
+      if (gj?.features?.length) return gj;
+    } catch {
+      /* try next id */
+    }
+  }
+  return null;
+}
+
 /** Загружает GeoJSON границ из public/geo/cities/{id}.json или OSM (Nominatim). */
 export function useCityBoundaryGeography(cities: City[]): {
   geography: FeatureCollection | null;
@@ -136,15 +154,7 @@ export function useCityBoundaryGeography(cities: City[]): {
       await Promise.all(
         cities.map(async (c) => {
           try {
-            const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-            const res = await fetch(
-              `${base}/geo/cities/${encodeURIComponent(c.id)}.json`,
-            );
-            if (!res.ok) {
-              needsOsm.push(c);
-              return;
-            }
-            const gj = normalizeCityBoundaryJson(await res.json());
+            const gj = await fetchLocalCityBoundary(c);
             if (!gj?.features?.length) {
               needsOsm.push(c);
               return;
@@ -194,7 +204,7 @@ export function useCityBoundaryGeography(cities: City[]): {
     return () => {
       cancelled = true;
     };
-  }, [cityIds, cities]);
+  }, [cityIds]);
 
   return { geography, boundaryCityIds };
 }

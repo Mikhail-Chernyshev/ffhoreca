@@ -275,18 +275,6 @@ export function PlaceModal({
           </p>
         ) : null}
 
-        {canEdit && !cardEditing ? (
-          <div className="modal-place-edit-bar">
-            <button
-              type="button"
-              className="modal-rating__save"
-              onClick={startCardEdit}
-            >
-              {t('placeModal.edit')}
-            </button>
-          </div>
-        ) : null}
-
         {cardEditing ? (
           <div className="modal-place-card-edit">
             <fieldset className="add-place-form__fieldset">
@@ -419,16 +407,28 @@ export function PlaceModal({
           </>
         )}
 
-        {canDeletePlace ? (
-          <div className='modal-place-delete'>
-            <button
-              type='button'
-              className='modal-place-delete__btn'
-              disabled={deleteBusy || cardBusy || deleteConfirmOpen}
-              onClick={() => setDeleteConfirmOpen(true)}
-            >
-              {deleteBusy ? t('common.deleting') : t('placeModal.delete')}
-            </button>
+        {!cardEditing && (canEdit || canDeletePlace) ? (
+          <div className='modal-place-actions'>
+            {canEdit ? (
+              <button
+                type='button'
+                className='modal-place-actions__edit'
+                disabled={deleteBusy || deleteConfirmOpen}
+                onClick={startCardEdit}
+              >
+                {t('placeModal.edit')}
+              </button>
+            ) : null}
+            {canDeletePlace ? (
+              <button
+                type='button'
+                className='modal-place-actions__delete'
+                disabled={deleteBusy || cardBusy || deleteConfirmOpen}
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                {deleteBusy ? t('common.deleting') : t('placeModal.delete')}
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>

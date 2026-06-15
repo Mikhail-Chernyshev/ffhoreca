@@ -1470,6 +1470,12 @@
   color: var(--text-h);
 }
 
+.modal-place-cat-badge--attraction {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
+  color: var(--text-h);
+}
+
 .modal-summary {
   margin: 0 0 0.75rem;
   font-size: 1rem;
@@ -1705,13 +1711,37 @@
   color: var(--text);
 }
 
-.modal-place-delete {
+.modal-place-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
 }
 
-.modal-place-delete__btn {
+.modal-place-actions__edit {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  cursor: pointer;
+}
+
+.modal-place-actions__edit:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.modal-place-actions__edit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.modal-place-actions__delete {
   font: inherit;
   font-size: 0.88rem;
   font-weight: 500;
@@ -1723,23 +1753,23 @@
   cursor: pointer;
 }
 
-.modal-place-delete__btn:hover:not(:disabled) {
+.modal-place-actions__delete:hover:not(:disabled) {
   background: rgba(198, 40, 40, 0.18);
 }
 
-.modal-place-delete__btn:disabled {
+.modal-place-actions__delete:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
 
 @media (prefers-color-scheme: dark) {
-  .modal-place-delete__btn {
+  .modal-place-actions__delete {
     border-color: rgba(239, 154, 154, 0.55);
     background: rgba(239, 154, 154, 0.12);
     color: #ffcdd2;
   }
 
-  .modal-place-delete__btn:hover:not(:disabled) {
+  .modal-place-actions__delete:hover:not(:disabled) {
     background: rgba(239, 154, 154, 0.2);
   }
 }
@@ -2758,9 +2788,6 @@
   color: var(--text-muted, #666);
 }
 
-.modal-place-edit-bar {
-  margin-bottom: 0.75rem;
-}
 
 .modal-place-card-edit {
   display: flex;

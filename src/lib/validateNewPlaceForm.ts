@@ -23,7 +23,7 @@ export function validateNewPlaceRequired(
   if (!fields.summary.trim()) return 'Заполните краткое описание (summary).';
   if (!fields.story.trim()) return 'Заполните блок «История / впечатления».';
   if (fields.categories.length === 0) {
-    return 'Выберите хотя бы одну категорию.';
+    return 'Выберите категорию.';
   }
   return null;
 }

@@ -165,8 +165,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
 ) {
   const t = useT();
   const citiesForBoundaries = useMemo(
-    () => citiesForMapBoundaries(catalog, filter, places),
-    [catalog, filter, places],
+    () => citiesForMapBoundaries(catalog),
+    [catalog],
   );
   const citiesOnMap = useMemo(
     () => citiesForMapMarkers(catalog, filter, places),

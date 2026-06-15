@@ -92,7 +92,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
   const { locale } = useLocale();
   const [name, setName] = useState('');
   const [cityId, setCityId] = useState(catalog.cities[0]?.id ?? '');
-  const [cats, setCats] = useState<PlaceCategory[]>(['attraction']);
+  const [category, setCategory] = useState<PlaceCategory>('attraction');
   /** Города, созданные «на лету» из результатов поиска (не в каталоге) */
   const [localCities, setLocalCities] = useState<City[]>([]);
   const [address, setAddress] = useState('');
@@ -129,12 +129,6 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
       document.body.style.overflow = prev;
     };
   }, [onKey]);
-
-  const toggleCat = (c: PlaceCategory) => {
-    setCats((prev) =>
-      prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c],
-    );
-  };
 
   /** Полный список городов: из каталога + созданные «на лету» из поиска */
   const allCities = useMemo(
@@ -258,7 +252,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
       address,
       summary,
       story,
-      categories: cats,
+      categories: [category],
     });
     if (err) { setError(err); return; }
     if (!city) {
@@ -327,7 +321,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
     const draft = buildPlace({
       name,
       cityId: canonicalId,
-      categories: cats,
+      categories: [category],
       address,
       summary,
       story,
@@ -495,13 +489,15 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
 
           <fieldset className="add-place-form__fieldset">
             <legend className="add-place-form__legend">{t('addPlace.categories')}</legend>
+            <p className="add-place-form__hint">{t('addPlace.categoriesHint')}</p>
             <div className="add-place-form__cats">
               {CATEGORY_VALUES.map((value) => (
                 <label key={value} className="add-place-form__check">
                   <input
-                    type="checkbox"
-                    checked={cats.includes(value)}
-                    onChange={() => toggleCat(value)}
+                    type="radio"
+                    name="place-category"
+                    checked={category === value}
+                    onChange={() => setCategory(value)}
                   />
                   {categoryLabel(locale, value)}
                 </label>

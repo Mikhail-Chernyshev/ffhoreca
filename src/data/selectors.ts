@@ -163,16 +163,9 @@ function allCatalogCitiesForMap(catalog: Catalog): City[] {
   return catalog.cities.filter((c) => !isFineGrainedCity(c));
 }
 
-/** Границы на карте: на «Всё»/«Города» — все города; на табах категорий — только релевантные */
-export function citiesForMapBoundaries(
-  catalog: Catalog,
-  filter: CategoryFilter,
-  visiblePlaces: Place[],
-): City[] {
-  if (filter === 'cities' || filter === 'all') {
-    return allCatalogCitiesForMap(catalog);
-  }
-  return citiesFromVisiblePlaces(catalog, visiblePlaces);
+/** Границы на карте: всегда все «настоящие» города каталога (и на табах категорий) */
+export function citiesForMapBoundaries(catalog: Catalog): City[] {
+  return allCatalogCitiesForMap(catalog);
 }
 
 /** Метки городов: на «Всё»/«Города» — без подрайонов; на табах категорий — только с видимыми местами */
