@@ -1,9 +1,32 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { AuthUser } from '../lib/apiAuth';
 import { getLoginUrl } from '../lib/apiAuth';
 import { useT } from '../i18n/LocaleContext';
 import { apiBaseUrl } from '../lib/apiBase';
 import { OverflowMarqueeText } from './OverflowMarqueeText';
+import { ConfirmModal } from './ConfirmModal';
+
+function LogoutIcon() {
+  return (
+    <svg
+      className="auth-user__logout-icon"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
 
 interface Props {
   user: AuthUser | null;
@@ -15,6 +38,7 @@ interface Props {
 
 export function AuthButton({ user, loading, onLogout, onOpenFavorites, onOpenAccount }: Props) {
   const t = useT();
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   if (!apiBaseUrl()) return null;
 
@@ -56,10 +80,15 @@ export function AuthButton({ user, loading, onLogout, onOpenFavorites, onOpenAcc
 
   return (
     <div className="auth-user">
-      <button className="auth-user__favorites" onClick={onOpenFavorites} title={t('auth.favorites')}>
-        ★
-      </button>
-      <div className="auth-user__identity">
+      <div className="auth-user__row">
+        <button
+          type="button"
+          className="auth-user__favorites"
+          onClick={onOpenFavorites}
+          title={t('auth.favorites')}
+        >
+          ★
+        </button>
         {user.username
           ? (
             <Link
@@ -78,15 +107,35 @@ export function AuthButton({ user, loading, onLogout, onOpenFavorites, onOpenAcc
         }
         <button
           type="button"
-          className="auth-user__account"
-          onClick={onOpenAccount}
+          className="auth-user__logout"
+          onClick={() => setLogoutConfirmOpen(true)}
+          title={t('auth.logout')}
+          aria-label={t('auth.logout')}
         >
-          {t('auth.account')}
+          <LogoutIcon />
+          <span className="auth-user__logout-label">{t('auth.logout')}</span>
         </button>
       </div>
-      <button className="auth-user__logout" onClick={onLogout} title={t('auth.logout')}>
-        ✕
+      <button
+        type="button"
+        className="onboarding-help-btn auth-user__account"
+        onClick={onOpenAccount}
+      >
+        {t('auth.account')}
       </button>
+
+      {logoutConfirmOpen ? (
+        <ConfirmModal
+          title={t('auth.logoutConfirmTitle')}
+          message={t('auth.logoutConfirmMessage')}
+          confirmLabel={t('auth.logout')}
+          onConfirm={() => {
+            setLogoutConfirmOpen(false);
+            onLogout();
+          }}
+          onCancel={() => setLogoutConfirmOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }

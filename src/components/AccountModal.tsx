@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import type { AuthUser, UserUsage } from '../lib/apiAuth';
 import {
   fetchAuthAccount,
+  setUsername,
   updateAccountSettings,
 } from '../lib/apiAuth';
 import { FREEMIUM_LIMITS, type MapVisibility, type UserSubscription } from '../data/subscription';
@@ -17,9 +18,16 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
   const t = useT();
   const [usage, setUsage] = useState<UserUsage | null>(null);
   const [mapVisibility, setMapVisibility] = useState<MapVisibility>(user.map_visibility);
-  const [busy, setBusy] = useState(false);
+  const [usernameDraft, setUsernameDraft] = useState(user.username ?? '');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [settingsBusy, setSettingsBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setUsernameDraft(user.username ?? '');
+  }, [user.username]);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +67,7 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
 
   const saveVisibility = async (next: MapVisibility) => {
     setMapVisibility(next);
-    setBusy(true);
+    setSettingsBusy(true);
     setError(null);
     try {
       const data = await updateAccountSettings(next);
@@ -69,11 +77,33 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
       setMapVisibility(user.map_visibility);
       setError(e instanceof Error ? e.message : t('account.saveError'));
     } finally {
-      setBusy(false);
+      setSettingsBusy(false);
     }
   };
 
-  const displayName = user.username ? `@${user.username}` : user.name;
+  const saveUsername = async () => {
+    const trimmed = usernameDraft.trim().toLowerCase();
+    if (!trimmed) {
+      setUsernameError(t('auth.usernameRequired'));
+      return;
+    }
+    if (trimmed === (user.username ?? '').toLowerCase()) return;
+
+    setUsernameSaving(true);
+    setUsernameError(null);
+    setError(null);
+    try {
+      const updated = await setUsername(trimmed);
+      setUsernameDraft(updated.username ?? trimmed);
+      onUserUpdated(updated);
+    } catch (e) {
+      setUsernameError(e instanceof Error ? e.message : t('auth.usernameSaveError'));
+    } finally {
+      setUsernameSaving(false);
+    }
+  };
+
+  const usernameChanged = usernameDraft.trim().toLowerCase() !== (user.username ?? '').toLowerCase();
   const subscription = user.subscription;
 
   return (
@@ -118,12 +148,50 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
           )}
           <div className="account-modal__profile-text">
             <p className="account-modal__name">{user.name}</p>
-            <p className="account-modal__handle">{displayName}</p>
             {user.email ? (
               <p className="account-modal__email">{user.email}</p>
             ) : null}
           </div>
         </div>
+
+        <section className="account-modal__section">
+          <h3 className="account-modal__section-title">{t('account.usernameTitle')}</h3>
+          <p className="account-modal__hint">{t('auth.usernameHint')}</p>
+          <div className="account-modal__username-row">
+            <div className="modal__field account-modal__username-field">
+              <span className="username-modal__prefix">@</span>
+              <input
+                className="modal__input username-modal__input"
+                type="text"
+                value={usernameDraft}
+                onChange={(e) => {
+                  setUsernameDraft(e.target.value);
+                  setUsernameError(null);
+                }}
+                placeholder={t('auth.usernamePlaceholder')}
+                maxLength={30}
+                autoFocus={!user.username}
+                disabled={usernameSaving || settingsBusy}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void saveUsername();
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              className="account-modal__save-btn"
+              disabled={!usernameChanged || usernameSaving || settingsBusy}
+              onClick={() => void saveUsername()}
+            >
+              {usernameSaving ? t('auth.saving') : t('auth.save')}
+            </button>
+          </div>
+          {usernameError ? (
+            <p className="account-modal__error account-modal__error--field" role="alert">
+              {usernameError}
+            </p>
+          ) : null}
+        </section>
 
         <section className="account-modal__section">
           <h3 className="account-modal__section-title">{t('account.subscriptionTitle')}</h3>
@@ -154,7 +222,7 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
                 type="radio"
                 name="map_visibility"
                 checked={mapVisibility === 'public'}
-                disabled={busy}
+                disabled={settingsBusy || usernameSaving}
                 onChange={() => void saveVisibility('public')}
               />
               <span>
@@ -167,7 +235,7 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
                 type="radio"
                 name="map_visibility"
                 checked={mapVisibility === 'subscribers'}
-                disabled={busy}
+                disabled={settingsBusy || usernameSaving}
                 onChange={() => void saveVisibility('subscribers')}
               />
               <span>
@@ -179,7 +247,7 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
         </section>
 
         {error ? <p className="account-modal__error" role="alert">{error}</p> : null}
-        {busy ? <p className="account-modal__busy">{t('common.busy')}</p> : null}
+        {settingsBusy ? <p className="account-modal__busy">{t('common.busy')}</p> : null}
       </div>
     </div>
   );

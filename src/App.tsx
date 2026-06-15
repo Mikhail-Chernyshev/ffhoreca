@@ -39,7 +39,6 @@ import { AppHeader } from './components/AppHeader'
 import { MapEditorActions } from './components/MapEditorActions'
 import { useCanEditMap } from './hooks/useCanEditMap'
 import { AuthButton } from './components/AuthButton'
-import { UsernameModal } from './components/UsernameModal'
 import { FavoritesModal } from './components/FavoritesModal'
 import { AccountModal } from './components/AccountModal'
 import { MapOnboarding } from './components/MapOnboarding'
@@ -77,17 +76,16 @@ function App() {
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser()
   const adminMode = useAdminMode(currentUser?.email)
   const canEditShowcase = useCanEditMap()
-  const [showUsernameModal, setShowUsernameModal] = useState(false)
   const [favoritesOpen, setFavoritesOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const onboardingEnabled = !adminMode
   const onboarding = useMapOnboarding(onboardingEnabled)
   const { notify: onboardingNotify, setTourOpen } = onboarding
 
-  // Show username modal for first-time users who haven't picked a username yet
+  // First-time users: open account modal to pick a username
   useEffect(() => {
     if (currentUser && !currentUser.username && !authLoading) {
-      setShowUsernameModal(true)
+      setAccountOpen(true)
     }
   }, [currentUser, authLoading])
 
@@ -429,17 +427,6 @@ function App() {
           }}
         />
       ) : null}
-      {showUsernameModal && currentUser ? (
-        <UsernameModal
-          user={currentUser}
-          onSave={(updated) => {
-            void refetchUser();
-            setShowUsernameModal(false);
-            if (updated.username) navigate(`/${updated.username}`);
-          }}
-          onSkip={() => setShowUsernameModal(false)}
-        />
-      ) : null}
       {favoritesOpen && currentUser ? (
         <FavoritesModal
           currentUser={currentUser}
@@ -451,7 +438,10 @@ function App() {
         <AccountModal
           user={currentUser}
           onClose={() => setAccountOpen(false)}
-          onUserUpdated={() => { void refetchUser(); }}
+          onUserUpdated={(updated) => {
+            void refetchUser()
+            if (updated.username) navigate(`/${updated.username}`)
+          }}
         />
       ) : null}
       </div>

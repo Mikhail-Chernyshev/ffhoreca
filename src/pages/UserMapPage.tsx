@@ -28,7 +28,6 @@ import { AuthButton } from '../components/AuthButton';
 import { FavoritesModal } from '../components/FavoritesModal';
 import { AccountModal } from '../components/AccountModal';
 import { MapRestrictedOverlay } from '../components/MapRestrictedOverlay';
-import { UsernameModal } from '../components/UsernameModal';
 import { MapOnboarding } from '../components/MapOnboarding';
 import { OnboardingHelpControls } from '../components/OnboardingHelpControls';
 import { useMapOnboarding } from '../hooks/useMapOnboarding';
@@ -49,7 +48,6 @@ export function UserMapPage() {
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser();
   const [favoritesOpen, setFavoritesOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [showUsernameModal, setShowUsernameModal] = useState(false);
   const [catalog, setCatalog] = useState<Catalog>(EMPTY_CATALOG);
   const [routes, setRoutes] = useState<TravelRoute[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,7 +82,7 @@ export function UserMapPage() {
 
   useEffect(() => {
     if (currentUser && !currentUser.username && !authLoading) {
-      setShowUsernameModal(true);
+      setAccountOpen(true);
     }
   }, [currentUser, authLoading]);
 
@@ -361,18 +359,6 @@ export function UserMapPage() {
         />
       )}
 
-      {showUsernameModal && currentUser ? (
-        <UsernameModal
-          user={currentUser}
-          onSave={(updated) => {
-            void refetchUser();
-            setShowUsernameModal(false);
-            if (updated.username) navigate(`/${updated.username}`);
-          }}
-          onSkip={() => setShowUsernameModal(false)}
-        />
-      ) : null}
-
       {favoritesOpen && currentUser ? (
         <FavoritesModal
           currentUser={currentUser}
@@ -385,9 +371,10 @@ export function UserMapPage() {
         <AccountModal
           user={currentUser}
           onClose={() => setAccountOpen(false)}
-          onUserUpdated={() => {
+          onUserUpdated={(updated) => {
             void refetchUser();
             void refreshUsage();
+            if (updated.username) navigate(`/${updated.username}`);
           }}
         />
       ) : null}
