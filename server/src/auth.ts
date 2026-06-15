@@ -6,6 +6,7 @@ const DEV_JWT_SECRET = 'dev_jwt_secret_change_in_production_32chars';
 export const AUTH_COOKIE_NAME = 'ffhoreca_session';
 
 const oauthStates = new Map<string, number>();
+const authExchangeCodes = new Map<string, { jwt: string; exp: number }>();
 
 function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET?.trim() ?? DEV_JWT_SECRET;
@@ -106,6 +107,23 @@ export function consumeOAuthState(state: string): boolean {
   }
   oauthStates.delete(state);
   return true;
+}
+
+/** Одноразовый код для обмена на JWT после OAuth (cookie не работает github.io → fly.dev). */
+export function createAuthExchangeCode(jwt: string): string {
+  const code = crypto.randomBytes(24).toString('hex');
+  authExchangeCodes.set(code, { jwt, exp: Date.now() + 2 * 60 * 1000 });
+  return code;
+}
+
+export function consumeAuthExchangeCode(code: string): string | null {
+  const entry = authExchangeCodes.get(code);
+  if (!entry || Date.now() > entry.exp) {
+    authExchangeCodes.delete(code);
+    return null;
+  }
+  authExchangeCodes.delete(code);
+  return entry.jwt;
 }
 
 // ---- Google OAuth ----------------------------------------------------------

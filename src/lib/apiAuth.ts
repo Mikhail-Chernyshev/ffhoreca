@@ -22,15 +22,31 @@ export interface AuthAccount {
   usage: UserUsage;
 }
 
-const TOKEN_KEY = 'ffhoreca_auth_token';
+const SESSION_TOKEN_KEY = 'ffhoreca_session_token';
+const LEGACY_TOKEN_KEY = 'ffhoreca_auth_token';
 
-/** Удаляет устаревший токен из localStorage (миграция на HttpOnly cookie). */
+/** sessionStorage: работает при фронте на GitHub Pages и API на Fly (cookie third-party блокируется). */
+export function getSessionToken(): string | null {
+  return sessionStorage.getItem(SESSION_TOKEN_KEY);
+}
+
+export function storeSessionToken(token: string): void {
+  sessionStorage.setItem(SESSION_TOKEN_KEY, token);
+}
+
+export function clearSessionToken(): void {
+  sessionStorage.removeItem(SESSION_TOKEN_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+}
+
+/** @deprecated use clearSessionToken */
 export function clearLegacyToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
+  clearSessionToken();
 }
 
 export function authHeaders(): Record<string, string> {
-  return {};
+  const token = getSessionToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export function getLoginUrl(): string {
@@ -49,12 +65,34 @@ function parseAuthUser(u: Partial<AuthUser>): AuthUser {
   };
 }
 
+export async function exchangeAuthCode(code: string): Promise<boolean> {
+  const base = apiBaseUrl();
+  if (!base) return false;
+  try {
+    const res = await apiFetch(`${base}/api/auth/exchange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { token?: string };
+    if (!data.token) return false;
+    storeSessionToken(data.token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
   const base = apiBaseUrl();
-  if (!base) return null;
+  if (!base || !getSessionToken()) return null;
   try {
-    const res = await apiFetch(`${base}/api/auth/me`);
-    if (!res.ok) return null;
+    const res = await apiFetch(`${base}/api/auth/me`, { headers: authHeaders() });
+    if (!res.ok) {
+      if (res.status === 401) clearSessionToken();
+      return null;
+    }
     const data = (await res.json()) as { user: Partial<AuthUser> };
     return parseAuthUser(data.user);
   } catch {
@@ -64,10 +102,13 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
 
 export async function fetchAuthAccount(): Promise<AuthAccount | null> {
   const base = apiBaseUrl();
-  if (!base) return null;
+  if (!base || !getSessionToken()) return null;
   try {
-    const res = await apiFetch(`${base}/api/auth/me`);
-    if (!res.ok) return null;
+    const res = await apiFetch(`${base}/api/auth/me`, { headers: authHeaders() });
+    if (!res.ok) {
+      if (res.status === 401) clearSessionToken();
+      return null;
+    }
     const data = (await res.json()) as {
       user: Partial<AuthUser>;
       usage?: Partial<UserUsage>;
@@ -156,11 +197,14 @@ export async function removeFromFavorites(targetId: string): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  clearLegacyToken();
+  clearSessionToken();
   const base = apiBaseUrl();
   if (!base) return;
   try {
-    await apiFetch(`${base}/api/auth/logout`, { method: 'POST' });
+    await apiFetch(`${base}/api/auth/logout`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
   } catch {
     /* ignore */
   }

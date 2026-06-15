@@ -41,6 +41,8 @@ import {
   clearSessionCookieHeader,
   consumeOAuthState,
   createOAuthState,
+  createAuthExchangeCode,
+  consumeAuthExchangeCode,
   exchangeGoogleCode,
   getGoogleAuthUrl,
   sessionCookieHeader,
@@ -387,8 +389,9 @@ app.get('/api/auth/google/callback', async (c) => {
     }
 
     const jwt = await signJWT(user.id);
+    const exchangeCode = createAuthExchangeCode(jwt);
     c.header('Set-Cookie', sessionCookieHeader(jwt));
-    return c.redirect(`${FRONTEND_URL}?auth_ok=1`);
+    return c.redirect(`${FRONTEND_URL}?auth_code=${encodeURIComponent(exchangeCode)}`);
   } catch (e) {
     console.error('OAuth callback error:', e);
     return c.redirect(`${FRONTEND_URL}?auth_error=server_error`);
@@ -398,6 +401,22 @@ app.get('/api/auth/google/callback', async (c) => {
 app.post('/api/auth/logout', (c) => {
   c.header('Set-Cookie', clearSessionCookieHeader());
   return c.json({ ok: true });
+});
+
+app.post('/api/auth/exchange', async (c) => {
+  const limited = rateLimitOrResponse(c, 'auth-exchange', 20, 60_000);
+  if (limited) return limited;
+
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
+  const code = typeof rec.code === 'string' ? rec.code.trim() : '';
+  if (!code) return c.json({ error: 'Нужен code' }, 400);
+
+  const jwt = consumeAuthExchangeCode(code);
+  if (!jwt) return c.json({ error: 'Недействительный или просроченный code' }, 400);
+
+  c.header('Set-Cookie', sessionCookieHeader(jwt));
+  return c.json({ ok: true, token: jwt });
 });
 
 app.get('/api/auth/me', requireAuth, (c) => {

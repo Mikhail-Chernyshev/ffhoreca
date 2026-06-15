@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchCurrentUser,
-  clearLegacyToken,
+  exchangeAuthCode,
   logout as doLogout,
+  clearLegacyToken,
   type AuthUser,
 } from '../lib/apiAuth';
 
@@ -13,19 +14,20 @@ export interface AuthState {
   logout: () => void;
 }
 
-/** Убирает auth-параметры из URL после OAuth-редиректа (токен теперь в HttpOnly cookie). */
-function consumeAuthParamsFromUrl(): void {
+function stripAuthParamsFromUrl(): string | null {
   const params = new URLSearchParams(window.location.search);
-  if (!params.has('auth_token') && !params.has('auth_ok') && !params.has('auth_error')) {
-    return;
-  }
+  const authCode = params.get('auth_code');
+  const hadLegacy =
+    params.has('auth_token')
+    || params.has('auth_ok')
+    || params.has('auth_error')
+    || Boolean(authCode);
+  if (!hadLegacy) return null;
+
   params.delete('auth_token');
   params.delete('auth_ok');
-  clearLegacyToken();
-  const newUrl =
-    window.location.pathname +
-    (params.toString() ? '?' + params.toString() : '');
-  window.history.replaceState(null, '', newUrl);
+  params.delete('auth_code');
+  return params.toString();
 }
 
 export function useCurrentUser(): AuthState {
@@ -45,9 +47,29 @@ export function useCurrentUser(): AuthState {
   }, []);
 
   useEffect(() => {
-    clearLegacyToken();
-    consumeAuthParamsFromUrl();
-    void refetch();
+    let cancelled = false;
+
+    const init = async () => {
+      clearLegacyToken();
+
+      const params = new URLSearchParams(window.location.search);
+      const authCode = params.get('auth_code')?.trim();
+      if (authCode) {
+        await exchangeAuthCode(authCode);
+      }
+
+      const restQuery = stripAuthParamsFromUrl();
+      if (restQuery !== null) {
+        const newUrl =
+          window.location.pathname + (restQuery ? `?${restQuery}` : '');
+        window.history.replaceState(null, '', newUrl);
+      }
+
+      if (!cancelled) await refetch();
+    };
+
+    void init();
+    return () => { cancelled = true; };
   }, [refetch]);
 
   const logout = useCallback(() => {
