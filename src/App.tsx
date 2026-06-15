@@ -313,12 +313,7 @@ function App() {
             <OnboardingHelpControls onOpenTour={() => setTourOpen(true)} />
           ) : null
         }
-        center={
-          <>
-            <h1 className="app-title">Tips from trips</h1>
-            <p className="app-tagline">{t('app.tagline')}</p>
-          </>
-        }
+        tagline={t('app.tagline')}
         right={
           <AuthButton
             user={currentUser}

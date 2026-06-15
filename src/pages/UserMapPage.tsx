@@ -159,23 +159,15 @@ export function UserMapPage() {
     <div className="user-map-page">
       <AppHeader
         leftBelow={
-          <>
-            <Link to="/" className="app-header__back">← Tips from trips</Link>
-            {mapMode !== 'sharedMap' ? (
-              <OnboardingHelpControls
-                onOpenTour={() => setTourOpen(true)}
-                onSkip={skipAll}
-                showSkip={canEditMap && !skipped}
-              />
-            ) : null}
-          </>
+          mapMode !== 'sharedMap' ? (
+            <OnboardingHelpControls
+              onOpenTour={() => setTourOpen(true)}
+              onSkip={skipAll}
+              showSkip={canEditMap && !skipped}
+            />
+          ) : null
         }
-        center={
-          <>
-            <h1 className="app-title">Tips from trips</h1>
-            <p className="app-tagline">{t('app.tagline')}</p>
-          </>
-        }
+        tagline={t('app.tagline')}
         right={
           <AuthButton
             user={currentUser}
