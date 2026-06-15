@@ -24,7 +24,6 @@ import {
   loadAdminPlacesFromStorage,
   saveAdminPlacesToStorage,
 } from './lib/adminLocalPlacesStorage'
-import { adminAuthHeaders } from './lib/adminToken'
 import { fetchCatalogFromApi } from './lib/fetchCatalog'
 import {
   adminPlacesApiUrlFromEnv,
@@ -176,7 +175,6 @@ function App() {
 
   const persistPlaceToBackendOrStorage = useCallback(
     async (place: Place, city?: City): Promise<{ ok: boolean; message?: string }> => {
-      const authHeaders = adminAuthHeaders();
       const base = apiBaseUrl();
       const postUrl =
         adminPlacesApiUrlFromEnv() ||
@@ -194,7 +192,7 @@ function App() {
         });
       };
 
-      if (postUrl && authHeaders.Authorization) {
+      if (postUrl && adminMode) {
         const r = await submitAdminPlaceToApi(postUrl, '', place, city);
         if (r.ok) {
           if (base) {
@@ -222,7 +220,7 @@ function App() {
 
       return { ok: false, message: t('app.errorMissingApiOrToken') };
     },
-    [apiConfigured, t],
+    [apiConfigured, t, adminMode],
   );
 
   const handleAdminPlaceSaved = useCallback(
@@ -234,13 +232,12 @@ function App() {
 
   const handlePlaceDeleted = useCallback(
     async (placeId: string): Promise<boolean> => {
-      const authHeaders = adminAuthHeaders()
       const base = apiBaseUrl()
       const postUrl =
         adminPlacesApiUrlFromEnv() ||
         (base ? `${base}/api/places` : '')
 
-      if (postUrl && authHeaders.Authorization) {
+      if (postUrl && adminMode) {
         const r = await deleteAdminPlaceFromApi(postUrl, '', placeId)
         if (r.ok) {
           if (base) {
@@ -276,7 +273,7 @@ function App() {
       window.alert(t('app.errorMissingApiOrToken'))
       return false
     },
-    [apiConfigured, t],
+    [apiConfigured, t, adminMode],
   )
 
   const handlePlaceUpdatedFromModal = useCallback(

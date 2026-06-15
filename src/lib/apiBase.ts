@@ -5,6 +5,14 @@ export function apiBaseUrl(): string {
   return v.replace(/\/+$/, '').trim();
 }
 
+/** fetch с cookie-сессией (HttpOnly JWT на домене API). */
+export function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  return fetch(input, {
+    ...init,
+    credentials: 'include',
+  });
+}
+
 /**
  * Превращает путь вида `/uploads/abc.jpg` в полный URL бэкенда.
  * Если путь уже абсолютный (http/https) — возвращает как есть.

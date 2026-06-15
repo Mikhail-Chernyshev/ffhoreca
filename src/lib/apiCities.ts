@@ -1,19 +1,14 @@
 import type { City } from '../data/types';
-import { apiBaseUrl } from './apiBase';
+import { apiBaseUrl, apiFetch } from './apiBase';
 import { apiErrorMessage, apiMessage } from './apiMessages';
-import { adminAuthHeaders } from './adminToken';
 
 export async function postCity(city: City): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
-  const extraHeaders = adminAuthHeaders();
-  if (!extraHeaders.Authorization) {
-    return { ok: false, message: apiMessage('api.noAdminToken') };
-  }
 
-  const res = await fetch(`${base}/api/cities`, {
+  const res = await apiFetch(`${base}/api/cities`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ city }),
   });
   const text = await res.text().catch(() => '');
@@ -24,14 +19,9 @@ export async function postCity(city: City): Promise<{ ok: boolean; message: stri
 export async function deleteCityById(id: string): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
-  const extraHeaders = adminAuthHeaders();
-  if (!extraHeaders.Authorization) {
-    return { ok: false, message: apiMessage('api.noAdminToken') };
-  }
 
-  const res = await fetch(`${base}/api/cities/${encodeURIComponent(id)}`, {
+  const res = await apiFetch(`${base}/api/cities/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { ...extraHeaders },
   });
   const text = await res.text().catch(() => '');
   if (res.ok) return { ok: true, message: apiMessage('api.cityDeleted') };

@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   fetchCurrentUser,
-  storeToken,
-  clearToken,
+  clearLegacyToken,
   logout as doLogout,
   type AuthUser,
 } from '../lib/apiAuth';
@@ -14,20 +13,19 @@ export interface AuthState {
   logout: () => void;
 }
 
-/** Reads ?auth_token= from URL, saves to localStorage, clears param. */
-function consumeTokenFromUrl(): string | null {
+/** Убирает auth-параметры из URL после OAuth-редиректа (токен теперь в HttpOnly cookie). */
+function consumeAuthParamsFromUrl(): void {
   const params = new URLSearchParams(window.location.search);
-  const token = params.get('auth_token');
-  if (token) {
-    storeToken(token);
-    params.delete('auth_token');
-    const newUrl =
-      window.location.pathname +
-      (params.toString() ? '?' + params.toString() : '');
-    window.history.replaceState(null, '', newUrl);
-    return token;
+  if (!params.has('auth_token') && !params.has('auth_ok') && !params.has('auth_error')) {
+    return;
   }
-  return null;
+  params.delete('auth_token');
+  params.delete('auth_ok');
+  clearLegacyToken();
+  const newUrl =
+    window.location.pathname +
+    (params.toString() ? '?' + params.toString() : '');
+  window.history.replaceState(null, '', newUrl);
 }
 
 export function useCurrentUser(): AuthState {
@@ -47,14 +45,13 @@ export function useCurrentUser(): AuthState {
   }, []);
 
   useEffect(() => {
-    consumeTokenFromUrl();
+    clearLegacyToken();
+    consumeAuthParamsFromUrl();
     void refetch();
   }, [refetch]);
 
   const logout = useCallback(() => {
-    doLogout();
-    clearToken();
-    setUser(null);
+    void doLogout().then(() => setUser(null));
   }, []);
 
   return { user, loading, refetch, logout };

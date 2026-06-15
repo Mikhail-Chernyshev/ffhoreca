@@ -4,8 +4,7 @@
  */
 import type { City, Place, TravelRoute } from '../data/types';
 import type { LimitCode } from './limitMessages';
-import { apiBaseUrl } from './apiBase';
-import { authHeaders } from './apiAuth';
+import { apiBaseUrl, apiFetch } from './apiBase';
 
 export type UserApiResult = {
   ok: boolean;
@@ -18,7 +17,7 @@ async function userPost(path: string, body: unknown): Promise<UserApiResult> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: 'API не настроен' };
   try {
-    const res = await fetch(`${base}${path}`, {
+    const res = await apiFetch(`${base}${path}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(body),
@@ -51,7 +50,7 @@ async function userDelete(path: string): Promise<{ ok: boolean; message: string 
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: 'API не настроен' };
   try {
-    const res = await fetch(`${base}${path}`, {
+    const res = await apiFetch(`${base}${path}`, {
       method: 'DELETE',
       headers: authHeaders(),
     });
@@ -98,9 +97,8 @@ export async function userUploadPhotos(files: File[]): Promise<string[]> {
   if (!base || files.length === 0) return [];
   const fd = new FormData();
   for (const f of files) fd.append('photos', f);
-  const res = await fetch(`${base}/api/user/photos`, {
+  const res = await apiFetch(`${base}/api/user/photos`, {
     method: 'POST',
-    headers: authHeaders(),
     body: fd,
   });
   if (!res.ok) throw new Error(`Фото: HTTP ${res.status}`);

@@ -1,4 +1,4 @@
-import { apiBaseUrl } from './apiBase';
+import { apiBaseUrl, apiFetch } from './apiBase';
 import { authHeaders } from './apiAuth';
 
 export type FeedbackPayload = {
@@ -15,7 +15,7 @@ export async function submitFeedback(
     return { ok: false, message: 'API не настроен' };
   }
   try {
-    const res = await fetch(`${base}/api/feedback`, {
+    const res = await apiFetch(`${base}/api/feedback`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(payload),

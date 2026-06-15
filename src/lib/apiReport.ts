@@ -1,4 +1,4 @@
-import { apiBaseUrl } from './apiBase';
+import { apiBaseUrl, apiFetch } from './apiBase';
 import { authHeaders } from './apiAuth';
 
 export type ReportReason =
@@ -27,7 +27,7 @@ export async function submitPlaceReport(
     return { ok: false, message: 'API не настроен' };
   }
   try {
-    const res = await fetch(`${base}/api/report`, {
+    const res = await apiFetch(`${base}/api/report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify(payload),

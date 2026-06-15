@@ -1,5 +1,5 @@
 import type { City, Place } from '../data/types';
-import { adminAuthHeaders } from './adminToken';
+import { apiFetch } from './apiBase';
 
 export type SubmitAdminPlaceResult =
   | { ok: true; message: string }
@@ -20,9 +20,9 @@ export async function submitAdminPlaceToApi(
   if (!url) return { ok: false, message: 'API URL не задан' };
 
   try {
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, place, city }),
     });
     if (res.ok) {
@@ -57,9 +57,9 @@ export async function deleteAdminPlaceFromApi(
   }
   const deleteUrl = adminPlacesDeleteUrlFromPlacesPostUrl(postPlacesUrl);
   try {
-    const res = await fetch(deleteUrl, {
+    const res = await apiFetch(deleteUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...adminAuthHeaders() },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, id: placeId }),
     });
     if (res.ok) {

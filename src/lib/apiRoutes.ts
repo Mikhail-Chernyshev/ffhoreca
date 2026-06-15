@@ -1,12 +1,11 @@
 import type { TravelRoute } from '../data/types';
-import { apiBaseUrl } from './apiBase';
+import { apiBaseUrl, apiFetch } from './apiBase';
 import { apiErrorMessage, apiMessage } from './apiMessages';
-import { adminAuthHeaders } from './adminToken';
 
 export async function fetchRoutes(): Promise<TravelRoute[]> {
   const base = apiBaseUrl();
   if (!base) return [];
-  const res = await fetch(`${base}/api/routes`);
+  const res = await apiFetch(`${base}/api/routes`);
   if (!res.ok) return [];
   return res.json() as Promise<TravelRoute[]>;
 }
@@ -14,14 +13,10 @@ export async function fetchRoutes(): Promise<TravelRoute[]> {
 export async function postRoute(route: TravelRoute): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
-  const extraHeaders = adminAuthHeaders();
-  if (!extraHeaders.Authorization) {
-    return { ok: false, message: apiMessage('api.noAdminToken') };
-  }
 
-  const res = await fetch(`${base}/api/routes`, {
+  const res = await apiFetch(`${base}/api/routes`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ route }),
   });
   const text = await res.text().catch(() => '');
@@ -32,14 +27,9 @@ export async function postRoute(route: TravelRoute): Promise<{ ok: boolean; mess
 export async function deleteRouteById(id: string): Promise<{ ok: boolean; message: string }> {
   const base = apiBaseUrl();
   if (!base) return { ok: false, message: apiMessage('api.notConfigured') };
-  const extraHeaders = adminAuthHeaders();
-  if (!extraHeaders.Authorization) {
-    return { ok: false, message: apiMessage('api.noAdminToken') };
-  }
 
-  const res = await fetch(`${base}/api/routes/${encodeURIComponent(id)}`, {
+  const res = await apiFetch(`${base}/api/routes/${encodeURIComponent(id)}`, {
     method: 'DELETE',
-    headers: { ...extraHeaders },
   });
   const text = await res.text().catch(() => '');
   if (res.ok) return { ok: true, message: apiMessage('api.routeDeleted') };

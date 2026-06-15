@@ -11,8 +11,7 @@ import { AddRouteModal } from '../components/AddRouteModal';
 import { ManagerModal } from '../components/ManagerModal';
 import { placesForFilter } from '../data/selectors';
 import type { Catalog, CategoryFilter, City, Place, TravelRoute } from '../data/types';
-import { apiBaseUrl } from '../lib/apiBase';
-import { authHeaders } from '../lib/apiAuth';
+import { apiBaseUrl, apiFetch } from '../lib/apiBase';
 import {
   userPostCity, userDeleteCity,
   userPostPlace, userDeletePlace,
@@ -91,11 +90,10 @@ export function UserMapPage() {
 
   const loadCatalog = useCallback(async () => {
     if (!base || !username) return false;
-    const headers = authHeaders();
     try {
       const [catRes, routesRes] = await Promise.all([
-        fetch(`${base}/api/users/${username}/catalog`, { headers }),
-        fetch(`${base}/api/users/${username}/routes`, { headers }),
+        apiFetch(`${base}/api/users/${username}/catalog`),
+        apiFetch(`${base}/api/users/${username}/routes`),
       ]);
       if (catRes.status === 403 || routesRes.status === 403) {
         setMapRestricted(true);
@@ -122,7 +120,7 @@ export function UserMapPage() {
     setMapRestricted(false);
     setProfileUser(null);
 
-    fetch(`${base}/api/users/${username}`, { headers: authHeaders() })
+    apiFetch(`${base}/api/users/${username}`)
       .then(async (r) => {
         if (r.status === 404) {
           setNotFound(true);

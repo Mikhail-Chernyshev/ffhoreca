@@ -24,7 +24,7 @@ import {
   getUserUsage,
   type DbUser,
 } from './db';
-import type { City, TravelRoute, UserRouteMode } from '../../src/data/types';
+import type { City, TravelRoute } from '../../src/data/types';
 import type { MapVisibility } from '../../src/data/subscription';
 import {
   canViewUserMap,
@@ -35,11 +35,29 @@ import {
   normalizeSubscription,
 } from './subscription';
 import { isValidPlace } from './validatePlace';
-import { signJWT, verifyJWT, getGoogleAuthUrl, exchangeGoogleCode } from './auth';
+import { isValidCity, isValidRoute } from './validateInput';
+import {
+  assertJwtSecretConfigured,
+  clearSessionCookieHeader,
+  consumeOAuthState,
+  createOAuthState,
+  exchangeGoogleCode,
+  getGoogleAuthUrl,
+  sessionCookieHeader,
+  signJWT,
+  verifyJWT,
+} from './auth';
 import { sendFeedbackEmail } from './feedbackMail';
 import { isValidReportReason, sendPlaceReportEmail } from './reportMail';
 import { rateLimitOrResponse } from './rateLimit';
+import {
+  jsonBodyLimitMiddleware,
+  readJsonBody,
+  securityHeadersMiddleware,
+} from './security';
 import { v4 as uuidv4 } from 'uuid';
+
+assertJwtSecretConfigured();
 
 const PORT = Number(process.env.PORT ?? 3001);
 const DATABASE_PATH = path.resolve(
@@ -56,11 +74,41 @@ const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,29}$/i;
 
+function extractAuthToken(c: Context): string | null {
+  const cookie = c.req.header('Cookie') ?? '';
+  const match = cookie.match(/(?:^|;\s*)ffhoreca_session=([^;]+)/);
+  if (match) {
+    try {
+      const token = decodeURIComponent(match[1]).trim();
+      if (token) return token;
+    } catch {
+      const token = match[1].trim();
+      if (token) return token;
+    }
+  }
+  const header = c.req.header('Authorization') ?? '';
+  if (header.startsWith('Bearer ')) {
+    const token = header.slice(7).trim();
+    if (token) return token;
+  }
+  return null;
+}
+
+async function parseJsonObject(
+  c: Context,
+): Promise<Record<string, unknown> | Response> {
+  const parsed = await readJsonBody(c);
+  if (!parsed.ok) return parsed.response;
+  if (parsed.body == null || typeof parsed.body !== 'object' || Array.isArray(parsed.body)) {
+    return c.json({ error: 'Ожидается объект' }, 400);
+  }
+  return parsed.body as Record<string, unknown>;
+}
+
 /** Витрину может редактировать только залогиненный пользователь с ADMIN_EMAIL. */
 async function requireShowcaseAdmin(c: Context): Promise<DbUser | null> {
   if (!ADMIN_EMAIL) return null;
-  const header = c.req.header('Authorization') ?? '';
-  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const token = extractAuthToken(c);
   if (!token) return null;
   const payload = await verifyJWT(token);
   if (!payload) return null;
@@ -86,11 +134,14 @@ app.use(
   '/*',
   cors({
     origin: corsOriginOption(),
-    allowMethods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-    allowHeaders: ['Content-Type', 'X-Admin-Token', 'Authorization'],
+    allowMethods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   }),
 );
+
+app.use('/*', securityHeadersMiddleware());
+app.use('/api/*', jsonBodyLimitMiddleware());
 
 // ---- Auth middleware -------------------------------------------------------
 
@@ -98,8 +149,7 @@ type HonoEnv = { Variables: { user: DbUser } };
 const authApp = new Hono<HonoEnv>();
 
 async function requireAuth(c: Context<HonoEnv>, next: Next) {
-  const header = c.req.header('Authorization') ?? '';
-  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const token = extractAuthToken(c);
   if (!token) return c.json({ error: 'Требуется авторизация' }, 401);
   const payload = await verifyJWT(token);
   if (!payload) return c.json({ error: 'Недействительный токен' }, 401);
@@ -128,8 +178,7 @@ function serializeAuthUser(u: DbUser) {
 }
 
 async function optionalAuthUser(c: Context): Promise<DbUser | null> {
-  const header = c.req.header('Authorization') ?? '';
-  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+  const token = extractAuthToken(c);
   if (!token) return null;
   const payload = await verifyJWT(token);
   if (!payload) return null;
@@ -140,36 +189,6 @@ function limitErrorMessage(code: 'countries' | 'routes' | 'places', limit: numbe
   if (code === 'countries') return `Лимит Freemium: не более ${limit} стран. Перейдите на Premium.`;
   if (code === 'routes') return `Лимит Freemium: не более ${limit} маршрутов. Перейдите на Premium.`;
   return `Лимит Freemium: не более ${limit} мест. Перейдите на Premium.`;
-}
-
-const ROUTE_MODES = new Set<UserRouteMode>(['plane', 'train', 'bus', 'boat', 'car']);
-
-function isValidCity(x: unknown): x is City {
-  if (x == null || typeof x !== 'object') return false;
-  const c = x as Record<string, unknown>;
-  return (
-    typeof c.id === 'string' && c.id.trim().length > 0 &&
-    typeof c.name === 'string' && c.name.trim().length > 0 &&
-    typeof c.countryCode === 'string' && c.countryCode.trim().length > 0 &&
-    typeof c.lat === 'number' &&
-    typeof c.lng === 'number'
-  );
-}
-
-function isValidRoute(x: unknown): x is TravelRoute {
-  if (x == null || typeof x !== 'object') return false;
-  const r = x as Record<string, unknown>;
-  if (typeof r.id !== 'string' || !r.id.trim()) return false;
-  if (!Array.isArray(r.waypoints) || r.waypoints.length < 2) return false;
-  for (const w of r.waypoints) {
-    if (w == null || typeof w !== 'object') return false;
-    const wp = w as Record<string, unknown>;
-    if (typeof wp.cityId !== 'string') return false;
-    if (typeof wp.name !== 'string') return false;
-    if (typeof wp.lat !== 'number' || typeof wp.lng !== 'number') return false;
-  }
-  if (typeof r.mode !== 'string' || !ROUTE_MODES.has(r.mode as UserRouteMode)) return false;
-  return true;
 }
 
 app.get('/api/health', (c) => c.json({ ok: true }));
@@ -184,10 +203,8 @@ app.get('/api/catalog', (c) => {
 });
 
 app.post('/api/cities', async (c) => {
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
   if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   if (!isValidCity(rec.city)) return c.json({ error: 'Некорректное тело city' }, 400);
   try {
@@ -219,10 +236,8 @@ app.delete('/api/cities/:id', async (c) => {
 });
 
 app.post('/api/places', async (c) => {
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
   if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   if (!isValidPlace(rec.place)) return c.json({ error: 'Некорректное тело place' }, 400);
   try {
@@ -235,10 +250,8 @@ app.post('/api/places', async (c) => {
 });
 
 app.post('/api/places/delete', async (c) => {
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
   if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   const id = typeof rec.id === 'string' ? rec.id.trim() : '';
   if (!id) return c.json({ error: 'Нужен непустой id' }, 400);
@@ -306,10 +319,8 @@ app.get('/api/routes', (c) => {
 });
 
 app.post('/api/routes', async (c) => {
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  if (body == null || typeof body !== 'object') return c.json({ error: 'Ожидается объект' }, 400);
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
   if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
   if (!isValidRoute(rec.route)) return c.json({ error: 'Некорректный маршрут' }, 400);
   try {
@@ -336,14 +347,19 @@ app.delete('/api/routes/:id', async (c) => {
 
 app.get('/api/auth/google', (c) => {
   if (!GOOGLE_CLIENT_ID) return c.json({ error: 'Google OAuth не настроен' }, 503);
-  return c.redirect(getGoogleAuthUrl(GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI));
+  const state = createOAuthState();
+  return c.redirect(getGoogleAuthUrl(GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI, state));
 });
 
 app.get('/api/auth/google/callback', async (c) => {
   const code = c.req.query('code') ?? '';
+  const state = c.req.query('state') ?? '';
   const error = c.req.query('error');
   if (error || !code) {
     return c.redirect(`${FRONTEND_URL}?auth_error=${encodeURIComponent(error ?? 'no_code')}`);
+  }
+  if (!state || !consumeOAuthState(state)) {
+    return c.redirect(`${FRONTEND_URL}?auth_error=invalid_state`);
   }
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
     return c.redirect(`${FRONTEND_URL}?auth_error=not_configured`);
@@ -371,11 +387,17 @@ app.get('/api/auth/google/callback', async (c) => {
     }
 
     const jwt = await signJWT(user.id);
-    return c.redirect(`${FRONTEND_URL}?auth_token=${encodeURIComponent(jwt)}`);
+    c.header('Set-Cookie', sessionCookieHeader(jwt));
+    return c.redirect(`${FRONTEND_URL}?auth_ok=1`);
   } catch (e) {
     console.error('OAuth callback error:', e);
     return c.redirect(`${FRONTEND_URL}?auth_error=server_error`);
   }
+});
+
+app.post('/api/auth/logout', (c) => {
+  c.header('Set-Cookie', clearSessionCookieHeader());
+  return c.json({ ok: true });
 });
 
 app.get('/api/auth/me', requireAuth, (c) => {
@@ -388,9 +410,8 @@ app.get('/api/auth/me', requireAuth, (c) => {
 
 app.patch('/api/auth/settings', requireAuth, async (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
   const updates: Partial<Pick<DbUser, 'map_visibility'>> = {};
   if (rec.map_visibility !== undefined) {
     const v = rec.map_visibility;
@@ -411,10 +432,10 @@ app.patch('/api/auth/settings', requireAuth, async (c) => {
 
 app.post('/api/auth/username', requireAuth, async (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const username = typeof (body as Record<string,unknown>).username === 'string'
-    ? ((body as Record<string,unknown>).username as string).trim().toLowerCase()
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
+  const username = typeof rec.username === 'string'
+    ? rec.username.trim().toLowerCase()
     : '';
   if (!USERNAME_RE.test(username)) {
     return c.json({ error: 'Логин: 3-30 символов, только латинские буквы, цифры, _ и -' }, 400);
@@ -478,9 +499,9 @@ app.post('/api/user/cities', requireAuth, async (c) => {
   const limited = rateLimitOrResponse(c, 'user-write', 90, 60_000);
   if (limited) return limited;
   const user = (c as unknown as Context<HonoEnv>).get('user');
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const city = (body as Record<string,unknown>).city;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
+  const city = rec.city;
   if (!isValidCity(city)) return c.json({ error: 'Некорректный город' }, 400);
   const cityObj = city as City;
   const exists = db.prepare('SELECT 1 FROM cities WHERE id = ? AND user_id = ?').get(cityObj.id, user.id);
@@ -508,9 +529,8 @@ app.post('/api/user/places', requireAuth, async (c) => {
   const limited = rateLimitOrResponse(c, 'user-write', 90, 60_000);
   if (limited) return limited;
   const user = (c as unknown as Context<HonoEnv>).get('user');
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
   if (!isValidPlace(rec.place)) return c.json({ error: 'Некорректное место' }, 400);
   const place = rec.place as { id: string };
   const limit = checkFreemiumPlaceLimit(db, user, place.id);
@@ -524,9 +544,9 @@ app.post('/api/user/places', requireAuth, async (c) => {
 
 app.post('/api/user/places/delete', requireAuth, async (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const id = typeof (body as Record<string,unknown>).id === 'string' ? ((body as Record<string,unknown>).id as string).trim() : '';
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
+  const id = typeof rec.id === 'string' ? rec.id.trim() : '';
   if (!id) return c.json({ error: 'Нужен id' }, 400);
   const removed = deleteUserPlace(db, user.id, id);
   if (!removed) return c.json({ error: 'Место не найдено' }, 404);
@@ -537,9 +557,9 @@ app.post('/api/user/routes', requireAuth, async (c) => {
   const limited = rateLimitOrResponse(c, 'user-write', 90, 60_000);
   if (limited) return limited;
   const user = (c as unknown as Context<HonoEnv>).get('user');
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const route = (body as Record<string,unknown>).route;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
+  const route = rec.route;
   if (!isValidRoute(route)) return c.json({ error: 'Некорректный маршрут' }, 400);
   const routeObj = route as TravelRoute;
   const limit = checkFreemiumRouteLimit(db, user, routeObj.id);
@@ -589,9 +609,8 @@ app.get('/api/user/favorites', requireAuth, (c) => {
 
 app.post('/api/user/favorites', requireAuth, async (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
   let target: DbUser | null = null;
   if (typeof rec.targetId === 'string') {
     target = findUserById(db, rec.targetId);
@@ -621,9 +640,8 @@ app.post('/api/feedback', async (c) => {
   const limited = rateLimitOrResponse(c, 'feedback', 5, 60_000);
   if (limited) return limited;
 
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
   const email = typeof rec.email === 'string' ? rec.email.trim() : '';
   const message = typeof rec.message === 'string' ? rec.message.trim() : '';
   const name = typeof rec.name === 'string' ? rec.name.trim() : '';
@@ -663,9 +681,8 @@ app.post('/api/report', async (c) => {
   const limited = rateLimitOrResponse(c, 'report', 5, 60_000);
   if (limited) return limited;
 
-  let body: unknown;
-  try { body = await c.req.json(); } catch { return c.json({ error: 'Некорректный JSON' }, 400); }
-  const rec = body as Record<string, unknown>;
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
 
   const placeId = typeof rec.placeId === 'string' ? rec.placeId.trim() : '';
   const placeName = typeof rec.placeName === 'string' ? rec.placeName.trim() : '';

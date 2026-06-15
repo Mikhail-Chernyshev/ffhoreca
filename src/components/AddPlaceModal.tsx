@@ -15,6 +15,7 @@ import {
   preferredSettlementName,
   type AddressSuggestion,
 } from '../lib/photonAddressSearch';
+import { apiBaseUrl, apiFetch } from '../lib/apiBase';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel } from '../i18n/labels';
 
@@ -283,15 +284,12 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
           // Пользовательский режим: JWT-авторизация
           uploadedUrls = await uploadPhotos(photoFiles);
         } else {
-          // Режим витрины: JWT админа
-          const base = import.meta.env.VITE_API_BASE_URL as string | undefined;
-          const jwt = localStorage.getItem('ffhoreca_auth_token');
-          if (base && jwt) {
+          const base = apiBaseUrl();
+          if (base) {
             const fd = new FormData();
             for (const file of photoFiles) fd.append('photos', file);
-            const res = await fetch(`${base.replace(/\/+$/, '')}/api/photos`, {
+            const res = await apiFetch(`${base}/api/photos`, {
               method: 'POST',
-              headers: { Authorization: `Bearer ${jwt}` },
               body: fd,
             });
             if (res.ok) {

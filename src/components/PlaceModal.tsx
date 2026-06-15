@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Place, PlaceCategory } from '../data/types';
-import { apiBaseUrl, mediaUrl } from '../lib/apiBase';
+import { apiBaseUrl, apiFetch, mediaUrl } from '../lib/apiBase';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel } from '../i18n/labels';
 import { PlaceReportDialog } from './PlaceReportDialog';
@@ -225,8 +225,7 @@ export function PlaceModal({
   const handlePhotoFiles = async (files: File[]) => {
     if (files.length === 0) return;
     const base = apiBaseUrl();
-    const jwt = localStorage.getItem('ffhoreca_auth_token');
-    if (!base || !jwt) {
+    if (!base) {
       window.alert(t('placeModal.alertUploadNeedsApi'));
       return;
     }
@@ -234,9 +233,8 @@ export function PlaceModal({
     try {
       const fd = new FormData();
       for (const file of files) fd.append('photos', file);
-      const res = await fetch(`${base}/api/photos`, {
+      const res = await apiFetch(`${base}/api/photos`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${jwt}` },
         body: fd,
       });
       if (!res.ok) {

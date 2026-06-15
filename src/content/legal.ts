@@ -56,7 +56,7 @@ const privacyRu: LegalDocument = {
     {
       heading: 'Cookies и localStorage',
       paragraphs: [
-        'Используем localStorage для токена входа, языка интерфейса и подсказок онбординга. Рекламных cookies нет.',
+        'Сессия входа хранится в HttpOnly cookie на сервере API (недоступна JavaScript). localStorage используется для языка интерфейса и подсказок онбординга. Рекламных cookies нет.',
       ],
     },
   ],
@@ -107,7 +107,7 @@ const privacyEn: LegalDocument = {
     {
       heading: 'Cookies and localStorage',
       paragraphs: [
-        'We use localStorage for auth token, UI language, and onboarding hints. No ad cookies.',
+        'Sign-in session is stored in an HttpOnly cookie on the API server (not accessible to JavaScript). localStorage is used for UI language and onboarding hints. No ad cookies.',
       ],
     },
   ],
