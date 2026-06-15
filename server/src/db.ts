@@ -3,6 +3,7 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 import type { Catalog, City, Place, TravelRoute } from '../../src/data/types';
 import type { MapVisibility, UserSubscription } from '../../src/data/subscription';
+import { normalizePhotoUrl } from './security';
 
 export interface DbUser {
   id: string;
@@ -26,9 +27,9 @@ function normalizePlaceRow(raw: unknown): Place {
   const p = raw as Place;
   let photos: string[] | null = null;
   if (Array.isArray(p.photos) && p.photos.length > 0) {
-    const urls = p.photos.filter(
-      (x): x is string => typeof x === 'string' && x.trim().length > 0,
-    );
+    const urls = p.photos
+      .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+      .map((x) => normalizePhotoUrl(x));
     photos = urls.length > 0 ? urls : null;
   }
   return { ...p, photos };

@@ -186,11 +186,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const [globeMode, setGlobeMode] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [fillBeforeId, setFillBeforeId] = useState<string | undefined>();
-  const [mapThemeDark, setMapThemeDark] = useState(
-    () =>
-      typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-color-scheme: dark)').matches,
-  );
+  const mapThemeDark = false;
 
   const visited = useMemo(() => visitedCountryCodes(catalog), [catalog]);
 
@@ -210,15 +206,6 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     if (countriesTopology == null) return EMPTY_COUNTRIES_GEO;
     return countriesVisitedGeoJson(visited, countriesTopology);
   }, [visited, countriesTopology]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const sync = () => setMapThemeDark(mq.matches);
-    sync();
-    mq.addEventListener('change', sync);
-    return () => mq.removeEventListener('change', sync);
-  }, []);
 
   const countryFillPaint = useMemo(
     () => ({

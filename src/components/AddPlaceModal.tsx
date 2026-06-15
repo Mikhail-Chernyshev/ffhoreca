@@ -16,6 +16,7 @@ import {
   type AddressSuggestion,
 } from '../lib/photonAddressSearch';
 import { apiBaseUrl, apiFetch } from '../lib/apiBase';
+import { authHeaders } from '../lib/apiAuth';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel } from '../i18n/labels';
 
@@ -290,6 +291,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
             for (const file of photoFiles) fd.append('photos', file);
             const res = await apiFetch(`${base}/api/photos`, {
               method: 'POST',
+              headers: authHeaders(),
               body: fd,
             });
             if (res.ok) {

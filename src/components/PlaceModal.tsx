@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Place, PlaceCategory } from '../data/types';
 import { apiBaseUrl, apiFetch, mediaUrl } from '../lib/apiBase';
+import { authHeaders } from '../lib/apiAuth';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel } from '../i18n/labels';
 import { PlaceReportDialog } from './PlaceReportDialog';
@@ -23,6 +24,8 @@ type Props = {
   onPlaceDeleted?: (placeId: string) => Promise<boolean>;
   /** Жалоба на место на чужой карте */
   reportOwnerUsername?: string;
+  /** Загрузка фото на свою карту (JWT); без пропа — витрина `/api/photos` */
+  uploadPhotos?: (files: File[]) => Promise<string[]>;
 };
 
 export function ModalPhotoCarousel({ photos }: { photos: string[] }) {
@@ -76,6 +79,7 @@ export function PlaceModal({
   onPlaceUpdated,
   onPlaceDeleted,
   reportOwnerUsername,
+  uploadPhotos,
 }: Props) {
   const t = useT();
   const { locale } = useLocale();
@@ -231,10 +235,16 @@ export function PlaceModal({
     }
     setFileUploadBusy(true);
     try {
+      if (uploadPhotos) {
+        const urls = await uploadPhotos(files);
+        setDraftPhotos((prev) => [...prev, ...urls]);
+        return;
+      }
       const fd = new FormData();
       for (const file of files) fd.append('photos', file);
       const res = await apiFetch(`${base}/api/photos`, {
         method: 'POST',
+        headers: authHeaders(),
         body: fd,
       });
       if (!res.ok) {

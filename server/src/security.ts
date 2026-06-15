@@ -15,13 +15,39 @@ export const FIELD_LIMITS = {
 
 const UPLOAD_PHOTO_RE = /^\/uploads\/[0-9a-f-]{36}\.(?:jpe?g|png|webp|gif)$/i;
 
-/** Только относительные пути загрузок с UUID-именем. */
+/** Приводит полный URL загрузки к относительному `/uploads/...`. */
+export function normalizePhotoUrl(url: string): string {
+  const trimmed = url.trim();
+  if (!trimmed) return trimmed;
+  if (UPLOAD_PHOTO_RE.test(trimmed)) return trimmed;
+  try {
+    const u = new URL(trimmed);
+    if (UPLOAD_PHOTO_RE.test(u.pathname)) return u.pathname;
+  } catch {
+    /* relative or invalid */
+  }
+  return trimmed;
+}
+
+/**
+ * Разрешены: `/uploads/<uuid>.ext`, полный URL с таким путём,
+ * а также уже сохранённые внешние https-ссылки (старые объекты).
+ */
 export function isValidPhotoUrl(url: string): boolean {
   const trimmed = url.trim();
   if (!trimmed || trimmed.length > FIELD_LIMITS.photoUrl) return false;
   const lower = trimmed.toLowerCase();
   if (lower.startsWith('javascript:') || lower.startsWith('data:')) return false;
-  return UPLOAD_PHOTO_RE.test(trimmed);
+  if (UPLOAD_PHOTO_RE.test(trimmed)) return true;
+  try {
+    const u = new URL(trimmed);
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    if (UPLOAD_PHOTO_RE.test(u.pathname)) return true;
+    if (u.protocol === 'https:') return true;
+  } catch {
+    return false;
+  }
+  return false;
 }
 
 export function hasMaxLen(value: unknown, max: number): boolean {

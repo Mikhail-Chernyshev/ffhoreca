@@ -41,9 +41,13 @@
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
 
+  --radius-control: 10px;
+  --radius-surface: 12px;
+  --radius-pill: 999px;
+
   font: 17px/145% var(--sans);
   letter-spacing: 0.01em;
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -56,47 +60,7 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #c4c0d0;
-    --text-h: #f4f2fa;
-    --text-muted: #9d96ad;
-    --bg: #12131a;
-    --surface: #1a1c24;
-    --surface-elevated: #22252f;
-    --border: #343848;
-    --code-bg: #1c1f28;
-    --accent: #a78bfa;
-    --accent-bg: rgba(167, 139, 250, 0.15);
-    --accent-border: rgba(167, 139, 250, 0.45);
-    --shadow-sm:
-      rgba(0, 0, 0, 0.35) 0 4px 12px,
-      rgba(0, 0, 0, 0.2) 0 2px 4px;
-    --shadow-lg:
-      rgba(0, 0, 0, 0.45) 0 24px 48px -12px,
-      rgba(0, 0, 0, 0.3) 0 12px 24px -8px;
-
-    --map-ocean: #1e2a3a;
-    --map-country-default: #2a3140;
-    --map-country-hover: #343c4d;
-    --map-country-visited: #2e6b4a;
-    --map-country-visited-hover: #3d8f60;
-    --map-geo-stroke: rgba(0, 0, 0, 0.52);
-    --map-city: #ffb74d;
-    --map-city-zone-fill: rgba(255, 171, 64, 0.4);
-    --map-city-zone-fill-hover: rgba(255, 171, 64, 0.55);
-    --map-city-zone-stroke: rgba(255, 183, 77, 0.98);
-
-    --map-lake-fill: #2a3d58;
-    --map-lake-stroke: rgba(130, 175, 230, 0.38);
-    --map-river-stroke: rgba(120, 170, 230, 0.82);
-
-    --marker-lodging: #9fa8da;
-    --marker-food: #ff8a65;
-    --marker-bar: #ce93d8;
-    --marker-airport: #4dd0e1;
-  }
-}
+/* Тёмная тема отключена до отдельной доработки дизайна. */
 
 #root {
   min-height: 100svh;
