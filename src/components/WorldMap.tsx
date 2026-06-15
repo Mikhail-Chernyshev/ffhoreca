@@ -16,7 +16,7 @@ import Map, {
   Source,
   type MapRef,
 } from 'react-map-gl/maplibre';
-import type { Map as MapLibreMap } from 'maplibre-gl';
+import type { Map as MapLibreMap, ProjectionSpecification } from 'maplibre-gl';
 import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
@@ -116,6 +116,14 @@ function firstSymbolLayerId(map: MapLibreMap): string | undefined {
   return map.getStyle()?.layers.find((l) => l.type === 'symbol')?.id;
 }
 
+function applyMapProjection(map: MapLibreMap, globe: boolean): void {
+  const projection: ProjectionSpecification = { type: globe ? 'globe' : 'mercator' };
+  map.setProjection(projection);
+  if (!globe) {
+    map.easeTo({ bearing: 0, pitch: 0, duration: 400 });
+  }
+}
+
 const MAP_MIN_ZOOM = 0.85;
 const MAP_MAX_ZOOM = 19;
 const MAP_DEFAULT_ZOOM = 1.42;
@@ -172,6 +180,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapRef>(null);
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
+  const [globeMode, setGlobeMode] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [fillBeforeId, setFillBeforeId] = useState<string | undefined>();
   const [mapThemeDark, setMapThemeDark] = useState(
@@ -226,9 +235,22 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const handleMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
-    // Первый symbol-слой стиля — inserting fill before it puts our layer under all labels.
     setFillBeforeId(firstSymbolLayerId(map));
-  }, []);
+    applyMapProjection(map, globeMode);
+  }, [globeMode]);
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap();
+    if (!map) return;
+
+    const run = () => applyMapProjection(map, globeMode);
+    if (map.isStyleLoaded()) run();
+    else map.once('styledata', run);
+
+    return () => {
+      map.off('styledata', run);
+    };
+  }, [globeMode]);
 
   useImperativeHandle(
     ref,
@@ -261,8 +283,14 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     map.flyTo({
       center: [MAP_DEFAULT_LONGITUDE, MAP_DEFAULT_LATITUDE],
       zoom: MAP_DEFAULT_ZOOM,
+      bearing: 0,
+      pitch: 0,
       duration: 550,
     });
+  }, []);
+
+  const handleToggleGlobe = useCallback(() => {
+    setGlobeMode((prev) => !prev);
   }, []);
 
   const zoomToCity = useCallback((city: City) => {
@@ -388,6 +416,32 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         >
           ⌂
         </button>
+        <button
+          type='button'
+          className={
+            globeMode
+              ? 'world-map-zoom-controls__globe world-map-zoom-controls__globe--active'
+              : 'world-map-zoom-controls__globe'
+          }
+          aria-label={globeMode ? t('map.ariaToggleFlat') : t('map.ariaToggleGlobe')}
+          title={globeMode ? t('map.titleFlatMode') : t('map.titleGlobeMode')}
+          aria-pressed={globeMode}
+          onClick={handleToggleGlobe}
+        >
+          <span className='world-map-zoom-controls__globe-icon' aria-hidden>
+            {globeMode ? (
+              <svg viewBox='0 0 20 20' width='16' height='16'>
+                <rect x='2' y='4' width='16' height='12' rx='1.5' fill='none' stroke='currentColor' strokeWidth='1.5' />
+                <path d='M2 8h16M7 4v12M13 4v12' fill='none' stroke='currentColor' strokeWidth='1.2' />
+              </svg>
+            ) : (
+              <svg viewBox='0 0 20 20' width='16' height='16'>
+                <circle cx='10' cy='10' r='7.5' fill='none' stroke='currentColor' strokeWidth='1.5' />
+                <path d='M2.5 10h15M10 2.5c2 2.4 2 12.6 0 15M10 2.5c-2 2.4-2 12.6 0 15' fill='none' stroke='currentColor' strokeWidth='1.2' />
+              </svg>
+            )}
+          </span>
+        </button>
       </div>
       <Map
         ref={mapRef}
@@ -405,8 +459,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         renderWorldCopies={false}
         onLoad={handleMapLoad}
         onMove={(e) => setZoom(e.viewState.zoom)}
-        dragRotate={false}
-        pitchWithRotate={false}
+        dragRotate={globeMode}
+        pitchWithRotate={globeMode}
         touchPitch={false}
         cursor='grab'
         attributionControl={false}

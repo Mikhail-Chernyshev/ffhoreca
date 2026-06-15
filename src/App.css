@@ -833,6 +833,32 @@
   background: #f3f3f3;
 }
 
+.world-map-zoom-controls__globe {
+  border-top: 1px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  background: #fff;
+  color: #333;
+}
+
+.world-map-zoom-controls__globe:hover {
+  background: #f3f3f3;
+}
+
+.world-map-zoom-controls__globe--active {
+  background: #e8f0fe;
+  color: #1a56c4;
+}
+
+.world-map-zoom-controls__globe-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 @media (prefers-color-scheme: dark) {
   .world-map-zoom-controls__reset {
     border-top-color: #444;
@@ -842,6 +868,21 @@
 
   .world-map-zoom-controls__reset:hover {
     background: #383838;
+  }
+
+  .world-map-zoom-controls__globe {
+    border-top-color: #444;
+    background: #2b2b2b;
+    color: #e0e0e0;
+  }
+
+  .world-map-zoom-controls__globe:hover {
+    background: #383838;
+  }
+
+  .world-map-zoom-controls__globe--active {
+    background: #2a3550;
+    color: #93b4ff;
   }
 }
 

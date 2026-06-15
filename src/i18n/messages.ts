@@ -193,6 +193,10 @@ const ru = {
     ariaZoomOut: 'Отдалить',
     ariaResetView: 'Сбросить масштаб и положение карты',
     titleResetView: 'Исходный вид',
+    ariaToggleGlobe: 'Включить режим глобуса',
+    ariaToggleFlat: 'Включить плоскую карту',
+    titleGlobeMode: 'Глобус — перетаскивание вращает',
+    titleFlatMode: 'Плоская карта',
     ariaCityMarker:
       'Город {{name}} — при дальнем зуме приблизит, при ближнем откроет карточку',
     aboutLink: 'О проекте',
@@ -505,6 +509,10 @@ const en = {
     ariaZoomOut: 'Zoom out',
     ariaResetView: 'Reset zoom and map position',
     titleResetView: 'Default view',
+    ariaToggleGlobe: 'Switch to globe view',
+    ariaToggleFlat: 'Switch to flat map',
+    titleGlobeMode: 'Globe — drag to rotate',
+    titleFlatMode: 'Flat map',
     ariaCityMarker:
       'City {{name}} — zooms in when far out, opens card when zoomed in',
     aboutLink: 'About',
