@@ -466,6 +466,57 @@ app.post('/api/auth/username', requireAuth, async (c) => {
   return c.json({ user: serializeAuthUser(updated!) });
 });
 
+// ---- Share / Open Graph (HTML для превью в мессенджерах) -------------------
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+app.get('/share/:username', (c) => {
+  const username = (c.req.param('username') ?? '').trim().toLowerCase();
+  const user = username ? findUserByUsername(db, username) : null;
+  const frontendBase = FRONTEND_URL.replace(/\/+$/, '');
+  const mapUrl = user?.username
+    ? `${frontendBase}/${encodeURIComponent(user.username)}`
+    : frontendBase;
+
+  if (!user) {
+    return c.redirect(mapUrl, 302);
+  }
+
+  const usage = getUserUsage(db, user.id);
+  const title = `@${user.username} — Tips from trips`;
+  const description =
+    `${user.name}: ${usage.cities} cities, ${usage.places} places, ${usage.routes} routes on the travel map.`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>${escapeHtml(title)}</title>
+  <meta name="description" content="${escapeHtml(description)}" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="${escapeHtml(title)}" />
+  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:url" content="${escapeHtml(mapUrl)}" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="${escapeHtml(title)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta http-equiv="refresh" content="0;url=${escapeHtml(mapUrl)}" />
+  <link rel="canonical" href="${escapeHtml(mapUrl)}" />
+</head>
+<body>
+  <p><a href="${escapeHtml(mapUrl)}">${escapeHtml(title)}</a></p>
+</body>
+</html>`;
+
+  return c.html(html);
+});
+
 // ---- Public user profiles --------------------------------------------------
 
 app.get('/api/users/search', (c) => {

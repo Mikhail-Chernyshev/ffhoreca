@@ -1537,6 +1537,35 @@
   margin-top: 0.5rem;
 }
 
+.account-modal__share {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+}
+
+.account-modal__share-btn {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border, #ddd);
+  background: var(--surface, #fff);
+  color: var(--text, #333);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.account-modal__share-btn:hover:not(:disabled) {
+  background: var(--surface-hover, #f5f5f5);
+  border-color: var(--accent, #5fa573);
+}
+
+.account-modal__share-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .account-modal__plans {
   display: grid;
   grid-template-columns: 1fr 1fr;

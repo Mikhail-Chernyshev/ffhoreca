@@ -8,6 +8,7 @@ import {
 } from '../lib/apiAuth';
 import { FREEMIUM_LIMITS, type MapVisibility, type UserSubscription } from '../data/subscription';
 import { useT } from '../i18n/LocaleContext';
+import { mapShareUrl } from '../lib/shareUrl';
 
 type Props = {
   user: AuthUser;
@@ -25,6 +26,7 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
 
   useEffect(() => {
     setUsernameDraft(user.username ?? '');
@@ -191,6 +193,24 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
             <p className="account-modal__error account-modal__error--field" role="alert">
               {usernameError}
             </p>
+          ) : null}
+          {user.username ? (
+            <div className="account-modal__share">
+              <p className="account-modal__hint">{t('account.shareLinkHint')}</p>
+              <button
+                type="button"
+                className="account-modal__share-btn"
+                disabled={settingsBusy || usernameSaving}
+                onClick={() => {
+                  void navigator.clipboard.writeText(mapShareUrl(user.username!)).then(() => {
+                    setShareCopied(true);
+                    window.setTimeout(() => setShareCopied(false), 2000);
+                  });
+                }}
+              >
+                {shareCopied ? t('account.shareLinkCopied') : t('account.copyShareLink')}
+              </button>
+            </div>
           ) : null}
         </section>
 

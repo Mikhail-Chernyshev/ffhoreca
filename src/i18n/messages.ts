@@ -328,6 +328,10 @@ const ru = {
     usageCountries: 'Страны: {{used}} / {{max}}',
     usageRoutes: 'Маршруты: {{used}} / {{max}}',
     usagePlaces: 'Места: {{used}} / {{max}}',
+    shareLinkHint:
+      'Для превью в Telegram и соцсетях используйте ссылку «Поделиться» (через API). Обычная ссылка на карту тоже работает.',
+    copyShareLink: 'Ссылка для соцсетей',
+    shareLinkCopied: 'Ссылка скопирована',
     comingSoon: 'Скоро',
     visibilityTitle: 'Видимость карты',
     visibilityHint: 'Кто может просматривать вашу карту по ссылке.',
@@ -370,6 +374,9 @@ const ru = {
     backToShowcase: 'Вернуться на витрину',
     viewingMap: 'Карта @{{username}}',
     openList: '☰ Список',
+    pageTitle: '@{{username}} — карта путешествий | Tips from trips',
+    pageDescription:
+      'Карта @{{username}} ({{name}}): {{cities}} городов, {{places}} мест, {{routes}} маршрутов.',
   },
   onboarding: {
     helpButton: 'Как пользоваться?',
@@ -391,7 +398,7 @@ const ru = {
     checklistAddCity: 'Добавить город',
     checklistAddPlace: 'Добавить место',
     checklistOpenPlace: 'Открыть карточку места',
-    checklistShare: 'Поделиться ссылкой на карту',
+    checklistShare: 'Поделиться ссылкой на карту (для соцсетей — через «Ссылка для соцсетей» в аккаунте)',
     hintFirstCity:
       'Город на карте! Полный список городов и мест — в кнопке «☰ Список».',
     hintFirstPlace:
@@ -749,6 +756,10 @@ const en = {
     usageCountries: 'Countries: {{used}} / {{max}}',
     usageRoutes: 'Routes: {{used}} / {{max}}',
     usagePlaces: 'Places: {{used}} / {{max}}',
+    shareLinkHint:
+      'For Telegram and social previews, use the “Social share link” from your account. The regular map URL works too.',
+    copyShareLink: 'Social share link',
+    shareLinkCopied: 'Link copied',
     comingSoon: 'Coming soon',
     visibilityTitle: 'Map visibility',
     visibilityHint: 'Who can view your map via link.',
@@ -791,6 +802,9 @@ const en = {
     backToShowcase: 'Back to showcase',
     viewingMap: "@{{username}}'s map",
     openList: '☰ List',
+    pageTitle: '@{{username}} — travel map | Tips from trips',
+    pageDescription:
+      "@{{username}}'s map ({{name}}): {{cities}} cities, {{places}} places, {{routes}} routes.",
   },
   onboarding: {
     helpButton: 'How it works?',
@@ -812,7 +826,7 @@ const en = {
     checklistAddCity: 'Add a city',
     checklistAddPlace: 'Add a place',
     checklistOpenPlace: 'Open a place card',
-    checklistShare: 'Share your map link',
+    checklistShare: 'Share your map link (for social apps — “Social share link” in account)',
     hintFirstCity:
       'City on the map! Full list of cities and places — in the «☰ List» button.',
     hintFirstPlace:

@@ -37,6 +37,8 @@ import { useToast } from '../components/ToastProvider';
 import { limitReachedMessage } from '../lib/limitMessages';
 import type { AuthUser } from '../lib/apiAuth';
 import type { UserApiResult } from '../lib/apiUserCatalog';
+import { usePageMeta } from '../lib/pageMeta';
+import { mapPageUrl } from '../lib/shareUrl';
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] };
 
@@ -157,6 +159,24 @@ export function UserMapPage() {
   }, [onboardingNotify]);
 
   const visiblePlaces = useMemo(() => placesForFilter(catalog, filter), [catalog, filter]);
+
+  const pageMeta = useMemo(() => {
+    if (!profileUser?.username || mapRestricted) return null;
+    const un = profileUser.username;
+    return {
+      title: t('userMap.pageTitle', { username: un, name: profileUser.name }),
+      description: t('userMap.pageDescription', {
+        username: un,
+        name: profileUser.name,
+        cities: catalog.cities.length,
+        places: catalog.places.length,
+        routes: routes.length,
+      }),
+      url: mapPageUrl(un),
+    };
+  }, [profileUser, mapRestricted, catalog.cities.length, catalog.places.length, routes.length, t]);
+
+  usePageMeta(pageMeta);
 
   // ---- Owner place handlers ----
 
