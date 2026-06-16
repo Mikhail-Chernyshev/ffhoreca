@@ -209,3 +209,15 @@ export async function logout(): Promise<void> {
     /* ignore */
   }
 }
+
+export async function deleteAccount(): Promise<void> {
+  const base = apiBaseUrl();
+  if (!base || !getSessionToken()) throw new Error('Не авторизован');
+  const res = await apiFetch(`${base}/api/user/account`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  });
+  const data = (await res.json()) as { error?: string };
+  if (!res.ok) throw new Error(data.error ?? 'Не удалось удалить аккаунт');
+  clearSessionToken();
+}

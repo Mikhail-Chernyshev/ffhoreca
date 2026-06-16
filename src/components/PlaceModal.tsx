@@ -5,6 +5,7 @@ import { authHeaders } from '../lib/apiAuth';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel } from '../i18n/labels';
 import { PlaceReportDialog } from './PlaceReportDialog';
+import { useAlert } from './AlertProvider';
 
 const CATEGORY_ORDER: PlaceCategory[] = [
   'attraction',
@@ -82,6 +83,7 @@ export function PlaceModal({
   uploadPhotos,
 }: Props) {
   const t = useT();
+  const { showAlert } = useAlert();
   const { locale } = useLocale();
   const [cardEditing, setCardEditing] = useState(false);
   const [cardBusy, setCardBusy] = useState(false);
@@ -164,17 +166,17 @@ export function PlaceModal({
   const commitCard = async () => {
     if (!onPlaceUpdated) return;
     if (draftCats.length === 0) {
-      window.alert(t('placeModal.alertCategoryRequired'));
+      showAlert(t('placeModal.alertCategoryRequired'));
       return;
     }
     const summary = draftSummary.trim();
     const story = draftStory.trim();
     if (!summary) {
-      window.alert(t('placeModal.alertSummaryRequired'));
+      showAlert(t('placeModal.alertSummaryRequired'));
       return;
     }
     if (!story) {
-      window.alert(t('placeModal.alertStoryRequired'));
+      showAlert(t('placeModal.alertStoryRequired'));
       return;
     }
     let googleRating: number | null = place.googleRating;
@@ -182,7 +184,7 @@ export function PlaceModal({
     if (ratingStr) {
       const n = Number(ratingStr.replace(',', '.'));
       if (Number.isNaN(n) || n < 0 || n > 5) {
-        window.alert(t('placeModal.alertRatingRange'));
+        showAlert(t('placeModal.alertRatingRange'));
         return;
       }
       googleRating = n;
@@ -232,7 +234,7 @@ export function PlaceModal({
     if (files.length === 0) return;
     const base = apiBaseUrl();
     if (!base) {
-      window.alert(t('placeModal.alertUploadNeedsApi'));
+      showAlert(t('placeModal.alertUploadNeedsApi'));
       return;
     }
     setFileUploadBusy(true);
@@ -250,13 +252,13 @@ export function PlaceModal({
         body: fd,
       });
       if (!res.ok) {
-        window.alert(t('placeModal.alertPhotoUploadFailed'));
+        showAlert(t('placeModal.alertPhotoUploadFailed'));
         return;
       }
       const json = (await res.json()) as { urls: string[] };
       setDraftPhotos((prev) => [...prev, ...json.urls]);
     } catch (e) {
-      window.alert(t('placeModal.alertGenericError', { message: e instanceof Error ? e.message : String(e) }));
+      showAlert(t('placeModal.alertGenericError', { message: e instanceof Error ? e.message : String(e) }));
     } finally {
       setFileUploadBusy(false);
     }

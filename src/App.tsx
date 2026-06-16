@@ -41,6 +41,7 @@ import { useCanEditMap } from './hooks/useCanEditMap'
 import { AuthButton } from './components/AuthButton'
 import { FavoritesModal } from './components/FavoritesModal'
 import { AccountModal } from './components/AccountModal'
+import { useAlert } from './components/AlertProvider'
 import { MapOnboarding } from './components/MapOnboarding'
 import { OnboardingHelpControls } from './components/OnboardingHelpControls'
 import { useMapOnboarding } from './hooks/useMapOnboarding'
@@ -74,6 +75,7 @@ function App() {
   const [routesLoaded, setRoutesLoaded] = useState(!apiConfiguredAtInit)
   const mapRef = useRef<WorldMapRef>(null)
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser()
+  const { showAlert } = useAlert()
   const adminMode = useAdminMode(currentUser?.email)
   const canEditShowcase = useCanEditMap()
   const [favoritesOpen, setFavoritesOpen] = useState(false)
@@ -204,7 +206,7 @@ function App() {
           }
           return { ok: true };
         }
-        window.alert(
+        showAlert(
           apiConfigured
             ? `${t('app.alertPlaceRejected')}\n${r.message}`
             : `${t('app.alertPlaceRejected')}\n${r.message}\n\n${t('app.alertPlaceRejectedLocal')}`,
@@ -220,7 +222,7 @@ function App() {
 
       return { ok: false, message: t('app.errorMissingApiOrToken') };
     },
-    [apiConfigured, t, adminMode],
+    [apiConfigured, t, adminMode, showAlert],
   );
 
   const handleAdminPlaceSaved = useCallback(
@@ -249,7 +251,7 @@ function App() {
           }
           return true
         }
-        window.alert(
+        showAlert(
           `${t('app.alertPlaceDeleteFailed')}\n${r.message}`,
         )
         return false
@@ -270,10 +272,10 @@ function App() {
         return true
       }
 
-      window.alert(t('app.errorMissingApiOrToken'))
+      showAlert(t('app.errorMissingApiOrToken'))
       return false
     },
-    [apiConfigured, t, adminMode],
+    [apiConfigured, t, adminMode, showAlert],
   )
 
   const handlePlaceUpdatedFromModal = useCallback(
@@ -282,11 +284,11 @@ function App() {
       if (r.ok) {
         setSelectedPlace(place);
       } else {
-        if (r.message) window.alert(r.message);
+        if (r.message) showAlert(r.message);
         throw new Error(r.message || 'Save failed');
       }
     },
-    [persistPlaceToBackendOrStorage],
+    [persistPlaceToBackendOrStorage, showAlert],
   );
 
   return (
@@ -440,6 +442,11 @@ function App() {
           onUserUpdated={(updated) => {
             void refetchUser()
             if (updated.username) navigate(`/${updated.username}`)
+          }}
+          onAccountDeleted={() => {
+            setAccountOpen(false)
+            void handleLogout()
+            navigate('/')
           }}
         />
       ) : null}

@@ -347,3 +347,31 @@ export function getFavorites(db: Database.Database, ownerId: string): DbUser[] {
 export function isFavorite(db: Database.Database, ownerId: string, targetId: string): boolean {
   return !!db.prepare('SELECT 1 FROM favorites WHERE owner_id = ? AND target_id = ?').get(ownerId, targetId);
 }
+
+/** Имена файлов в uploads/, привязанные к фото мест пользователя. */
+export function collectUserUploadFilenames(db: Database.Database, userId: string): string[] {
+  const filenames = new Set<string>();
+  const placeRows = db.prepare('SELECT json FROM places WHERE user_id = ?').all(userId) as { json: string }[];
+  for (const row of placeRows) {
+    const p = normalizePlaceRow(JSON.parse(row.json));
+    if (p.photos) {
+      for (const url of p.photos) {
+        if (url.startsWith('/uploads/')) {
+          filenames.add(path.basename(url));
+        }
+      }
+    }
+  }
+  return [...filenames];
+}
+
+export function deleteUserAccount(db: Database.Database, userId: string): void {
+  const tx = db.transaction(() => {
+    db.prepare('DELETE FROM favorites WHERE owner_id = ? OR target_id = ?').run(userId, userId);
+    db.prepare('DELETE FROM cities WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM places WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM routes WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM users WHERE id = ?').run(userId);
+  });
+  tx();
+}

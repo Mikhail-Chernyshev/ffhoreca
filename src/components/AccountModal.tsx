@@ -5,18 +5,21 @@ import {
   fetchAuthAccount,
   setUsername,
   updateAccountSettings,
+  deleteAccount,
 } from '../lib/apiAuth';
 import { FREEMIUM_LIMITS, FREEMIUM_LIMITS_ENFORCED, type MapVisibility, type UserSubscription } from '../data/subscription';
 import { useT } from '../i18n/LocaleContext';
 import { mapShareUrl } from '../lib/shareUrl';
+import { ConfirmModal } from './ConfirmModal';
 
 type Props = {
   user: AuthUser;
   onClose: () => void;
   onUserUpdated: (user: AuthUser) => void;
+  onAccountDeleted: () => void;
 };
 
-export function AccountModal({ user, onClose, onUserUpdated }: Props) {
+export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }: Props) {
   const t = useT();
   const [usage, setUsage] = useState<UserUsage | null>(null);
   const [mapVisibility, setMapVisibility] = useState<MapVisibility>(user.map_visibility);
@@ -27,6 +30,8 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   useEffect(() => {
     setUsernameDraft(user.username ?? '');
@@ -108,6 +113,21 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
 
   const usernameChanged = usernameDraft.trim().toLowerCase() !== (user.username ?? '').toLowerCase();
   const subscription = user.subscription;
+
+  const handleDeleteAccount = async () => {
+    setDeleteBusy(true);
+    setError(null);
+    try {
+      await deleteAccount();
+      setDeleteConfirmOpen(false);
+      onAccountDeleted();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('account.deleteError'));
+      setDeleteConfirmOpen(false);
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
 
   return (
     <div
@@ -271,6 +291,19 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
           </div>
         </section>
 
+        <section className="account-modal__section account-modal__section--danger">
+          <h3 className="account-modal__section-title">{t('account.deleteTitle')}</h3>
+          <p className="account-modal__hint">{t('account.deleteHint')}</p>
+          <button
+            type="button"
+            className="account-modal__delete-btn"
+            disabled={settingsBusy || usernameSaving || deleteBusy}
+            onClick={() => setDeleteConfirmOpen(true)}
+          >
+            {t('account.deleteButton')}
+          </button>
+        </section>
+
         <p className="account-modal__legal">
           <Link to="/privacy" onClick={onClose}>{t('legal.privacyLink')}</Link>
           <span aria-hidden> · </span>
@@ -280,6 +313,17 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
         {error ? <p className="account-modal__error" role="alert">{error}</p> : null}
         {settingsBusy ? <p className="account-modal__busy">{t('common.busy')}</p> : null}
       </div>
+
+      {deleteConfirmOpen ? (
+        <ConfirmModal
+          title={t('account.deleteConfirmTitle')}
+          message={t('account.deleteConfirmMessage')}
+          confirmLabel={t('account.deleteButton')}
+          busy={deleteBusy}
+          onConfirm={() => void handleDeleteAccount()}
+          onCancel={() => { if (!deleteBusy) setDeleteConfirmOpen(false); }}
+        />
+      ) : null}
     </div>
   );
 }

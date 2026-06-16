@@ -50,7 +50,7 @@ const privacyRu: LegalDocument = {
       heading: 'Хранение и удаление',
       paragraphs: [
         'Данные хранятся на сервере в базе SQLite и на диске (фотографии), пока вы пользуетесь сервисом.',
-        'Чтобы запросить удаление аккаунта и данных — напишите на tipsfromtripsapp@gmail.com.',
+        'Удалить аккаунт и все связанные данные можно в настройках аккаунта на сайте или по запросу на tipsfromtripsapp@gmail.com.',
       ],
     },
     {
@@ -101,7 +101,7 @@ const privacyEn: LegalDocument = {
       heading: 'Retention and deletion',
       paragraphs: [
         'Data is stored on the server (SQLite and uploaded files) while you use the service.',
-        'To request account deletion, email tipsfromtripsapp@gmail.com.',
+        'You can delete your account and all related data in account settings on the site, or by emailing tipsfromtripsapp@gmail.com.',
       ],
     },
     {

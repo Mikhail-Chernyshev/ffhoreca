@@ -23,6 +23,8 @@ import {
   addFavorite, removeFavorite, getFavorites, isFavorite,
   getUserUsage,
   countUserCities,
+  collectUserUploadFilenames,
+  deleteUserAccount,
   type DbUser,
 } from './db';
 import type { City, TravelRoute } from '../../src/data/types';
@@ -719,6 +721,21 @@ app.get('/api/user/favorites/:targetId/check', requireAuth, (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
   const targetId = c.req.param('targetId');
   return c.json({ isFavorite: isFavorite(db, user.id, targetId) });
+});
+
+app.delete('/api/user/account', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const uploadFiles = collectUserUploadFilenames(db, user.id);
+  deleteUserAccount(db, user.id);
+  for (const filename of uploadFiles) {
+    try {
+      fs.unlinkSync(path.join(UPLOADS_DIR, filename));
+    } catch {
+      /* файл мог быть уже удалён */
+    }
+  }
+  c.header('Set-Cookie', clearSessionCookieHeader());
+  return c.json({ ok: true });
 });
 
 app.post('/api/feedback', async (c) => {

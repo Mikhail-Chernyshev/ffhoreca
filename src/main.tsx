@@ -7,6 +7,7 @@ import { UserMapPage } from './pages/UserMapPage.tsx'
 import { LegalPage } from './pages/LegalPage.tsx'
 import { LocaleProvider } from './i18n/LocaleContext'
 import { ToastProvider } from './components/ToastProvider'
+import { AlertProvider } from './components/AlertProvider'
 import { bootstrapAuthFromUrl } from './lib/bootstrapAuth'
 
 async function main() {
@@ -16,6 +17,7 @@ async function main() {
     <StrictMode>
       <LocaleProvider>
         <ToastProvider>
+        <AlertProvider>
         <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
           <Routes>
             <Route path="/" element={<App />} />
@@ -24,6 +26,7 @@ async function main() {
             <Route path="/:username" element={<UserMapPage />} />
           </Routes>
         </BrowserRouter>
+        </AlertProvider>
         </ToastProvider>
       </LocaleProvider>
     </StrictMode>,

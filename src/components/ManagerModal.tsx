@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { createPortal } from 'react-dom';
 import type { Catalog, City, Place, PlaceCategory, TravelRoute } from '../data/types';
 import { ConfirmModal } from './ConfirmModal';
+import { useAlert } from './AlertProvider';
 import { deleteRouteById } from '../lib/apiRoutes';
 import { deleteCityById } from '../lib/apiCities';
 import { catalogCitiesListed, cityLabelForPlace, placesCountForCity } from '../data/selectors';
@@ -222,6 +223,7 @@ export function ManagerModal({
   deleteCityApi,
 }: Props) {
   const t = useT();
+  const { showAlert } = useAlert();
   const { locale } = useLocale();
   const [tab, setTab] = useState<Tab>('routes');
   const [localRoutes, setLocalRoutes] = useState(routes);
@@ -291,7 +293,7 @@ export function ManagerModal({
       onConfirm: async () => {
         const r = await (deleteCityApi ? deleteCityApi(city.id) : deleteCityById(city.id));
         if (!r.ok) {
-          window.alert(r.message);
+          showAlert(r.message);
           return;
         }
         onCitiesChanged?.();

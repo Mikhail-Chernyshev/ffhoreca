@@ -28,6 +28,7 @@ import { AuthButton } from '../components/AuthButton';
 import { FavoritesModal } from '../components/FavoritesModal';
 import { AccountModal } from '../components/AccountModal';
 import { MapRestrictedOverlay } from '../components/MapRestrictedOverlay';
+import { useAlert } from '../components/AlertProvider';
 import { MapOnboarding } from '../components/MapOnboarding';
 import { OnboardingHelpControls } from '../components/OnboardingHelpControls';
 import { useMapOnboarding } from '../hooks/useMapOnboarding';
@@ -71,6 +72,7 @@ export function UserMapPage() {
   const onboarding = useMapOnboarding(mapMode !== 'sharedMap');
   const { notify: onboardingNotify, setTourOpen, skipAll, skipped } = onboarding;
   const { push: pushToast } = useToast();
+  const { showAlert } = useAlert();
   const { usage, refresh: refreshUsage } = useUserUsage(canEditMap);
   useFreemiumWarnings(currentUser?.subscription, usage);
 
@@ -184,13 +186,13 @@ export function UserMapPage() {
     const r = await userPostPlace(place, city);
     if (!r.ok) {
       handleUserApiError(r);
-      window.alert(r.message);
+      showAlert(r.message);
       return false;
     }
     await loadCatalog();
     await refreshUsage();
     return true;
-  }, [loadCatalog, handleUserApiError, refreshUsage]);
+  }, [loadCatalog, handleUserApiError, refreshUsage, showAlert]);
 
   const handlePlaceSaved = useCallback(async (place: Place, city: City) => {
     const ok = await persistPlace(place, city);
@@ -199,10 +201,10 @@ export function UserMapPage() {
 
   const handlePlaceDeleted = useCallback(async (placeId: string): Promise<boolean> => {
     const r = await userDeletePlace(placeId);
-    if (!r.ok) { window.alert(r.message); return false; }
+    if (!r.ok) { showAlert(r.message); return false; }
     await loadCatalog();
     return true;
-  }, [loadCatalog]);
+  }, [loadCatalog, showAlert]);
 
   const handlePlaceUpdated = useCallback(async (place: Place) => {
     const city = catalog.cities.find((c) => c.id === place.cityId);
@@ -409,6 +411,11 @@ export function UserMapPage() {
             void refetchUser();
             void refreshUsage();
             if (updated.username) navigate(`/${updated.username}`);
+          }}
+          onAccountDeleted={() => {
+            setAccountOpen(false);
+            void handleLogout();
+            navigate('/');
           }}
         />
       ) : null}
