@@ -294,6 +294,11 @@ export function countUserRoutes(db: Database.Database, userId: string): number {
   return row.n;
 }
 
+export function countUserCities(db: Database.Database, userId: string): number {
+  const row = db.prepare('SELECT COUNT(*) AS n FROM cities WHERE user_id = ?').get(userId) as { n: number };
+  return row.n;
+}
+
 /** Уникальные страны по городам пользователя */
 export function countUserCountries(db: Database.Database, userId: string): number {
   const rows = db.prepare('SELECT json FROM cities WHERE user_id = ?').all(userId) as { json: string }[];

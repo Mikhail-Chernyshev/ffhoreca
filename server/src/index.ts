@@ -22,6 +22,7 @@ import {
   upsertUserRoute, deleteUserRoute,
   addFavorite, removeFavorite, getFavorites, isFavorite,
   getUserUsage,
+  countUserCities,
   type DbUser,
 } from './db';
 import type { City, TravelRoute } from '../../src/data/types';
@@ -52,6 +53,7 @@ import {
 import { sendFeedbackEmail } from './feedbackMail';
 import { isValidReportReason, sendPlaceReportEmail } from './reportMail';
 import { rateLimitOrResponse } from './rateLimit';
+import { buildSharePageHtml, isLinkPreviewCrawler } from './sharePage';
 import {
   jsonBodyLimitMiddleware,
   readJsonBody,
@@ -72,6 +74,7 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? '';
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? `http://localhost:${PORT}/api/auth/google/callback`;
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+const OG_IMAGE_PATH = path.resolve(process.cwd(), 'public/og-share.png');
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,29}$/i;
@@ -468,13 +471,25 @@ app.post('/api/auth/username', requireAuth, async (c) => {
 
 // ---- Share / Open Graph (HTML для превью в мессенджерах) -------------------
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function publicOrigin(c: Context): string {
+  const configured = process.env.API_PUBLIC_URL?.trim().replace(/\/+$/, '');
+  if (configured) return configured;
+  const url = new URL(c.req.url);
+  return url.origin;
 }
+
+app.get('/og-share.png', (c) => {
+  if (!fs.existsSync(OG_IMAGE_PATH)) {
+    return c.text('Not found', 404);
+  }
+  const body = fs.readFileSync(OG_IMAGE_PATH);
+  return new Response(body, {
+    headers: {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'public, max-age=86400',
+    },
+  });
+});
 
 app.get('/share/:username', (c) => {
   const username = (c.req.param('username') ?? '').trim().toLowerCase();
@@ -483,36 +498,28 @@ app.get('/share/:username', (c) => {
   const mapUrl = user?.username
     ? `${frontendBase}/${encodeURIComponent(user.username)}`
     : frontendBase;
+  const origin = publicOrigin(c);
+  const shareUrl = `${origin}/share/${encodeURIComponent(username)}`;
+  const imageUrl = `${origin}/og-share.png`;
 
   if (!user) {
     return c.redirect(mapUrl, 302);
   }
 
+  const cities = countUserCities(db, user.id);
   const usage = getUserUsage(db, user.id);
   const title = `@${user.username} — Tips from trips`;
   const description =
-    `${user.name}: ${usage.cities} cities, ${usage.places} places, ${usage.routes} routes on the travel map.`;
+    `${user.name}: ${cities} cities, ${usage.places} places, ${usage.routes} routes on the travel map.`;
 
-  const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>${escapeHtml(title)}</title>
-  <meta name="description" content="${escapeHtml(description)}" />
-  <meta property="og:type" content="website" />
-  <meta property="og:title" content="${escapeHtml(title)}" />
-  <meta property="og:description" content="${escapeHtml(description)}" />
-  <meta property="og:url" content="${escapeHtml(mapUrl)}" />
-  <meta name="twitter:card" content="summary" />
-  <meta name="twitter:title" content="${escapeHtml(title)}" />
-  <meta name="twitter:description" content="${escapeHtml(description)}" />
-  <meta http-equiv="refresh" content="0;url=${escapeHtml(mapUrl)}" />
-  <link rel="canonical" href="${escapeHtml(mapUrl)}" />
-</head>
-<body>
-  <p><a href="${escapeHtml(mapUrl)}">${escapeHtml(title)}</a></p>
-</body>
-</html>`;
+  const html = buildSharePageHtml({
+    title,
+    description,
+    shareUrl,
+    mapUrl,
+    imageUrl,
+    redirectBrowsers: !isLinkPreviewCrawler(c.req.header('user-agent')),
+  });
 
   return c.html(html);
 });

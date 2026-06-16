@@ -158,8 +158,7 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
         </div>
 
         <section className="account-modal__section">
-          <h3 className="account-modal__section-title">{t('account.usernameTitle')}</h3>
-          <p className="account-modal__hint">{t('auth.usernameHint')}</p>
+          <h3 className="account-modal__section-title">{t('account.usernameTitle')} ({t('auth.usernameHint')})</h3>
           <div className="account-modal__username-row">
             <div className="modal__field account-modal__username-field">
               <span className="username-modal__prefix">@</span>
