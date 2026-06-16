@@ -75,6 +75,9 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? '';
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? `http://localhost:${PORT}/api/auth/google/callback`;
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
 const OG_IMAGE_PATH = path.resolve(process.cwd(), 'public/og-share.png');
+const OG_IMAGE_VERSION = fs.existsSync(OG_IMAGE_PATH)
+  ? String(Math.floor(fs.statSync(OG_IMAGE_PATH).mtimeMs / 1000))
+  : '1';
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,29}$/i;
@@ -492,7 +495,7 @@ app.get('/og-share.png', (c) => {
   return new Response(body, {
     headers: {
       'Content-Type': 'image/png',
-      'Cache-Control': 'public, max-age=86400',
+      'Cache-Control': 'public, max-age=31536000, immutable',
     },
   });
 });
@@ -506,7 +509,7 @@ app.get('/share/:username', (c) => {
     : frontendBase;
   const origin = publicOrigin(c);
   const shareUrl = `${origin}/share/${encodeURIComponent(username)}`;
-  const imageUrl = `${origin}/og-share.png`;
+  const imageUrl = `${origin}/og-share.png?v=${OG_IMAGE_VERSION}`;
 
   if (!user) {
     return c.redirect(mapUrl, 302);
