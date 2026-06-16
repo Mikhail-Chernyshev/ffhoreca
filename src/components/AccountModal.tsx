@@ -7,7 +7,12 @@ import {
   updateAccountSettings,
   deleteAccount,
 } from '../lib/apiAuth';
-import { FREEMIUM_LIMITS, FREEMIUM_LIMITS_ENFORCED, type MapVisibility, type UserSubscription } from '../data/subscription';
+import {
+  FREEMIUM_LIMITS,
+  FREEMIUM_LIMITS_ENFORCED,
+  type MapVisibility,
+  type UserSubscription,
+} from '../data/subscription';
 import { useT } from '../i18n/LocaleContext';
 import { mapShareUrl } from '../lib/shareUrl';
 import { ConfirmModal } from './ConfirmModal';
@@ -19,10 +24,17 @@ type Props = {
   onAccountDeleted: () => void;
 };
 
-export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }: Props) {
+export function AccountModal({
+  user,
+  onClose,
+  onUserUpdated,
+  onAccountDeleted,
+}: Props) {
   const t = useT();
   const [usage, setUsage] = useState<UserUsage | null>(null);
-  const [mapVisibility, setMapVisibility] = useState<MapVisibility>(user.map_visibility);
+  const [mapVisibility, setMapVisibility] = useState<MapVisibility>(
+    user.map_visibility,
+  );
   const [usernameDraft, setUsernameDraft] = useState(user.username ?? '');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameSaving, setUsernameSaving] = useState(false);
@@ -57,7 +69,9 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [t]);
 
   useEffect(() => {
@@ -105,13 +119,16 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
       setUsernameDraft(updated.username ?? trimmed);
       onUserUpdated(updated);
     } catch (e) {
-      setUsernameError(e instanceof Error ? e.message : t('auth.usernameSaveError'));
+      setUsernameError(
+        e instanceof Error ? e.message : t('auth.usernameSaveError'),
+      );
     } finally {
       setUsernameSaving(false);
     }
   };
 
-  const usernameChanged = usernameDraft.trim().toLowerCase() !== (user.username ?? '').toLowerCase();
+  const usernameChanged =
+    usernameDraft.trim().toLowerCase() !== (user.username ?? '').toLowerCase();
   const subscription = user.subscription;
 
   const handleDeleteAccount = async () => {
@@ -131,60 +148,62 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
 
   return (
     <div
-      className="modal-root"
-      role="presentation"
+      className='modal-root'
+      role='presentation'
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="modal-dialog modal-dialog--wide account-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="account-modal-title"
+        className='modal-dialog modal-dialog--wide account-modal'
+        role='dialog'
+        aria-modal='true'
+        aria-labelledby='account-modal-title'
       >
         <button
-          type="button"
-          className="modal-close"
+          type='button'
+          className='modal-close'
           onClick={onClose}
           aria-label={t('common.close')}
         >
           ×
         </button>
 
-        <h2 id="account-modal-title" className="modal-title">
+        <h2 id='account-modal-title' className='modal-title'>
           {t('account.title')}
         </h2>
 
-        <div className="account-modal__profile">
+        <div className='account-modal__profile'>
           {user.avatar ? (
             <img
               src={user.avatar}
-              alt=""
-              className="account-modal__avatar"
-              referrerPolicy="no-referrer"
+              alt=''
+              className='account-modal__avatar'
+              referrerPolicy='no-referrer'
             />
           ) : (
-            <span className="account-modal__initials">
+            <span className='account-modal__initials'>
               {user.name.charAt(0).toUpperCase()}
             </span>
           )}
-          <div className="account-modal__profile-text">
-            <p className="account-modal__name">{user.name}</p>
+          <div className='account-modal__profile-text'>
+            <p className='account-modal__name'>{user.name}</p>
             {user.email ? (
-              <p className="account-modal__email">{user.email}</p>
+              <p className='account-modal__email'>{user.email}</p>
             ) : null}
           </div>
         </div>
 
-        <section className="account-modal__section">
-          <h3 className="account-modal__section-title">{t('account.usernameTitle')} ({t('auth.usernameHint')})</h3>
-          <div className="account-modal__username-row">
-            <div className="modal__field account-modal__username-field">
-              <span className="username-modal__prefix">@</span>
+        <section className='account-modal__section'>
+          <h3 className='account-modal__section-title'>
+            {t('account.usernameTitle')} ({t('auth.usernameHint')})
+          </h3>
+          <div className='account-modal__username-row'>
+            <div className='modal__field account-modal__username-field'>
+              <span className='username-modal__prefix'>@</span>
               <input
-                className="modal__input username-modal__input"
-                type="text"
+                className='modal__input username-modal__input'
+                type='text'
                 value={usernameDraft}
                 onChange={(e) => {
                   setUsernameDraft(e.target.value);
@@ -200,56 +219,61 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
               />
             </div>
             <button
-              type="button"
-              className="account-modal__save-btn"
+              type='button'
+              className='account-modal__save-btn'
               disabled={!usernameChanged || usernameSaving || settingsBusy}
               onClick={() => void saveUsername()}
             >
               {usernameSaving ? t('auth.saving') : t('auth.save')}
             </button>
-          </div>
-          {usernameError ? (
-            <p className="account-modal__error account-modal__error--field" role="alert">
-              {usernameError}
-            </p>
-          ) : null}
-          {user.username ? (
-            <div className="account-modal__share">
-              <p className="account-modal__hint">{t('account.shareLinkHint')}</p>
-              <button
-                type="button"
-                className="account-modal__share-btn"
-                disabled={settingsBusy || usernameSaving}
-                onClick={() => {
-                  void navigator.clipboard.writeText(mapShareUrl(user.username!)).then(() => {
+            <button
+              type='button'
+              className='account-modal__share-btn'
+              disabled={settingsBusy || usernameSaving}
+              onClick={() => {
+                void navigator.clipboard
+                  .writeText(mapShareUrl(user.username!))
+                  .then(() => {
                     setShareCopied(true);
                     window.setTimeout(() => setShareCopied(false), 2000);
                   });
-                }}
-              >
-                {shareCopied ? t('account.shareLinkCopied') : t('account.copyShareLink')}
-              </button>
-            </div>
+              }}
+            >
+              {shareCopied
+                ? t('account.shareLinkCopied')
+                : t('account.copyShareLink')}
+            </button>
+          </div>
+          {usernameError ? (
+            <p
+              className='account-modal__error account-modal__error--field'
+              role='alert'
+            >
+              {usernameError}
+            </p>
           ) : null}
+          
         </section>
 
-        <section className="account-modal__section">
-          <h3 className="account-modal__section-title">{t('account.subscriptionTitle')}</h3>
+        <section className='account-modal__section'>
+          <h3 className='account-modal__section-title'>
+            {t('account.subscriptionTitle')}
+          </h3>
           {!FREEMIUM_LIMITS_ENFORCED ? (
-            <p className="account-modal__beta-note" role="status">
+            <p className='account-modal__beta-note' role='status'>
               {t('account.limitsBetaNote')}
             </p>
           ) : null}
-          <div className="account-modal__plans">
+          <div className='account-modal__plans'>
             <PlanCard
-              plan="freemium"
+              plan='freemium'
               active={subscription === 'freemium'}
               t={t}
               usage={usage}
               loading={loading}
             />
             <PlanCard
-              plan="premium"
+              plan='premium'
               active={subscription === 'premium'}
               t={t}
               usage={usage}
@@ -258,14 +282,16 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
           </div>
         </section>
 
-        <section className="account-modal__section">
-          <h3 className="account-modal__section-title">{t('account.visibilityTitle')}</h3>
-          <p className="account-modal__hint">{t('account.visibilityHint')}</p>
-          <div className="account-modal__visibility">
-            <label className="account-modal__radio">
+        <section className='account-modal__section'>
+          <h3 className='account-modal__section-title'>
+            {t('account.visibilityTitle')}
+          </h3>
+          <p className='account-modal__hint'>{t('account.visibilityHint')}</p>
+          <div className='account-modal__visibility'>
+            <label className='account-modal__radio'>
               <input
-                type="radio"
-                name="map_visibility"
+                type='radio'
+                name='map_visibility'
                 checked={mapVisibility === 'public'}
                 disabled={settingsBusy || usernameSaving}
                 onChange={() => void saveVisibility('public')}
@@ -275,10 +301,10 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
                 <small>{t('account.visibilityPublicHint')}</small>
               </span>
             </label>
-            <label className="account-modal__radio">
+            <label className='account-modal__radio'>
               <input
-                type="radio"
-                name="map_visibility"
+                type='radio'
+                name='map_visibility'
                 checked={mapVisibility === 'subscribers'}
                 disabled={settingsBusy || usernameSaving}
                 onChange={() => void saveVisibility('subscribers')}
@@ -291,12 +317,14 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
           </div>
         </section>
 
-        <section className="account-modal__section account-modal__section--danger">
-          <h3 className="account-modal__section-title">{t('account.deleteTitle')}</h3>
-          <p className="account-modal__hint">{t('account.deleteHint')}</p>
+        <section className='account-modal__section account-modal__section--danger'>
+          <h3 className='account-modal__section-title'>
+            {t('account.deleteTitle')}
+          </h3>
+          <p className='account-modal__hint'>{t('account.deleteHint')}</p>
           <button
-            type="button"
-            className="account-modal__delete-btn"
+            type='button'
+            className='account-modal__delete-btn'
             disabled={settingsBusy || usernameSaving || deleteBusy}
             onClick={() => setDeleteConfirmOpen(true)}
           >
@@ -304,14 +332,24 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
           </button>
         </section>
 
-        <p className="account-modal__legal">
-          <Link to="/privacy" onClick={onClose}>{t('legal.privacyLink')}</Link>
+        <p className='account-modal__legal'>
+          <Link to='/privacy' onClick={onClose}>
+            {t('legal.privacyLink')}
+          </Link>
           <span aria-hidden> · </span>
-          <Link to="/terms" onClick={onClose}>{t('legal.termsLink')}</Link>
+          <Link to='/terms' onClick={onClose}>
+            {t('legal.termsLink')}
+          </Link>
         </p>
 
-        {error ? <p className="account-modal__error" role="alert">{error}</p> : null}
-        {settingsBusy ? <p className="account-modal__busy">{t('common.busy')}</p> : null}
+        {error ? (
+          <p className='account-modal__error' role='alert'>
+            {error}
+          </p>
+        ) : null}
+        {settingsBusy ? (
+          <p className='account-modal__busy'>{t('common.busy')}</p>
+        ) : null}
       </div>
 
       {deleteConfirmOpen ? (
@@ -321,7 +359,9 @@ export function AccountModal({ user, onClose, onUserUpdated, onAccountDeleted }:
           confirmLabel={t('account.deleteButton')}
           busy={deleteBusy}
           onConfirm={() => void handleDeleteAccount()}
-          onCancel={() => { if (!deleteBusy) setDeleteConfirmOpen(false); }}
+          onCancel={() => {
+            if (!deleteBusy) setDeleteConfirmOpen(false);
+          }}
         />
       ) : null}
     </div>
@@ -346,26 +386,26 @@ function PlanCard({
 
   return (
     <div
-      className={
-        active
-          ? 'account-plan account-plan--active'
-          : 'account-plan'
-      }
+      className={active ? 'account-plan account-plan--active' : 'account-plan'}
     >
       {active ? (
-        <span className="account-plan__badge">{t('account.currentPlan')}</span>
+        <span className='account-plan__badge'>{t('account.currentPlan')}</span>
       ) : null}
-      <h4 className="account-plan__name">
+      <h4 className='account-plan__name'>
         {isFreemium ? t('account.planFreemium') : t('account.planPremium')}
       </h4>
-      <p className="account-plan__price">
-        {isFreemium ? t('account.planFreemiumPrice') : t('account.planPremiumPrice')}
+      <p className='account-plan__price'>
+        {isFreemium
+          ? t('account.planFreemiumPrice')
+          : t('account.planPremiumPrice')}
       </p>
-      <ul className="account-plan__features">
+      <ul className='account-plan__features'>
         {isFreemium ? (
           limitsActive ? (
             <>
-              <li>{t('account.limitCountries', { n: FREEMIUM_LIMITS.countries })}</li>
+              <li>
+                {t('account.limitCountries', { n: FREEMIUM_LIMITS.countries })}
+              </li>
               <li>{t('account.limitRoutes', { n: FREEMIUM_LIMITS.routes })}</li>
               <li>{t('account.limitPlaces', { n: FREEMIUM_LIMITS.places })}</li>
             </>
@@ -381,16 +421,33 @@ function PlanCard({
         )}
       </ul>
       {active && isFreemium && usage && !loading ? (
-        <div className="account-plan__usage">
+        <div className='account-plan__usage'>
           {limitsActive ? (
             <>
-              <p>{t('account.usageCountries', { used: usage.countries, max: FREEMIUM_LIMITS.countries })}</p>
-              <p>{t('account.usageRoutes', { used: usage.routes, max: FREEMIUM_LIMITS.routes })}</p>
-              <p>{t('account.usagePlaces', { used: usage.places, max: FREEMIUM_LIMITS.places })}</p>
+              <p>
+                {t('account.usageCountries', {
+                  used: usage.countries,
+                  max: FREEMIUM_LIMITS.countries,
+                })}
+              </p>
+              <p>
+                {t('account.usageRoutes', {
+                  used: usage.routes,
+                  max: FREEMIUM_LIMITS.routes,
+                })}
+              </p>
+              <p>
+                {t('account.usagePlaces', {
+                  used: usage.places,
+                  max: FREEMIUM_LIMITS.places,
+                })}
+              </p>
             </>
           ) : (
             <>
-              <p>{t('account.usageCountriesOnly', { used: usage.countries })}</p>
+              <p>
+                {t('account.usageCountriesOnly', { used: usage.countries })}
+              </p>
               <p>{t('account.usageRoutesOnly', { used: usage.routes })}</p>
               <p>{t('account.usagePlacesOnly', { used: usage.places })}</p>
             </>
@@ -398,7 +455,7 @@ function PlanCard({
         </div>
       ) : null}
       {!isFreemium ? (
-        <button type="button" className="account-plan__cta" disabled>
+        <button type='button' className='account-plan__cta' disabled>
           {t('account.comingSoon')}
         </button>
       ) : null}

@@ -1556,14 +1556,17 @@
 
 .account-modal__share-btn {
   font: inherit;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  padding: 0.45rem 0.75rem;
+  height: var(--account-username-control-h, 2.125rem);
+  padding: 0 0.65rem;
   border-radius: 8px;
   border: 1px solid var(--border, #ddd);
   background: var(--surface, #fff);
   color: var(--text, #333);
   cursor: pointer;
+  flex-shrink: 0;
+  line-height: 1;
   transition: background 0.15s, border-color 0.15s;
 }
 
