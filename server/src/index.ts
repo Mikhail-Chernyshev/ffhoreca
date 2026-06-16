@@ -474,8 +474,14 @@ app.post('/api/auth/username', requireAuth, async (c) => {
 function publicOrigin(c: Context): string {
   const configured = process.env.API_PUBLIC_URL?.trim().replace(/\/+$/, '');
   if (configured) return configured;
-  const url = new URL(c.req.url);
-  return url.origin;
+  const proto =
+    c.req.header('x-forwarded-proto')?.split(',')[0]?.trim() ||
+    (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+  const host =
+    c.req.header('x-forwarded-host')?.split(',')[0]?.trim() ||
+    c.req.header('host') ||
+    new URL(c.req.url).host;
+  return `${proto}://${host}`;
 }
 
 app.get('/og-share.png', (c) => {
