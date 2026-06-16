@@ -14,7 +14,6 @@ interface Props {
   routes: TravelRoute[];
   isLoggedIn: boolean;
   username?: string | null;
-  profileUsername?: string;
   onAddCity: () => void;
   onboarding: ReturnType<typeof useMapOnboarding>;
   /** Рендерится в шапке; если false — кнопки не показываются здесь */
@@ -28,7 +27,6 @@ export function MapOnboarding({
   routes: _routes,
   isLoggedIn,
   username,
-  profileUsername,
   onAddCity,
   onboarding,
   hideHelpControls = false,
@@ -48,14 +46,6 @@ export function MapOnboarding({
   } = onboarding;
 
   const enabled = mode !== 'sharedMap';
-
-  if (mode === 'sharedMap') {
-    return profileUsername ? (
-      <p className="onboarding-viewer-chip" role="status">
-        {t('userMap.viewingMap', { username: profileUsername })}
-      </p>
-    ) : null;
-  }
 
   const showEmpty =
     enabled &&

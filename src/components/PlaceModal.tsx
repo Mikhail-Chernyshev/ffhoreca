@@ -201,6 +201,8 @@ export function PlaceModal({
         }),
       );
       setCardEditing(false);
+    } catch {
+      /* остаёмся в режиме редактирования */
     } finally {
       setCardBusy(false);
     }
@@ -416,7 +418,7 @@ export function PlaceModal({
             </div>
 
             {hasPhotos && photoUrls ? (
-              <ModalPhotoCarousel key={place.id} photos={photoUrls} />
+              <ModalPhotoCarousel key={`${place.id}:${photoUrls.join('|')}`} photos={photoUrls} />
             ) : null}
 
             <div className="modal-story">

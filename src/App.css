@@ -603,12 +603,6 @@
     align-self: flex-end;
   }
 
-  .onboarding-viewer-chip {
-    font-size: 0.8rem;
-    padding: 0.4rem 0.6rem;
-    overflow-wrap: anywhere;
-  }
-
   .onboarding-empty {
     padding: 1rem 0.75rem;
   }
@@ -806,6 +800,18 @@
   box-shadow: var(--shadow-sm);
 }
 
+.world-map-viewport {
+  position: relative;
+  width: 100%;
+  height: min(52vh, 500px);
+  min-height: 360px;
+}
+
+.world-map-viewport .maplibregl-map {
+  width: 100%;
+  height: 100%;
+}
+
 /* Кнопки + / − / сброс (как у maplibregl-ctrl-group, третья кнопка — свой стиль) */
 .world-map-zoom-controls {
   position: absolute;
@@ -815,6 +821,50 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 0 0 2px rgb(0 0 0 / 0.1);
+}
+
+.world-map-owner-badge {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  max-width: calc(100% - 20px);
+  padding: 0.35rem 0.65rem;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  color: var(--text-h);
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-control);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+.world-map-owner-badge__user {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.world-map-owner-badge__own {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  padding: 0.12rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+}
+
+.world-map-owner-badge--own {
+  border-color: var(--accent-border);
 }
 
 .world-map-zoom-controls.maplibregl-ctrl-group button {
@@ -3652,17 +3702,6 @@
 }
 
 /* ---- Onboarding ---- */
-.onboarding-viewer-chip {
-  margin: 0 0 0.75rem;
-  padding: 0.45rem 0.75rem;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  text-align: center;
-}
-
 .onboarding-toolbar {
   display: none;
 }

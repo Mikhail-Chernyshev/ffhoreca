@@ -281,8 +281,9 @@ function App() {
       const r = await persistPlaceToBackendOrStorage(place);
       if (r.ok) {
         setSelectedPlace(place);
-      } else if (r.message) {
-        window.alert(r.message);
+      } else {
+        if (r.message) window.alert(r.message);
+        throw new Error(r.message || 'Save failed');
       }
     },
     [persistPlaceToBackendOrStorage],

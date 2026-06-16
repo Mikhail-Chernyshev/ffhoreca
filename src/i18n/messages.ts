@@ -19,7 +19,7 @@ const ru = {
     en: 'EN',
   },
   app: {
-    tagline: 'Места, где вы были: отели, гостевые, бары и рестораны по миру',
+    tagline: 'Места, где вы были: отели, места, бары и рестораны по миру',
     catalogLoading: 'Загрузка каталога с сервера…',
     catalogLoadError:
       'Не удалось загрузить каталог с API. Данные из репозитория не подставляются — проверьте сеть, CORS и URL в VITE_API_BASE_URL.',
@@ -447,7 +447,7 @@ const en = {
     en: 'EN',
   },
   app: {
-    tagline: 'Places we’ve been: hotels, guesthouses, bars and restaurants worldwide',
+    tagline: 'Places we’ve been: hotels, places, bars and restaurants worldwide',
     catalogLoading: 'Loading catalog from server…',
     catalogLoadError:
       'Could not load catalog from API. Built-in data is not used as fallback — check network, CORS and VITE_API_BASE_URL.',

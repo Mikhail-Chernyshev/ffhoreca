@@ -153,6 +153,10 @@ type Props = {
   userRoutes?: TravelRoute[];
   onPlaceClick: (place: Place) => void;
   onCityClick?: (city: City) => void;
+  /** @username владельца карты (страница /:username) */
+  ownerUsername?: string;
+  /** Текущий залогиненный пользователь смотрит свою карту */
+  isOwnMap?: boolean;
 };
 
 export type WorldMapRef = {
@@ -163,7 +167,7 @@ export type WorldMapRef = {
 const NO_CITIES: City[] = [];
 
 export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
-  { catalog, filter, places, userRoutes = [], onPlaceClick, onCityClick },
+  { catalog, filter, places, userRoutes = [], onPlaceClick, onCityClick, ownerUsername, isOwnMap },
   ref,
 ) {
   const t = useT();
@@ -380,7 +384,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
 
   return (
     <div className='world-map-wrap' ref={mapWrapRef}>
-      <div className='world-map-zoom-controls maplibregl-ctrl maplibregl-ctrl-group'>
+      <div className='world-map-viewport'>
+        <div className='world-map-zoom-controls maplibregl-ctrl maplibregl-ctrl-group'>
         <button
           type='button'
           className='maplibregl-ctrl-zoom-in'
@@ -471,7 +476,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         }}
         minZoom={MAP_MIN_ZOOM}
         maxZoom={MAP_MAX_ZOOM}
-        style={{ width: '100%', height: 'min(52vh, 500px)', minHeight: 360 }}
+        style={{ width: '100%', height: '100%' }}
         reuseMaps
         /** Иначе по умолчанию true — дубликаты мира у ±180° дают «полосу» на заливке (Россия и др.). */
         renderWorldCopies={false}
@@ -612,6 +617,18 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             })
           : null}
       </Map>
+      {ownerUsername ? (
+        <div
+          className={`world-map-owner-badge${isOwnMap ? ' world-map-owner-badge--own' : ''}`}
+          role="status"
+        >
+          <span className="world-map-owner-badge__user">@{ownerUsername}</span>
+          {isOwnMap ? (
+            <span className="world-map-owner-badge__own">{t('auth.myMap')}</span>
+          ) : null}
+        </div>
+      ) : null}
+      </div>
       <div className='world-map-hint-panel'>
         <div className='world-map-about'>
           <a

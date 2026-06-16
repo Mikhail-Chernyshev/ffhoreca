@@ -166,17 +166,22 @@ export function UserMapPage() {
 
   // ---- Owner place handlers ----
 
-  const handlePlaceSaved = useCallback(async (place: Place, city: City) => {
+  const persistPlace = useCallback(async (place: Place, city: City): Promise<boolean> => {
     const r = await userPostPlace(place, city);
     if (!r.ok) {
       handleUserApiError(r);
       window.alert(r.message);
-      return;
+      return false;
     }
     await loadCatalog();
     await refreshUsage();
-    onboardingNotify('placeAdded');
-  }, [loadCatalog, onboardingNotify, handleUserApiError, refreshUsage]);
+    return true;
+  }, [loadCatalog, handleUserApiError, refreshUsage]);
+
+  const handlePlaceSaved = useCallback(async (place: Place, city: City) => {
+    const ok = await persistPlace(place, city);
+    if (ok) onboardingNotify('placeAdded');
+  }, [persistPlace, onboardingNotify]);
 
   const handlePlaceDeleted = useCallback(async (placeId: string): Promise<boolean> => {
     const r = await userDeletePlace(placeId);
@@ -187,8 +192,11 @@ export function UserMapPage() {
 
   const handlePlaceUpdated = useCallback(async (place: Place) => {
     const city = catalog.cities.find((c) => c.id === place.cityId);
-    if (city) await handlePlaceSaved(place, city);
-  }, [handlePlaceSaved, catalog.cities]);
+    if (!city) throw new Error('City not found');
+    const ok = await persistPlace(place, city);
+    if (!ok) throw new Error('Save failed');
+    setSelectedPlace(place);
+  }, [persistPlace, catalog.cities]);
 
   if (!base) {
     return (
@@ -247,7 +255,6 @@ export function UserMapPage() {
         routes={routes}
         isLoggedIn={!!currentUser}
         username={currentUser?.username}
-        profileUsername={username}
         onAddCity={() => setAddCityOpen(true)}
         onboarding={onboarding}
         hideHelpControls
@@ -289,6 +296,8 @@ export function UserMapPage() {
           userRoutes={routes}
           onPlaceClick={handlePlaceClick}
           onCityClick={setSelectedCity}
+          ownerUsername={username}
+          isOwnMap={canEditMap && !!currentUser}
         />
         {mapRestricted && profileUser ? (
           <MapRestrictedOverlay
