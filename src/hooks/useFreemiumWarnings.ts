@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { FREEMIUM_LIMITS } from '../data/subscription';
+import { FREEMIUM_LIMITS, FREEMIUM_LIMITS_ENFORCED } from '../data/subscription';
 import type { UserUsage } from '../lib/apiAuth';
 import type { UserSubscription } from '../data/subscription';
 import { useToast } from '../components/ToastProvider';
@@ -35,7 +35,7 @@ export function useFreemiumWarnings(
   const t = useT();
 
   useEffect(() => {
-    if (!usage || subscription !== 'freemium') return;
+    if (!FREEMIUM_LIMITS_ENFORCED || !usage || subscription !== 'freemium') return;
 
     maybeWarn(
       'countries',

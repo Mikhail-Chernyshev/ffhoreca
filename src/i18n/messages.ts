@@ -328,6 +328,12 @@ const ru = {
     usageCountries: 'Страны: {{used}} / {{max}}',
     usageRoutes: 'Маршруты: {{used}} / {{max}}',
     usagePlaces: 'Места: {{used}} / {{max}}',
+    usageCountriesOnly: 'Страны: {{used}}',
+    usageRoutesOnly: 'Маршруты: {{used}}',
+    usagePlacesOnly: 'Места: {{used}}',
+    limitsBetaNote:
+      'Сейчас beta: лимиты Freemium не действуют — добавляйте сколько угодно городов, мест и маршрутов.',
+    limitsBetaUnlimited: 'Пока beta — без лимитов на добавление',
     shareLinkHint:
       'Для превью в Telegram и соцсетях используйте ссылку «Поделиться» (через API). Обычная ссылка на карту тоже работает.',
     copyShareLink: 'Ссылка для соцсетей',
@@ -756,6 +762,12 @@ const en = {
     usageCountries: 'Countries: {{used}} / {{max}}',
     usageRoutes: 'Routes: {{used}} / {{max}}',
     usagePlaces: 'Places: {{used}} / {{max}}',
+    usageCountriesOnly: 'Countries: {{used}}',
+    usageRoutesOnly: 'Routes: {{used}}',
+    usagePlacesOnly: 'Places: {{used}}',
+    limitsBetaNote:
+      'Beta: Freemium limits are not enforced yet — add as many cities, places and routes as you like.',
+    limitsBetaUnlimited: 'Beta — no limits on adding content',
     shareLinkHint:
       'For Telegram and social previews, use the “Social share link” from your account. The regular map URL works too.',
     copyShareLink: 'Social share link',

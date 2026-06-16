@@ -1,5 +1,5 @@
 import type { City } from '../../src/data/types';
-import { FREEMIUM_LIMITS, type MapVisibility, type UserSubscription } from '../../src/data/subscription';
+import { FREEMIUM_LIMITS, FREEMIUM_LIMITS_ENFORCED, type MapVisibility, type UserSubscription } from '../../src/data/subscription';
 import type { Database } from 'better-sqlite3';
 import type { DbUser, UserUsage } from './db';
 import {
@@ -34,6 +34,7 @@ export function checkFreemiumCityLimit(
   city: City,
   isUpdate: boolean,
 ): LimitCheckResult {
+  if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
   if (normalizeSubscription(user.subscription) === 'premium') return { ok: true };
   const codes = userCountryCodes(db, user.id);
   const cc = city.countryCode?.trim().toUpperCase();
@@ -49,6 +50,7 @@ export function checkFreemiumRouteLimit(
   user: DbUser,
   routeId: string,
 ): LimitCheckResult {
+  if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
   if (normalizeSubscription(user.subscription) === 'premium') return { ok: true };
   const count = countUserRoutes(db, user.id);
   const exists = db.prepare('SELECT 1 FROM routes WHERE id = ? AND user_id = ?').get(routeId, user.id);
@@ -61,6 +63,7 @@ export function checkFreemiumPlaceLimit(
   user: DbUser,
   placeId: string,
 ): LimitCheckResult {
+  if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
   if (normalizeSubscription(user.subscription) === 'premium') return { ok: true };
   const count = countUserPlaces(db, user.id);
   const exists = db.prepare('SELECT 1 FROM places WHERE id = ? AND user_id = ?').get(placeId, user.id);

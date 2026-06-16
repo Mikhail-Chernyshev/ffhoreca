@@ -6,7 +6,7 @@ import {
   setUsername,
   updateAccountSettings,
 } from '../lib/apiAuth';
-import { FREEMIUM_LIMITS, type MapVisibility, type UserSubscription } from '../data/subscription';
+import { FREEMIUM_LIMITS, FREEMIUM_LIMITS_ENFORCED, type MapVisibility, type UserSubscription } from '../data/subscription';
 import { useT } from '../i18n/LocaleContext';
 import { mapShareUrl } from '../lib/shareUrl';
 
@@ -216,6 +216,11 @@ export function AccountModal({ user, onClose, onUserUpdated }: Props) {
 
         <section className="account-modal__section">
           <h3 className="account-modal__section-title">{t('account.subscriptionTitle')}</h3>
+          {!FREEMIUM_LIMITS_ENFORCED ? (
+            <p className="account-modal__beta-note" role="status">
+              {t('account.limitsBetaNote')}
+            </p>
+          ) : null}
           <div className="account-modal__plans">
             <PlanCard
               plan="freemium"
@@ -294,6 +299,7 @@ function PlanCard({
   loading: boolean;
 }) {
   const isFreemium = plan === 'freemium';
+  const limitsActive = FREEMIUM_LIMITS_ENFORCED;
 
   return (
     <div
@@ -314,11 +320,15 @@ function PlanCard({
       </p>
       <ul className="account-plan__features">
         {isFreemium ? (
-          <>
-            <li>{t('account.limitCountries', { n: FREEMIUM_LIMITS.countries })}</li>
-            <li>{t('account.limitRoutes', { n: FREEMIUM_LIMITS.routes })}</li>
-            <li>{t('account.limitPlaces', { n: FREEMIUM_LIMITS.places })}</li>
-          </>
+          limitsActive ? (
+            <>
+              <li>{t('account.limitCountries', { n: FREEMIUM_LIMITS.countries })}</li>
+              <li>{t('account.limitRoutes', { n: FREEMIUM_LIMITS.routes })}</li>
+              <li>{t('account.limitPlaces', { n: FREEMIUM_LIMITS.places })}</li>
+            </>
+          ) : (
+            <li>{t('account.limitsBetaUnlimited')}</li>
+          )
         ) : (
           <>
             <li>{t('account.premiumUnlimitedCountries')}</li>
@@ -329,9 +339,19 @@ function PlanCard({
       </ul>
       {active && isFreemium && usage && !loading ? (
         <div className="account-plan__usage">
-          <p>{t('account.usageCountries', { used: usage.countries, max: FREEMIUM_LIMITS.countries })}</p>
-          <p>{t('account.usageRoutes', { used: usage.routes, max: FREEMIUM_LIMITS.routes })}</p>
-          <p>{t('account.usagePlaces', { used: usage.places, max: FREEMIUM_LIMITS.places })}</p>
+          {limitsActive ? (
+            <>
+              <p>{t('account.usageCountries', { used: usage.countries, max: FREEMIUM_LIMITS.countries })}</p>
+              <p>{t('account.usageRoutes', { used: usage.routes, max: FREEMIUM_LIMITS.routes })}</p>
+              <p>{t('account.usagePlaces', { used: usage.places, max: FREEMIUM_LIMITS.places })}</p>
+            </>
+          ) : (
+            <>
+              <p>{t('account.usageCountriesOnly', { used: usage.countries })}</p>
+              <p>{t('account.usageRoutesOnly', { used: usage.routes })}</p>
+              <p>{t('account.usagePlacesOnly', { used: usage.places })}</p>
+            </>
+          )}
         </div>
       ) : null}
       {!isFreemium ? (
