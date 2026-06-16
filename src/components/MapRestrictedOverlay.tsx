@@ -1,19 +1,14 @@
 import { Link } from 'react-router-dom';
-import type { UserSubscription } from '../data/subscription';
 import { getLoginUrl } from '../lib/apiAuth';
 import { useT } from '../i18n/LocaleContext';
 
 type Props = {
   ownerName: string;
-  requiredSubscription: UserSubscription;
   isLoggedIn: boolean;
 };
 
-export function MapRestrictedOverlay({ ownerName, requiredSubscription, isLoggedIn }: Props) {
+export function MapRestrictedOverlay({ ownerName, isLoggedIn }: Props) {
   const t = useT();
-  const planLabel = requiredSubscription === 'premium'
-    ? t('account.planPremium')
-    : t('account.planFreemium');
 
   return (
     <div className="map-restricted-overlay" role="status">
@@ -22,21 +17,22 @@ export function MapRestrictedOverlay({ ownerName, requiredSubscription, isLogged
           {t('mapRestricted.title')}
         </h2>
         <p className="map-restricted-overlay__text">
-          {t('mapRestricted.body', { name: ownerName, plan: planLabel })}
+          {t('mapRestricted.body', { name: ownerName })}
         </p>
         {!isLoggedIn ? (
-          <button
-            type="button"
-            className="map-restricted-overlay__cta"
-            onClick={() => { window.location.href = getLoginUrl(); }}
-          >
-            {t('mapRestricted.login')}
-          </button>
-        ) : (
-          <p className="map-restricted-overlay__hint">
-            {t('mapRestricted.upgradeHint', { plan: planLabel })}
-          </p>
-        )}
+          <>
+            <p className="map-restricted-overlay__hint">
+              {t('mapRestricted.ownerLoginHint')}
+            </p>
+            <button
+              type="button"
+              className="map-restricted-overlay__cta"
+              onClick={() => { window.location.href = getLoginUrl(); }}
+            >
+              {t('mapRestricted.login')}
+            </button>
+          </>
+        ) : null}
         <Link to="/" className="map-restricted-overlay__back">
           ← {t('userMap.backToShowcase')}
         </Link>

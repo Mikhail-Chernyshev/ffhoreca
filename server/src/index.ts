@@ -486,7 +486,6 @@ app.get('/api/users/:username', async (c) => {
   return c.json({
     user: serializePublicUser(user),
     map_access: canView ? 'full' : 'restricted',
-    required_subscription: normalizeSubscription(user.subscription),
   });
 });
 
@@ -496,7 +495,7 @@ app.get('/api/users/:username/catalog', async (c) => {
   if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
   const viewer = await optionalAuthUser(c);
   if (!canViewUserMap(viewer, user)) {
-    return c.json({ error: 'Карта доступна только подписчикам с таким же тарифом', restricted: true }, 403);
+    return c.json({ error: 'Карта приватная — доступ только у владельца', restricted: true }, 403);
   }
   return c.json(getUserCatalog(db, user.id));
 });
@@ -507,7 +506,7 @@ app.get('/api/users/:username/routes', async (c) => {
   if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
   const viewer = await optionalAuthUser(c);
   if (!canViewUserMap(viewer, user)) {
-    return c.json({ error: 'Карта доступна только подписчикам с таким же тарифом', restricted: true }, 403);
+    return c.json({ error: 'Карта приватная — доступ только у владельца', restricted: true }, 403);
   }
   return c.json(getUserRoutes(db, user.id));
 });

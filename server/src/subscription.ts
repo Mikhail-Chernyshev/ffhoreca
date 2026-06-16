@@ -21,8 +21,7 @@ export function normalizeMapVisibility(value: unknown): MapVisibility {
 export function canViewUserMap(viewer: DbUser | null, owner: DbUser): boolean {
   const visibility = normalizeMapVisibility(owner.map_visibility);
   if (visibility === 'public') return true;
-  if (!viewer) return false;
-  return normalizeSubscription(viewer.subscription) === normalizeSubscription(owner.subscription);
+  return viewer?.id === owner.id;
 }
 
 export type LimitCheckResult =

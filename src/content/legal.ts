@@ -42,7 +42,7 @@ const privacyRu: LegalDocument = {
     {
       heading: 'Кому показываем',
       paragraphs: [
-        'Публичный профиль и карта — согласно настройке видимости (публичная или только пользователям с такой же подпиской). Email в публичном профиле не отображается.',
+        'Публичный профиль и карта — согласно настройке видимости (публичная или только для владельца). Email в публичном профиле не отображается.',
         'Данные не продаём третьим лицам. Хостинг API — Fly.io; фронтенд — GitHub Pages; авторизация — Google OAuth.',
       ],
     },
@@ -93,7 +93,7 @@ const privacyEn: LegalDocument = {
     {
       heading: 'Who can see it',
       paragraphs: [
-        'Public profile and map depend on your visibility setting. Email is not shown on public profiles.',
+        'Public profile and map depend on your visibility setting (public or owner-only). Email is not shown on public profiles.',
         'We do not sell data. API hosting: Fly.io; frontend: GitHub Pages; auth: Google OAuth.',
       ],
     },

@@ -36,7 +36,6 @@ import { useFreemiumWarnings } from '../hooks/useFreemiumWarnings';
 import { useToast } from '../components/ToastProvider';
 import { limitReachedMessage } from '../lib/limitMessages';
 import type { AuthUser } from '../lib/apiAuth';
-import type { UserSubscription } from '../data/subscription';
 import type { UserApiResult } from '../lib/apiUserCatalog';
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] };
@@ -54,7 +53,6 @@ export function UserMapPage() {
   const [notFound, setNotFound] = useState(false);
   const [mapRestricted, setMapRestricted] = useState(false);
   const [profileUser, setProfileUser] = useState<AuthUser | null>(null);
-  const [requiredSubscription, setRequiredSubscription] = useState<UserSubscription>('freemium');
 
   const [filter, setFilter] = useState<CategoryFilter>('all');
   const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
@@ -129,7 +127,6 @@ export function UserMapPage() {
         const data = await r.json() as {
           user?: AuthUser;
           map_access?: 'full' | 'restricted';
-          required_subscription?: UserSubscription;
           error?: string;
         };
         if (!data.user) {
@@ -139,9 +136,6 @@ export function UserMapPage() {
         setProfileUser(data.user);
         const restricted = data.map_access === 'restricted';
         setMapRestricted(restricted);
-        setRequiredSubscription(
-          data.required_subscription === 'premium' ? 'premium' : 'freemium',
-        );
         if (!restricted) {
           await loadCatalog();
         } else {
@@ -302,7 +296,6 @@ export function UserMapPage() {
         {mapRestricted && profileUser ? (
           <MapRestrictedOverlay
             ownerName={profileUser.name}
-            requiredSubscription={requiredSubscription}
             isLoggedIn={!!currentUser}
           />
         ) : null}

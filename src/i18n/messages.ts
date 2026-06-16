@@ -19,7 +19,7 @@ const ru = {
     en: 'EN',
   },
   app: {
-    tagline: 'Места, где вы были: отели, места, бары и рестораны по миру',
+    tagline: 'Точки, где вы были: отели, места, бары и рестораны по миру',
     catalogLoading: 'Загрузка каталога с сервера…',
     catalogLoadError:
       'Не удалось загрузить каталог с API. Данные из репозитория не подставляются — проверьте сеть, CORS и URL в VITE_API_BASE_URL.',
@@ -333,8 +333,8 @@ const ru = {
     visibilityHint: 'Кто может просматривать вашу карту по ссылке.',
     visibilityPublic: 'Публичная',
     visibilityPublicHint: 'Любой, у кого есть ссылка, может открыть карту.',
-    visibilitySubscribers: 'Только подписчики',
-    visibilitySubscribersHint: 'Только авторизованные пользователи с такой же подпиской.',
+    visibilitySubscribers: 'Приватная',
+    visibilitySubscribersHint: 'Карту видите только вы; остальные по ссылке не откроют.',
     loadError: 'Не удалось загрузить данные аккаунта',
     saveError: 'Не удалось сохранить настройки',
   },
@@ -347,10 +347,10 @@ const ru = {
     reachedPlaces: 'Лимит Freemium: не более 50 мест. Перейдите на Premium.',
   },
   mapRestricted: {
-    title: 'Карта недоступна',
-    body: 'Карта {{name}} доступна только пользователям с подпиской {{plan}}.',
+    title: 'Приватная карта',
+    body: 'Карта {{name}} доступна только владельцу.',
+    ownerLoginHint: 'Если это ваша карта — войдите под своим аккаунтом.',
     login: 'Войти',
-    upgradeHint: 'Оформите подписку {{plan}}, чтобы открыть эту карту.',
   },
   favorites: {
     title: 'Избранное',
@@ -447,7 +447,7 @@ const en = {
     en: 'EN',
   },
   app: {
-    tagline: 'Places we’ve been: hotels, places, bars and restaurants worldwide',
+    tagline: 'Points we’ve been: hotels, places, bars and restaurants worldwide',
     catalogLoading: 'Loading catalog from server…',
     catalogLoadError:
       'Could not load catalog from API. Built-in data is not used as fallback — check network, CORS and VITE_API_BASE_URL.',
@@ -754,8 +754,8 @@ const en = {
     visibilityHint: 'Who can view your map via link.',
     visibilityPublic: 'Public',
     visibilityPublicHint: 'Anyone with the link can open your map.',
-    visibilitySubscribers: 'Subscribers only',
-    visibilitySubscribersHint: 'Only signed-in users with the same subscription tier.',
+    visibilitySubscribers: 'Private',
+    visibilitySubscribersHint: 'Only you can view your map; others cannot open it via link.',
     loadError: 'Failed to load account data',
     saveError: 'Failed to save settings',
   },
@@ -768,10 +768,10 @@ const en = {
     reachedPlaces: 'Freemium limit: up to 50 places. Upgrade to Premium.',
   },
   mapRestricted: {
-    title: 'Map unavailable',
-    body: '{{name}}\'s map is only available to users with a {{plan}} subscription.',
+    title: 'Private map',
+    body: "{{name}}'s map is only visible to the owner.",
+    ownerLoginHint: 'If this is your map, sign in with your account.',
     login: 'Sign in',
-    upgradeHint: 'Get a {{plan}} subscription to open this map.',
   },
   favorites: {
     title: 'Favorites',
