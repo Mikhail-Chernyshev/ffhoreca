@@ -1400,8 +1400,8 @@
   width: min(560px, 100%);
   /* Иначе flex-ребёнок не сжимается ниже высоты контента — скролл не появляется */
   min-height: 0;
-  max-height: calc(100vh - 2rem);
-  max-height: calc(100dvh - 2rem);
+  max-height: calc(100vh - 6rem);
+  max-height: calc(100dvh - 6rem);
   margin-block: auto;
   padding: 1.5rem 1.5rem 1.75rem;
   border-radius: 14px;
@@ -1715,6 +1715,8 @@
 .modal-dialog--place-view {
   max-height: min(85dvh, 640px);
   max-height: min(85vh, 640px);
+  min-height: min(85dvh, 640px);
+  min-height: min(85vh, 640px);
 }
 
 /* Форма «Новое место» — ограничение высоты, длинная форма только со скроллом */
