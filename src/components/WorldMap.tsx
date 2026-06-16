@@ -46,8 +46,8 @@ import {
 import { rewindGeoJson } from '../lib/geojsonRewind';
 import { UserRoutes } from './UserRoutes';
 
-/** Топология world-atlas countries-10m (подгружается async — файл ~3.5 MB). */
-type Countries10mTopology = typeof import('world-atlas/countries-10m.json');
+/** Топология world-atlas countries-50m (async, ~740 KB — баланс детализации и веса). */
+type CountriesTopology = typeof import('world-atlas/countries-50m.json');
 
 const EMPTY_COUNTRIES_GEO: FeatureCollection<Geometry, GeoJsonProperties> = {
   type: 'FeatureCollection',
@@ -56,7 +56,7 @@ const EMPTY_COUNTRIES_GEO: FeatureCollection<Geometry, GeoJsonProperties> = {
 
 function countriesVisitedGeoJson(
   visited: Set<string>,
-  worldTopology: Countries10mTopology,
+  worldTopology: CountriesTopology,
 ): FeatureCollection<Geometry, GeoJsonProperties> {
   const raw = feature(
     worldTopology as unknown as Parameters<typeof feature>[0],
@@ -195,14 +195,25 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const visited = useMemo(() => visitedCountryCodes(catalog), [catalog]);
 
   const [countriesTopology, setCountriesTopology] =
-    useState<Countries10mTopology | null>(null);
+    useState<CountriesTopology | null>(null);
   useEffect(() => {
     let cancelled = false;
-    void import('world-atlas/countries-10m.json').then((mod) => {
-      if (!cancelled) setCountriesTopology(mod.default);
-    });
+    const load = () => {
+      void import('world-atlas/countries-50m.json').then((mod) => {
+        if (!cancelled) setCountriesTopology(mod.default);
+      });
+    };
+    if (typeof requestIdleCallback === 'function') {
+      const id = requestIdleCallback(load, { timeout: 2500 });
+      return () => {
+        cancelled = true;
+        cancelIdleCallback(id);
+      };
+    }
+    const t = window.setTimeout(load, 150);
     return () => {
       cancelled = true;
+      window.clearTimeout(t);
     };
   }, []);
 

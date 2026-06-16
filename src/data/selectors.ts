@@ -20,7 +20,7 @@ export function geoIdToAlpha2(
 }
 
 /**
- * world-atlas/countries-10m: у каждой страны есть numeric `id` → alpha-2.
+ * world-atlas (countries-50m / 10m): у каждой страны есть numeric `id` → alpha-2.
  * На всякий случай — запасной путь по англ. `properties.name` (если id не дошёл до path).
  */
 const ATLAS_NAME_TO_ALPHA2: Readonly<Record<string, string>> = {

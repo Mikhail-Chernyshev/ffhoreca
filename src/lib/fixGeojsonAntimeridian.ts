@@ -45,19 +45,28 @@ function ringMaxLatitude(ring: Position[]): number {
   return max;
 }
 
+function closeArcAlongDateline(arc: Position[]): Position[] | null {
+  if (arc.length < 3) return null;
+  const firstCoastLng = arc[0]![0] as number;
+  const closureLng = firstCoastLng >= 0 ? 180 : -180;
+  const result: Position[] = [...arc];
+  result.push([closureLng, arc[arc.length - 1]![1] as number]);
+  result.push([closureLng, arc[0]![1] as number]);
+  result.push(arc[0]!);
+  return result;
+}
+
 /**
  * Исправляет кольца, у которых граница полигона проходит ПО датолинии (±180°).
- * world-atlas хранит такие кольца с двумя «прыжками» ~360° в начале и конце:
+ * world-atlas хранит такие кольца с двумя «прыжками» ~360°:
  *   [..., (-180, lat_a), (+179.9, lat_b), ... береговая линия ..., (+179.8, lat_c), (-180, lat_d), ...]
  *
- * Стратегия:
- *  1. Найти индексы двух прыжков j1 и j2.
- *  2. «Береговая линия» — вершины от j1+1 до j2 включительно.
- *  3. Закрыть кольцо двумя точками вдоль ±180°, убрав прыжки полностью.
+ * Прыжки могут быть в начале/конце кольца (10m) или внутри (50m/110m). Закрываем обе дуги
+ * между прыжками — иначе mainland (RU, CA, …) теряется при упрощённой топологии.
  *
  * Возвращает null, если паттерн не совпадает (не ровно 2 прыжка).
  */
-function fixDatelineBoundaryRing(ring: Position[]): Position[] | null {
+function fixDatelineBoundaryRing(ring: Position[]): Position[][] | null {
   const jumps: number[] = [];
   for (let i = 0; i < ring.length - 1; i++) {
     const d = Math.abs((ring[i + 1]![0] as number) - (ring[i]![0] as number));
@@ -66,22 +75,17 @@ function fixDatelineBoundaryRing(ring: Position[]): Position[] | null {
   if (jumps.length !== 2) return null;
 
   const [j1, j2] = jumps as [number, number];
+  const arcs = [
+    ring.slice(j1 + 1, j2 + 1),
+    [...ring.slice(j2 + 1), ...ring.slice(0, j1 + 1)],
+  ];
 
-  // Береговая линия: от j1+1 до j2 (включительно)
-  const firstCoastLng = ring[j1 + 1]![0] as number;
-  const closureLng = firstCoastLng >= 0 ? 180 : -180;
-
-  const result: Position[] = [];
-  for (let i = j1 + 1; i <= j2; i++) {
-    result.push(ring[i]!);
+  const closed: Position[][] = [];
+  for (const arc of arcs) {
+    const ringClosed = closeArcAlongDateline(arc);
+    if (ringClosed) closed.push(ringClosed);
   }
-
-  // Замыкаем вдоль датолинии (два явных угла у ±180°)
-  result.push([closureLng, ring[j2]![1] as number]);
-  result.push([closureLng, ring[j1 + 1]![1] as number]);
-  result.push(ring[j1 + 1]!); // close ring
-
-  return result;
+  return closed.length ? closed : null;
 }
 
 function splitPolygonRingsIfNeeded(rings: Position[][]): Position[][][] {
@@ -92,17 +96,27 @@ function splitPolygonRingsIfNeeded(rings: Position[][]): Position[][][] {
   // Полярные кольца Антарктики — не трогаем (они и так отфильтруются по span).
   if (ringMaxLatitude(outer) <= -55) return [];
 
-  const fixedOuter = fixDatelineBoundaryRing(outer);
-  if (fixedOuter == null) return []; // неизвестный паттерн — пропустить
+  const fixedOuters = fixDatelineBoundaryRing(outer);
+  if (fixedOuters == null) return []; // неизвестный паттерн — пропустить
 
   const fixedInners = rings.slice(1).map((r) => {
-    if (ringLngSpan(r) > DATELINE_JUMP_THRESHOLD) {
-      return fixDatelineBoundaryRing(r) ?? r;
+    if (ringLngSpan(r) > 180) {
+      const parts = fixDatelineBoundaryRing(r);
+      return parts?.[0] ?? r;
     }
     return r;
   });
 
-  return [[fixedOuter, ...fixedInners]];
+  let mainIdx = 0;
+  for (let i = 1; i < fixedOuters.length; i++) {
+    if (ringLngSpan(fixedOuters[i]!) > ringLngSpan(fixedOuters[mainIdx]!)) {
+      mainIdx = i;
+    }
+  }
+
+  return fixedOuters.map((fixedOuter, idx) =>
+    idx === mainIdx ? [fixedOuter, ...fixedInners] : [fixedOuter],
+  );
 }
 
 function fixPolygon(geom: Polygon): Polygon | MultiPolygon {
