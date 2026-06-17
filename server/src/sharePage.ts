@@ -1,6 +1,9 @@
-/** Боты мессенджеров и соцсетей, которые читают Open Graph без JS. */
+/**
+ * Боты, которые запрашивают OG-теги без редиректа.
+ * Не матчим «Telegram» / «WhatsApp» в UA in-app браузеров — только явные preview-боты.
+ */
 const LINK_PREVIEW_CRAWLER =
-  /bot|crawler|spider|preview|telegram|facebookexternalhit|whatsapp|slack|discord|linkedin|twitter|embed/i;
+  /(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|Googlebot|bingbot|YandexBot|Applebot|Embedly)/i;
 
 export function isLinkPreviewCrawler(userAgent: string | undefined): boolean {
   if (!userAgent?.trim()) return false;
@@ -21,15 +24,9 @@ export type SharePageParams = {
   shareUrl: string;
   mapUrl: string;
   imageUrl: string;
-  redirectBrowsers: boolean;
 };
 
 export function buildSharePageHtml(p: SharePageParams): string {
-  const redirectBlock = p.redirectBrowsers
-    ? `<script>location.replace(${JSON.stringify(p.mapUrl)});</script>
-  <noscript><meta http-equiv="refresh" content="0;url=${escapeHtml(p.mapUrl)}" /></noscript>`
-    : '';
-
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,7 +47,6 @@ export function buildSharePageHtml(p: SharePageParams): string {
   <meta name="twitter:description" content="${escapeHtml(p.description)}" />
   <meta name="twitter:image" content="${escapeHtml(p.imageUrl)}" />
   <link rel="canonical" href="${escapeHtml(p.shareUrl)}" />
-  ${redirectBlock}
 </head>
 <body>
   <p><a href="${escapeHtml(p.mapUrl)}">${escapeHtml(p.title)}</a></p>

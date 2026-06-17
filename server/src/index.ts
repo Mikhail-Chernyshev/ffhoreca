@@ -517,6 +517,11 @@ app.get('/share/:username', (c) => {
     return c.redirect(mapUrl, 302);
   }
 
+  const ua = c.req.header('user-agent');
+  if (!isLinkPreviewCrawler(ua)) {
+    return c.redirect(mapUrl, 302);
+  }
+
   const cities = countUserCities(db, user.id);
   const usage = getUserUsage(db, user.id);
   const title = `@${user.username} — Tips from trips`;
@@ -529,7 +534,6 @@ app.get('/share/:username', (c) => {
     shareUrl,
     mapUrl,
     imageUrl,
-    redirectBrowsers: !isLinkPreviewCrawler(c.req.header('user-agent')),
   });
 
   return c.html(html);

@@ -9,7 +9,7 @@ export function mapPageUrl(username: string): string {
 
 /**
  * Ссылка для превью в мессенджерах (OG-теги отдаёт API).
- * Редиректит человека на mapPageUrl.
+ * Браузер сразу получает 302 на mapPageUrl; HTML с og:* — только у preview-ботов.
  */
 export function mapShareUrl(username: string): string {
   const api = apiBaseUrl();
