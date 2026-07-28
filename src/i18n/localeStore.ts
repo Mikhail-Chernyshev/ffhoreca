@@ -6,8 +6,6 @@ function detectInitialLocale(): AppLocale {
   if (typeof window !== 'undefined') {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved === 'ru' || saved === 'en') return saved;
-    const nav = navigator.language.toLowerCase();
-    if (nav.startsWith('ru')) return 'ru';
   }
   return 'en';
 }

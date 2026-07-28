@@ -127,9 +127,6 @@ function App() {
     }
   }, [apiConfigured])
 
-  const catalogBusy =
-    apiConfigured && remoteCatalog === null && !catalogLoadError
-
   const dataReady =
     !apiConfigured ||
     ((remoteCatalog !== null || catalogLoadError) && routesLoaded)
@@ -297,11 +294,6 @@ function App() {
         <LoadingLetterSplash onAnimationComplete={onAnimationComplete} />
       ) : null}
       <div className="app-content" aria-hidden={splashVisible}>
-      {catalogBusy && !splashVisible ? (
-        <p className="app-banner" role="status">
-          {t('app.catalogLoading')}
-        </p>
-      ) : null}
       {catalogLoadError && apiConfigured ? (
         <p className="app-banner app-banner--warn" role="alert">
           {t('app.catalogLoadError')}
@@ -363,6 +355,7 @@ function App() {
         userRoutes={userRoutes}
         onPlaceClick={openPlace}
         onCityClick={openCity}
+        loading={!dataReady}
       />
 
       <PlaceModal

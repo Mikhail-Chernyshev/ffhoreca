@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 
-const SPLASH_MAX_MS = 9_500;
+const SPLASH_MAX_MS = 4_000;
 
 /**
  * Показывать заставку, пока не готовы данные и не доиграла анимация,
- * но не дольше ~10 с.
+ * но не дольше ~4 с.
  */
 export function useAppSplash(dataReady: boolean) {
   const [animationDone, setAnimationDone] = useState(false);

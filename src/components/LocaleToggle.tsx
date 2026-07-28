@@ -10,7 +10,7 @@ export function LocaleToggle() {
 
   return (
     <div className="locale-toggle" role="group" aria-label={t('locale.toggle')}>
-      {(['ru', 'en'] as const).map((code) => (
+      {(['en', 'ru'] as const).map((code) => (
         <button
           key={code}
           type="button"

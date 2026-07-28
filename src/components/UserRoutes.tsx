@@ -10,6 +10,8 @@ import { RouteModeIcon } from './RouteModeIcon';
 const SOURCE_USER_ROUTES = 'user-routes';
 const LAYER_USER_ROUTES_LINE = 'user-routes-line';
 const PLANE_VISUAL_SPEED_KMH = 900;
+/** ~12 fps достаточно для иконок на карте; 60 fps только грузит React. */
+const VEHICLE_TICK_MS = 1000 / 12;
 const SPEED_RATIO: Record<UserRouteMode, number> = {
   plane: 3.5,
   train: 0.25,
@@ -64,6 +66,17 @@ function subscribeReducedMotion(cb: () => void): () => void {
 function reducedMotionSnapshot(): boolean {
   if (typeof window === 'undefined') return false;
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function subscribeDocumentVisible(cb: () => void): () => void {
+  if (typeof document === 'undefined') return () => {};
+  document.addEventListener('visibilitychange', cb);
+  return () => document.removeEventListener('visibilitychange', cb);
+}
+
+function documentVisibleSnapshot(): boolean {
+  if (typeof document === 'undefined') return true;
+  return document.visibilityState === 'visible';
 }
 
 const MODE_COLORS_DARK: Record<UserRouteMode, string> = {
@@ -135,6 +148,45 @@ function VehicleMarker({
         <RouteModeIcon mode={seg.mode} size={17} />
       </span>
     </Marker>
+  );
+}
+
+/** Отдельный тик только для иконок — линии маршрутов не перерисовываются. */
+function VehicleMarkers({
+  segments,
+  colors,
+}: {
+  segments: AnimSegment[];
+  colors: Record<UserRouteMode, string>;
+}) {
+  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, reducedMotionSnapshot, () => false);
+  const documentVisible = useSyncExternalStore(
+    subscribeDocumentVisible,
+    documentVisibleSnapshot,
+    () => true,
+  );
+  const [, forceTick] = useReducer((n: number) => n + 1, 0);
+
+  useEffect(() => {
+    if (reducedMotion || !documentVisible || segments.length === 0) return;
+
+    const id = window.setInterval(() => {
+      forceTick();
+    }, VEHICLE_TICK_MS);
+
+    return () => window.clearInterval(id);
+  }, [reducedMotion, documentVisible, segments.length]);
+
+  if (reducedMotion) return null;
+
+  const now = typeof performance !== 'undefined' ? performance.now() : 0;
+
+  return (
+    <>
+      {segments.map((seg) => (
+        <VehicleMarker key={seg.id} seg={seg} color={colors[seg.mode]} now={now} />
+      ))}
+    </>
   );
 }
 
@@ -221,17 +273,6 @@ export function UserRoutes({ routes, mapThemeDark }: Props) {
     return result;
   }, [segmentDefs, roadCoordsById, roadFailedIds]);
 
-  const reducedMotion = useSyncExternalStore(subscribeReducedMotion, reducedMotionSnapshot, () => false);
-  const [, forceTick] = useReducer((n: number) => n + 1, 0);
-
-  useEffect(() => {
-    if (reducedMotion || segments.length === 0) return;
-    let id = 0;
-    const loop = () => { forceTick(); id = requestAnimationFrame(loop); };
-    id = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(id);
-  }, [reducedMotion, segments.length]);
-
   const linesGeo = useMemo((): FeatureCollection<Geometry> => ({
     type: 'FeatureCollection',
     features: segments.map((s) => ({
@@ -243,7 +284,6 @@ export function UserRoutes({ routes, mapThemeDark }: Props) {
 
   const colors = mapThemeDark ? MODE_COLORS_DARK : MODE_COLORS_LIGHT;
   const lineColor = mapThemeDark ? 'rgba(251, 113, 133, 0.82)' : 'rgba(219, 39, 119, 0.72)';
-  const now = typeof performance !== 'undefined' ? performance.now() : 0;
 
   if (segments.length === 0) return null;
 
@@ -257,9 +297,7 @@ export function UserRoutes({ routes, mapThemeDark }: Props) {
           paint={{ 'line-color': lineColor, 'line-width': 1.5, 'line-opacity': 0.58 }}
         />
       </Source>
-      {!reducedMotion && segments.map((seg) => (
-        <VehicleMarker key={seg.id} seg={seg} color={colors[seg.mode]} now={now} />
-      ))}
+      <VehicleMarkers segments={segments} colors={colors} />
     </>
   );
 }

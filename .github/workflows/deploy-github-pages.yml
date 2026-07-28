@@ -46,6 +46,7 @@ jobs:
         run: |
           cp docs/budget-2030.html dist/budget-2030.html
           cp "docs/budget-2030 copy.html" dist/budget-2030-copy.html
+          cp docs/todo.html dist/todo.html
 
       - uses: actions/upload-pages-artifact@v3
         with:

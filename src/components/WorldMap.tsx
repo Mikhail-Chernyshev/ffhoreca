@@ -146,6 +146,17 @@ const PLACE_LABEL_HIGH_ZOOM = 14;
 /** Полигоны границ городов — не на глобальном обзоре */
 const CITY_BOUNDARY_MIN_ZOOM = 7.2;
 
+/** Ключ «режима UI» по зуму: ререндер нужен только при смене порога, не на каждый кадр. */
+function zoomUiKey(z: number): string {
+  return [
+    z >= CITY_BOUNDARY_MIN_ZOOM ? '1' : '0',
+    z >= CITY_LABEL_MIN_ZOOM ? '1' : '0',
+    z >= CITY_LABEL_COMPACT_ZOOM ? '1' : '0',
+    z >= PLACE_MARKERS_MIN_ZOOM ? '1' : '0',
+    z >= PLACE_LABEL_HIGH_ZOOM ? '1' : '0',
+  ].join('');
+}
+
 type Props = {
   catalog: Catalog;
   filter: CategoryFilter;
@@ -157,6 +168,8 @@ type Props = {
   ownerUsername?: string;
   /** Текущий залогиненный пользователь смотрит свою карту */
   isOwnMap?: boolean;
+  /** Пока грузятся данные — мягкий shimmer поверх карты */
+  loading?: boolean;
 };
 
 export type WorldMapRef = {
@@ -167,7 +180,17 @@ export type WorldMapRef = {
 const NO_CITIES: City[] = [];
 
 export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
-  { catalog, filter, places, userRoutes = [], onPlaceClick, onCityClick, ownerUsername, isOwnMap },
+  {
+    catalog,
+    filter,
+    places,
+    userRoutes = [],
+    onPlaceClick,
+    onCityClick,
+    ownerUsername,
+    isOwnMap,
+    loading = false,
+  },
   ref,
 ) {
   const t = useT();
@@ -187,6 +210,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const mapWrapRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapRef>(null);
   const [zoom, setZoom] = useState(MAP_DEFAULT_ZOOM);
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
   const [globeMode, setGlobeMode] = useState(false);
   const [aboutExpanded, setAboutExpanded] = useState(false);
   const [fillBeforeId, setFillBeforeId] = useState<string | undefined>();
@@ -313,15 +338,27 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const handleCityClick = useCallback(
     (city: City) => {
       const map = mapRef.current?.getMap();
-      const currentZoom = map?.getZoom() ?? zoom;
+      const currentZoom = map?.getZoom() ?? zoomRef.current;
       if (currentZoom < CITY_FOCUS_ZOOM) {
         zoomToCity(city);
         return;
       }
       onCityClick?.(city);
     },
-    [onCityClick, zoom, zoomToCity],
+    [onCityClick, zoomToCity],
   );
+
+  /** Во время жеста — только если сменился UI-порог; точный zoom — в onMoveEnd. */
+  const handleMove = useCallback((e: { viewState: { zoom: number } }) => {
+    const z = e.viewState.zoom;
+    if (zoomUiKey(z) !== zoomUiKey(zoomRef.current)) {
+      setZoom(z);
+    }
+  }, []);
+
+  const handleMoveEnd = useCallback((e: { viewState: { zoom: number } }) => {
+    setZoom(e.viewState.zoom);
+  }, []);
 
   useEffect(() => {
     const el = mapWrapRef.current;
@@ -395,6 +432,12 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
 
   return (
     <div className='world-map-wrap' ref={mapWrapRef}>
+      {loading ? (
+        <div className='world-map-skeleton' role='status' aria-live='polite'>
+          <span className='world-map-skeleton__shimmer' aria-hidden />
+          <span className='world-map-skeleton__label'>{t('app.catalogLoading')}</span>
+        </div>
+      ) : null}
       <div className='world-map-viewport'>
         <div className='world-map-zoom-controls maplibregl-ctrl maplibregl-ctrl-group'>
         <button
@@ -492,7 +535,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         /** Иначе по умолчанию true — дубликаты мира у ±180° дают «полосу» на заливке (Россия и др.). */
         renderWorldCopies={false}
         onLoad={handleMapLoad}
-        onMove={(e) => setZoom(e.viewState.zoom)}
+        onMove={handleMove}
+        onMoveEnd={handleMoveEnd}
         dragRotate={globeMode}
         pitchWithRotate={globeMode}
         touchPitch={false}
