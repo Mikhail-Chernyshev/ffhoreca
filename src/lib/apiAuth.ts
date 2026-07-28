@@ -86,7 +86,7 @@ export async function exchangeAuthCode(code: string): Promise<boolean> {
 
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
   const base = apiBaseUrl();
-  if (!base || !getSessionToken()) return null;
+  if (!base) return null;
   try {
     const res = await apiFetch(`${base}/api/auth/me`, { headers: authHeaders() });
     if (!res.ok) {
@@ -102,7 +102,7 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
 
 export async function fetchAuthAccount(): Promise<AuthAccount | null> {
   const base = apiBaseUrl();
-  if (!base || !getSessionToken()) return null;
+  if (!base) return null;
   try {
     const res = await apiFetch(`${base}/api/auth/me`, { headers: authHeaders() });
     if (!res.ok) {
@@ -182,18 +182,26 @@ export async function fetchUserFavorites(): Promise<AuthUser[]> {
 }
 
 export async function addToFavorites(targetId: string): Promise<void> {
-  await apiFetch(`${apiBaseUrl()}/api/user/favorites`, {
+  const res = await apiFetch(`${apiBaseUrl()}/api/user/favorites`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ targetId }),
   });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `HTTP ${res.status}`);
+  }
 }
 
 export async function removeFromFavorites(targetId: string): Promise<void> {
-  await apiFetch(`${apiBaseUrl()}/api/user/favorites/${targetId}`, {
+  const res = await apiFetch(`${apiBaseUrl()}/api/user/favorites/${targetId}`, {
     method: 'DELETE',
     headers: authHeaders(),
   });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? `HTTP ${res.status}`);
+  }
 }
 
 export async function logout(): Promise<void> {
@@ -212,7 +220,7 @@ export async function logout(): Promise<void> {
 
 export async function deleteAccount(): Promise<void> {
   const base = apiBaseUrl();
-  if (!base || !getSessionToken()) throw new Error('Не авторизован');
+  if (!base) throw new Error('Не авторизован');
   const res = await apiFetch(`${base}/api/user/account`, {
     method: 'DELETE',
     headers: authHeaders(),

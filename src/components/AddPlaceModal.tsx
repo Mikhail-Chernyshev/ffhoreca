@@ -23,7 +23,7 @@ import { categoryLabel } from '../i18n/labels';
 type Props = {
   onClose: () => void;
   catalog: Catalog;
-  onSaved: (place: Place, city: City) => void | Promise<void>;
+  onSaved: (place: Place, city: City) => boolean | void | Promise<boolean | void>;
   /** Если задан — вызывается вместо дефолтной загрузки фото через X-Admin-Token */
   uploadPhotos?: (files: File[]) => Promise<string[]>;
 };
@@ -337,7 +337,8 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
     const place: Place = { ...draft, countryCode: canonical.countryCode };
     setBusy(true);
     try {
-      await onSaved(place, canonical);
+      const result = await onSaved(place, canonical);
+      if (result === false) return;
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

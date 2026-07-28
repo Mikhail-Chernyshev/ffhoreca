@@ -47,6 +47,8 @@ import { OnboardingHelpControls } from './components/OnboardingHelpControls'
 import { useMapOnboarding } from './hooks/useMapOnboarding'
 import { useCurrentUser } from './hooks/useCurrentUser'
 import { useT } from './i18n/LocaleContext'
+import { useToast } from './components/ToastProvider'
+import { consumeAuthBootstrapError } from './lib/bootstrapAuth'
 import './App.css'
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] }
@@ -54,6 +56,7 @@ const EMPTY_CATALOG: Catalog = { cities: [], places: [] }
 function App() {
   const t = useT()
   const navigate = useNavigate()
+  const { push: pushToast } = useToast()
   const apiConfiguredAtInit = apiBaseUrl() !== ''
 
   const [filter, setFilter] = useState<CategoryFilter>('all')
@@ -67,6 +70,7 @@ function App() {
   )
   const [remoteCatalog, setRemoteCatalog] = useState<Catalog | null>(null)
   const [catalogLoadError, setCatalogLoadError] = useState(false)
+  const [routesLoadError, setRoutesLoadError] = useState(false)
   const [addCityOpen, setAddCityOpen] = useState(false)
   const [addPlaceOpen, setAddPlaceOpen] = useState(false)
   const [addRouteOpen, setAddRouteOpen] = useState(false)
@@ -90,6 +94,22 @@ function App() {
       setAccountOpen(true)
     }
   }, [currentUser, authLoading])
+
+  useEffect(() => {
+    const code = consumeAuthBootstrapError()
+    if (!code) return
+    const known = [
+      'exchange_failed',
+      'invalid_state',
+      'no_code',
+      'not_configured',
+      'server_error',
+    ] as const
+    const key = (known as readonly string[]).includes(code)
+      ? `auth.error.${code}`
+      : 'auth.error.generic'
+    pushToast(t(key), 'error')
+  }, [pushToast, t])
 
   const apiConfigured = apiBaseUrl() !== ''
 
@@ -116,9 +136,17 @@ function App() {
     let cancelled = false
     void fetchRoutes()
       .then((routes) => {
-        if (!cancelled) setUserRoutes(routes)
+        if (!cancelled) {
+          setUserRoutes(routes)
+          setRoutesLoadError(false)
+        }
       })
-      .catch(() => {})
+      .catch(() => {
+        if (!cancelled) {
+          setUserRoutes([])
+          setRoutesLoadError(true)
+        }
+      })
       .finally(() => {
         if (!cancelled) setRoutesLoaded(true)
       })
@@ -222,13 +250,6 @@ function App() {
     [apiConfigured, t, adminMode, showAlert],
   );
 
-  const handleAdminPlaceSaved = useCallback(
-    async (place: Place, city: City) => {
-      await persistPlaceToBackendOrStorage(place, city);
-    },
-    [persistPlaceToBackendOrStorage],
-  );
-
   const handlePlaceDeleted = useCallback(
     async (placeId: string): Promise<boolean> => {
       const base = apiBaseUrl()
@@ -297,6 +318,11 @@ function App() {
       {catalogLoadError && apiConfigured ? (
         <p className="app-banner app-banner--warn" role="alert">
           {t('app.catalogLoadError')}
+        </p>
+      ) : null}
+      {routesLoadError && apiConfigured ? (
+        <p className="app-banner app-banner--warn" role="alert">
+          {t('app.routesLoadError')}
         </p>
       ) : null}
 
@@ -388,8 +414,10 @@ function App() {
           onClose={() => setAddPlaceOpen(false)}
           catalog={catalogMerged}
           onSaved={async (place, city) => {
-            await handleAdminPlaceSaved(place, city)
+            const r = await persistPlaceToBackendOrStorage(place, city)
+            if (!r.ok) return false
             onboardingNotify('placeAdded')
+            return true
           }}
         />
       ) : null}

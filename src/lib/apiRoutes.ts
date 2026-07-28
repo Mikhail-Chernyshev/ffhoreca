@@ -7,7 +7,7 @@ export async function fetchRoutes(): Promise<TravelRoute[]> {
   const base = apiBaseUrl();
   if (!base) return [];
   const res = await apiFetch(`${base}/api/routes`);
-  if (!res.ok) return [];
+  if (!res.ok) throw new Error(`routes ${res.status}`);
   return res.json() as Promise<TravelRoute[]>;
 }
 

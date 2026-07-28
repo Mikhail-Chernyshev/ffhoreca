@@ -140,6 +140,18 @@ export function openDatabase(dbPath: string): Database.Database {
     ensureCatalogTable(db, table);
   }
 
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS oauth_states (
+      state TEXT PRIMARY KEY NOT NULL,
+      exp INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS auth_exchange_codes (
+      code TEXT PRIMARY KEY NOT NULL,
+      jwt TEXT NOT NULL,
+      exp INTEGER NOT NULL
+    );
+  `);
+
   return db;
 }
 

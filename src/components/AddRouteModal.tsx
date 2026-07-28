@@ -110,6 +110,7 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
 
         <h2 id="add-route-modal-title" className="modal-title">{t('addRoute.title')}</h2>
         <p className="modal-summary modal-summary--muted">{t('addRoute.intro')}</p>
+        <p className="modal-summary modal-summary--muted">{t('addRoute.transitHint')}</p>
 
         <form className="add-place-form" onSubmit={handleSubmit}>
 

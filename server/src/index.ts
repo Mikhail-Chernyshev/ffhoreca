@@ -60,7 +60,9 @@ import {
   jsonBodyLimitMiddleware,
   readJsonBody,
   securityHeadersMiddleware,
+  sniffImageExtension,
 } from './security';
+import { isReservedUsername } from '../../src/lib/reservedUsernames';
 import { v4 as uuidv4 } from 'uuid';
 
 assertJwtSecretConfigured();
@@ -278,6 +280,27 @@ app.post('/api/places/delete', async (c) => {
 
 const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_UPLOAD_FILES = 10;
+
+async function saveUploadedImages(formData: FormData): Promise<string[]> {
+  const urls: string[] = [];
+  for (const [, value] of formData.entries()) {
+    if (urls.length >= MAX_UPLOAD_FILES) break;
+    if (!(value instanceof File)) continue;
+    if (value.size <= 0 || value.size > MAX_FILE_SIZE) continue;
+    if (value.type && !ALLOWED_IMAGE_MIME.has(value.type)) continue;
+
+    const buffer = Buffer.from(await value.arrayBuffer());
+    const ext = sniffImageExtension(buffer);
+    if (!ext) continue;
+
+    const filename = `${crypto.randomUUID()}.${ext}`;
+    const dest = path.join(UPLOADS_DIR, filename);
+    fs.writeFileSync(dest, buffer);
+    urls.push(`/uploads/${filename}`);
+  }
+  return urls;
+}
 
 app.post('/api/photos', async (c) => {
   if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
@@ -285,20 +308,7 @@ app.post('/api/photos', async (c) => {
   let formData: FormData;
   try { formData = await c.req.formData(); } catch { return c.json({ error: 'Ожидается multipart/form-data' }, 400); }
 
-  const urls: string[] = [];
-  for (const [, value] of formData.entries()) {
-    if (!(value instanceof File)) continue;
-    if (!ALLOWED_IMAGE_MIME.has(value.type)) continue;
-    if (value.size > MAX_FILE_SIZE) continue;
-
-    const ext = value.type.split('/')[1] ?? 'jpg';
-    const filename = `${crypto.randomUUID()}.${ext}`;
-    const dest = path.join(UPLOADS_DIR, filename);
-    const buffer = Buffer.from(await value.arrayBuffer());
-    fs.writeFileSync(dest, buffer);
-    urls.push(`/uploads/${filename}`);
-  }
-
+  const urls = await saveUploadedImages(formData);
   if (urls.length === 0) return c.json({ error: 'Нет подходящих файлов' }, 400);
   return c.json({ urls }, 201);
 });
@@ -357,7 +367,7 @@ app.delete('/api/routes/:id', async (c) => {
 
 app.get('/api/auth/google', (c) => {
   if (!GOOGLE_CLIENT_ID) return c.json({ error: 'Google OAuth не настроен' }, 503);
-  const state = createOAuthState();
+  const state = createOAuthState(db);
   return c.redirect(getGoogleAuthUrl(GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI, state));
 });
 
@@ -368,7 +378,7 @@ app.get('/api/auth/google/callback', async (c) => {
   if (error || !code) {
     return c.redirect(`${FRONTEND_URL}?auth_error=${encodeURIComponent(error ?? 'no_code')}`);
   }
-  if (!state || !consumeOAuthState(state)) {
+  if (!state || !consumeOAuthState(db, state)) {
     return c.redirect(`${FRONTEND_URL}?auth_error=invalid_state`);
   }
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
@@ -397,7 +407,7 @@ app.get('/api/auth/google/callback', async (c) => {
     }
 
     const jwt = await signJWT(user.id);
-    const exchangeCode = createAuthExchangeCode(jwt);
+    const exchangeCode = createAuthExchangeCode(db, jwt);
     c.header('Set-Cookie', sessionCookieHeader(jwt));
     return c.redirect(`${FRONTEND_URL}?auth_code=${encodeURIComponent(exchangeCode)}`);
   } catch (e) {
@@ -420,7 +430,7 @@ app.post('/api/auth/exchange', async (c) => {
   const code = typeof rec.code === 'string' ? rec.code.trim() : '';
   if (!code) return c.json({ error: 'Нужен code' }, 400);
 
-  const jwt = consumeAuthExchangeCode(code);
+  const jwt = consumeAuthExchangeCode(db, code);
   if (!jwt) return c.json({ error: 'Недействительный или просроченный code' }, 400);
 
   c.header('Set-Cookie', sessionCookieHeader(jwt));
@@ -466,6 +476,9 @@ app.post('/api/auth/username', requireAuth, async (c) => {
     : '';
   if (!USERNAME_RE.test(username)) {
     return c.json({ error: 'Логин: 3-30 символов, только латинские буквы, цифры, _ и -' }, 400);
+  }
+  if (isReservedUsername(username)) {
+    return c.json({ error: 'Этот логин зарезервирован' }, 400);
   }
   if (!isUsernameAvailable(db, username) && user.username?.toLowerCase() !== username) {
     return c.json({ error: 'Этот логин уже занят' }, 409);
@@ -675,17 +688,7 @@ app.post('/api/user/photos', requireAuth, async (c) => {
   let formData: FormData;
   try { formData = await c.req.formData(); } catch { return c.json({ error: 'Ожидается multipart/form-data' }, 400); }
 
-  const urls: string[] = [];
-  for (const [, value] of formData.entries()) {
-    if (!(value instanceof File)) continue;
-    if (!ALLOWED_IMAGE_MIME.has(value.type)) continue;
-    if (value.size > MAX_FILE_SIZE) continue;
-    const ext = value.type.split('/')[1] ?? 'jpg';
-    const filename = `${crypto.randomUUID()}.${ext}`;
-    const dest = path.join(UPLOADS_DIR, filename);
-    fs.writeFileSync(dest, Buffer.from(await value.arrayBuffer()));
-    urls.push(`/uploads/${filename}`);
-  }
+  const urls = await saveUploadedImages(formData);
   if (urls.length === 0) return c.json({ error: 'Нет подходящих файлов' }, 400);
   return c.json({ urls }, 201);
 });

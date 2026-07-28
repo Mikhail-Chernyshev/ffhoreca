@@ -62,13 +62,21 @@ export function FavoritesModal({ currentUser, onClose, onOpenProfile }: Props) {
   }, [searchQuery, currentUser.id]);
 
   const handleAdd = async (user: AuthUser) => {
-    await addToFavorites(user.id);
-    setFavorites((prev) => (prev.find((f) => f.id === user.id) ? prev : [user, ...prev]));
+    try {
+      await addToFavorites(user.id);
+      setFavorites((prev) => (prev.find((f) => f.id === user.id) ? prev : [user, ...prev]));
+    } catch {
+      /* leave list unchanged */
+    }
   };
 
   const handleRemove = async (userId: string) => {
-    await removeFromFavorites(userId);
-    setFavorites((prev) => prev.filter((f) => f.id !== userId));
+    try {
+      await removeFromFavorites(userId);
+      setFavorites((prev) => prev.filter((f) => f.id !== userId));
+    } catch {
+      /* leave list unchanged */
+    }
   };
 
   const isFav = (id: string) => favorites.some((f) => f.id === id);

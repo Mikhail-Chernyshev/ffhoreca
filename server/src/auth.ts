@@ -1,12 +1,10 @@
 import crypto from 'node:crypto';
+import type Database from 'better-sqlite3';
 import { SignJWT, jwtVerify } from 'jose';
 
 const ISSUER = 'ffhoreca';
 const DEV_JWT_SECRET = 'dev_jwt_secret_change_in_production_32chars';
 export const AUTH_COOKIE_NAME = 'ffhoreca_session';
-
-const oauthStates = new Map<string, number>();
-const authExchangeCodes = new Map<string, { jwt: string; exp: number }>();
 
 function getJwtSecret(): Uint8Array {
   const secret = process.env.JWT_SECRET?.trim() ?? DEV_JWT_SECRET;
@@ -93,37 +91,51 @@ export function readSessionTokenFromCookie(cookieHeader: string | undefined): st
   }
 }
 
-export function createOAuthState(): string {
+export function createOAuthState(db: Database.Database): string {
+  const now = Date.now();
+  db.prepare('DELETE FROM oauth_states WHERE exp < ?').run(now);
   const state = crypto.randomBytes(24).toString('hex');
-  oauthStates.set(state, Date.now() + 10 * 60 * 1000);
+  db.prepare('INSERT INTO oauth_states (state, exp) VALUES (?, ?)').run(
+    state,
+    now + 10 * 60 * 1000,
+  );
   return state;
 }
 
-export function consumeOAuthState(state: string): boolean {
-  const exp = oauthStates.get(state);
-  if (!exp || Date.now() > exp) {
-    oauthStates.delete(state);
-    return false;
-  }
-  oauthStates.delete(state);
-  return true;
+export function consumeOAuthState(db: Database.Database, state: string): boolean {
+  const now = Date.now();
+  db.prepare('DELETE FROM oauth_states WHERE exp < ?').run(now);
+  const row = db.prepare('SELECT exp FROM oauth_states WHERE state = ?').get(state) as
+    | { exp: number }
+    | undefined;
+  if (!row) return false;
+  db.prepare('DELETE FROM oauth_states WHERE state = ?').run(state);
+  return row.exp >= now;
 }
 
 /** Одноразовый код для обмена на JWT после OAuth (cookie не работает github.io → fly.dev). */
-export function createAuthExchangeCode(jwt: string): string {
+export function createAuthExchangeCode(db: Database.Database, jwt: string): string {
+  const now = Date.now();
+  db.prepare('DELETE FROM auth_exchange_codes WHERE exp < ?').run(now);
   const code = crypto.randomBytes(24).toString('hex');
-  authExchangeCodes.set(code, { jwt, exp: Date.now() + 2 * 60 * 1000 });
+  db.prepare('INSERT INTO auth_exchange_codes (code, jwt, exp) VALUES (?, ?, ?)').run(
+    code,
+    jwt,
+    now + 2 * 60 * 1000,
+  );
   return code;
 }
 
-export function consumeAuthExchangeCode(code: string): string | null {
-  const entry = authExchangeCodes.get(code);
-  if (!entry || Date.now() > entry.exp) {
-    authExchangeCodes.delete(code);
-    return null;
-  }
-  authExchangeCodes.delete(code);
-  return entry.jwt;
+export function consumeAuthExchangeCode(db: Database.Database, code: string): string | null {
+  const now = Date.now();
+  db.prepare('DELETE FROM auth_exchange_codes WHERE exp < ?').run(now);
+  const row = db.prepare('SELECT jwt, exp FROM auth_exchange_codes WHERE code = ?').get(code) as
+    | { jwt: string; exp: number }
+    | undefined;
+  if (!row) return null;
+  db.prepare('DELETE FROM auth_exchange_codes WHERE code = ?').run(code);
+  if (row.exp < now) return null;
+  return row.jwt;
 }
 
 // ---- Google OAuth ----------------------------------------------------------

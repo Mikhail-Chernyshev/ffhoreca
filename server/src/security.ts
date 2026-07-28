@@ -30,8 +30,8 @@ export function normalizePhotoUrl(url: string): string {
 }
 
 /**
- * Разрешены: `/uploads/<uuid>.ext`, полный URL с таким путём,
- * а также уже сохранённые внешние https-ссылки (старые объекты).
+ * Разрешены только `/uploads/<uuid>.ext` и полные URL с таким pathname.
+ * Внешние https больше не принимаем при записи (XSS/tracking).
  */
 export function isValidPhotoUrl(url: string): boolean {
   const trimmed = url.trim();
@@ -42,12 +42,30 @@ export function isValidPhotoUrl(url: string): boolean {
   try {
     const u = new URL(trimmed);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
-    if (UPLOAD_PHOTO_RE.test(u.pathname)) return true;
-    if (u.protocol === 'https:') return true;
+    return UPLOAD_PHOTO_RE.test(u.pathname);
   } catch {
     return false;
   }
-  return false;
+}
+
+/** Определяет расширение по magic bytes; null если не картинка. */
+export function sniffImageExtension(buf: Buffer): 'jpg' | 'png' | 'webp' | 'gif' | null {
+  if (buf.length < 12) return null;
+  if (buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) return 'png';
+  if (
+    buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38
+    && (buf[4] === 0x37 || buf[4] === 0x39)
+  ) {
+    return 'gif';
+  }
+  if (
+    buf.toString('ascii', 0, 4) === 'RIFF'
+    && buf.toString('ascii', 8, 12) === 'WEBP'
+  ) {
+    return 'webp';
+  }
+  return null;
 }
 
 export function hasMaxLen(value: unknown, max: number): boolean {

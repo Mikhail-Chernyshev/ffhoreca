@@ -15,6 +15,7 @@ import {
 } from '../data/subscription';
 import { useT } from '../i18n/LocaleContext';
 import { mapShareUrl } from '../lib/shareUrl';
+import { isReservedUsername } from '../lib/reservedUsernames';
 import { ConfirmModal } from './ConfirmModal';
 
 type Props = {
@@ -107,6 +108,10 @@ export function AccountModal({
     const trimmed = usernameDraft.trim().toLowerCase();
     if (!trimmed) {
       setUsernameError(t('auth.usernameRequired'));
+      return;
+    }
+    if (isReservedUsername(trimmed)) {
+      setUsernameError(t('auth.usernameReserved'));
       return;
     }
     if (trimmed === (user.username ?? '').toLowerCase()) return;
@@ -229,10 +234,11 @@ export function AccountModal({
             <button
               type='button'
               className='account-modal__share-btn'
-              disabled={settingsBusy || usernameSaving}
+              disabled={settingsBusy || usernameSaving || !user.username}
               onClick={() => {
+                if (!user.username) return;
                 void navigator.clipboard
-                  .writeText(mapShareUrl(user.username!))
+                  .writeText(mapShareUrl(user.username))
                   .then(() => {
                     setShareCopied(true);
                     window.setTimeout(() => setShareCopied(false), 2000);

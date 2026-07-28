@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 const SPLASH_MAX_MS = 4_000;
 
@@ -15,10 +15,14 @@ export function useAppSplash(dataReady: boolean) {
     return () => clearTimeout(t);
   }, []);
 
+  const onAnimationComplete = useCallback(() => {
+    setAnimationDone(true);
+  }, []);
+
   const visible = !(maxTimeReached || (dataReady && animationDone));
 
   return {
     visible,
-    onAnimationComplete: () => setAnimationDone(true),
+    onAnimationComplete,
   };
 }

@@ -265,8 +265,12 @@ export function ManagerModal({
       title: t('manager.confirmDeleteRouteTitle'),
       message: t('manager.confirmDeleteRouteMessage', { names }),
       onConfirm: async () => {
-        await (deleteRouteApi ? deleteRouteApi(route.id) : deleteRouteById(route.id));
-        setLocalRoutes((prev) => prev.filter((r) => r.id !== route.id));
+        const r = await (deleteRouteApi ? deleteRouteApi(route.id) : deleteRouteById(route.id));
+        if (!r.ok) {
+          showAlert(r.message);
+          return;
+        }
+        setLocalRoutes((prev) => prev.filter((x) => x.id !== route.id));
         onRoutesChanged?.();
       },
     });

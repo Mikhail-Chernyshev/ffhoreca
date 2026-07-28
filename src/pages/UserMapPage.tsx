@@ -90,7 +90,7 @@ export function UserMapPage() {
 
   const base = apiBaseUrl();
 
-  const loadCatalog = useCallback(async () => {
+  const loadCatalog = useCallback(async (signal?: { cancelled: boolean }) => {
     if (!base || !username) return false;
     try {
       const headers = authHeaders();
@@ -98,26 +98,45 @@ export function UserMapPage() {
         apiFetch(`${base}/api/users/${username}/catalog`, { headers }),
         apiFetch(`${base}/api/users/${username}/routes`, { headers }),
       ]);
+      if (signal?.cancelled) return false;
       if (catRes.status === 403 || routesRes.status === 403) {
         setMapRestricted(true);
         setCatalog(EMPTY_CATALOG);
         setRoutes([]);
         return false;
       }
+      if (!catRes.ok || !routesRes.ok) {
+        setCatalog(EMPTY_CATALOG);
+        setRoutes([]);
+        return false;
+      }
       const [cat, rts] = await Promise.all([
-        catRes.json(),
-        routesRes.json(),
+        catRes.json() as Promise<unknown>,
+        routesRes.json() as Promise<unknown>,
       ]);
-      setCatalog(cat as Catalog);
-      setRoutes((rts as TravelRoute[]) ?? []);
+      if (signal?.cancelled) return false;
+      const cities = Array.isArray((cat as Catalog)?.cities) ? (cat as Catalog).cities : null;
+      const places = Array.isArray((cat as Catalog)?.places) ? (cat as Catalog).places : null;
+      if (!cities || !places) {
+        setCatalog(EMPTY_CATALOG);
+        setRoutes([]);
+        return false;
+      }
+      setCatalog({ cities, places });
+      setRoutes(Array.isArray(rts) ? (rts as TravelRoute[]) : []);
       return true;
     } catch {
+      if (!signal?.cancelled) {
+        setCatalog(EMPTY_CATALOG);
+        setRoutes([]);
+      }
       return false;
     }
   }, [base, username]);
 
   useEffect(() => {
     if (!base || !username) return;
+    const signal = { cancelled: false };
     setLoading(true);
     setNotFound(false);
     setMapRestricted(false);
@@ -125,7 +144,8 @@ export function UserMapPage() {
 
     apiFetch(`${base}/api/users/${username}`, { headers: authHeaders() })
       .then(async (r) => {
-        if (r.status === 404) {
+        if (signal.cancelled) return;
+        if (r.status === 404 || !r.ok) {
           setNotFound(true);
           return;
         }
@@ -134,6 +154,7 @@ export function UserMapPage() {
           map_access?: 'full' | 'restricted';
           error?: string;
         };
+        if (signal.cancelled) return;
         if (!data.user) {
           setNotFound(true);
           return;
@@ -142,14 +163,22 @@ export function UserMapPage() {
         const restricted = data.map_access === 'restricted';
         setMapRestricted(restricted);
         if (!restricted) {
-          await loadCatalog();
+          await loadCatalog(signal);
         } else {
           setCatalog(EMPTY_CATALOG);
           setRoutes([]);
         }
       })
-      .catch(() => setNotFound(true))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!signal.cancelled) setNotFound(true);
+      })
+      .finally(() => {
+        if (!signal.cancelled) setLoading(false);
+      });
+
+    return () => {
+      signal.cancelled = true;
+    };
   }, [base, username, currentUser?.id, loadCatalog]);
 
   const flyToOnMap = useCallback((lng: number, lat: number) => {
@@ -198,6 +227,7 @@ export function UserMapPage() {
   const handlePlaceSaved = useCallback(async (place: Place, city: City) => {
     const ok = await persistPlace(place, city);
     if (ok) onboardingNotify('placeAdded');
+    return ok;
   }, [persistPlace, onboardingNotify]);
 
   const handlePlaceDeleted = useCallback(async (placeId: string): Promise<boolean> => {

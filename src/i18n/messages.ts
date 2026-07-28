@@ -36,6 +36,8 @@ const ru = {
       'Сохраняю копию в этом браузере (localStorage).',
     alertPlaceDeleteFailed: 'Не удалось удалить место:',
     errorMissingApiOrToken: 'Войдите под учётной записью администратора витрины',
+    routesLoadError:
+      'Не удалось загрузить маршруты витрины. Карта мест доступна, маршруты временно скрыты.',
   },
   category: {
     ariaTablist: 'Категории на карте',
@@ -124,6 +126,8 @@ const ru = {
     title: 'Добавить маршрут',
     intro:
       'В списке точек доступны только города из раздела «Города». Если нужного города нет — сначала добавьте его там.',
+    transitHint:
+      'Если хотите добавить в маршрут транзитный город, добавьте его аэропорт через «+ Место».',
     transportMode: 'Вид транспорта',
     waypoints: 'Точки маршрута',
     addVia: '+ Добавить промежуточную точку',
@@ -305,6 +309,7 @@ const ru = {
     usernameHint: 'используется в адресе вашей карты: /юзернейм',
     usernamePlaceholder: 'например: ivan_petrov',
     usernameRequired: 'Введите юзернейм',
+    usernameReserved: 'Этот юзернейм зарезервирован',
     usernameSaveError: 'Не удалось сохранить юзернейм',
     skipForNow: 'Позже',
     saving: 'Сохранение…',
@@ -313,6 +318,14 @@ const ru = {
     account: 'Аккаунт',
     logoutConfirmTitle: 'Выйти из аккаунта?',
     logoutConfirmMessage: 'Вы выйдете из текущей сессии. Чтобы снова редактировать карту, потребуется войти заново.',
+    error: {
+      exchange_failed: 'Не удалось завершить вход. Попробуйте ещё раз.',
+      invalid_state: 'Сессия входа устарела. Войдите снова.',
+      no_code: 'Вход отменён или не завершён.',
+      not_configured: 'Вход через Google не настроен на сервере.',
+      server_error: 'Ошибка сервера при входе. Попробуйте позже.',
+      generic: 'Не удалось войти. Попробуйте ещё раз.',
+    },
   },
   account: {
     title: 'Аккаунт',
@@ -486,7 +499,9 @@ const en = {
     alertPlaceRejected: 'Server rejected the place:',
     alertPlaceRejectedLocal: 'Saving a copy in this browser (localStorage).',
     alertPlaceDeleteFailed: 'Could not delete place:',
-    errorMissingApiOrToken: 'Missing API URL or admin token in URL',
+    errorMissingApiOrToken: 'Sign in with the showcase admin account',
+    routesLoadError:
+      'Could not load showcase routes. Places still work; routes are temporarily hidden.',
   },
   category: {
     ariaTablist: 'Map categories',
@@ -574,6 +589,8 @@ const en = {
     title: 'Add route',
     intro:
       'Only cities from your Cities list are available as waypoints. Add a city there first if it is missing.',
+    transitHint:
+      'To include a transit city in a route, add its airport via “+ Place”.',
     transportMode: 'Transport mode',
     waypoints: 'Route waypoints',
     addVia: '+ Add via point',
@@ -750,6 +767,7 @@ const en = {
     usernameHint: 'used in your map URL: /username',
     usernamePlaceholder: 'e.g. john_doe',
     usernameRequired: 'Please enter a username',
+    usernameReserved: 'This username is reserved',
     usernameSaveError: 'Failed to save username',
     skipForNow: 'Skip for now',
     saving: 'Saving…',
@@ -758,6 +776,14 @@ const en = {
     account: 'Account',
     logoutConfirmTitle: 'Sign out?',
     logoutConfirmMessage: 'You will be signed out of your current session. Sign in again to edit your map.',
+    error: {
+      exchange_failed: 'Could not finish sign-in. Please try again.',
+      invalid_state: 'Sign-in session expired. Please sign in again.',
+      no_code: 'Sign-in was cancelled or incomplete.',
+      not_configured: 'Google sign-in is not configured on the server.',
+      server_error: 'Server error during sign-in. Try again later.',
+      generic: 'Sign-in failed. Please try again.',
+    },
   },
   account: {
     title: 'Account',
