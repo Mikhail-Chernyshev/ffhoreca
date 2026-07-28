@@ -5,6 +5,9 @@ import type { Catalog, City, Place, TravelRoute } from '../../src/data/types';
 import type { MapVisibility, UserSubscription } from '../../src/data/subscription';
 import { normalizePhotoUrl } from './security';
 
+/** Пустой owner_id = витрина (showcase). Иначе = users.id. */
+export const SHOWCASE_OWNER_ID = '';
+
 export interface DbUser {
   id: string;
   google_id: string;
@@ -35,24 +38,66 @@ function normalizePlaceRow(raw: unknown): Place {
   return { ...p, photos };
 }
 
+function tableHasColumn(db: Database.Database, table: string, column: string): boolean {
+  const cols = db.prepare(`PRAGMA table_info(${table})`).all() as { name: string }[];
+  return cols.some((c) => c.name === column);
+}
+
+function tableExists(db: Database.Database, table: string): boolean {
+  const row = db.prepare(
+    `SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = ?`,
+  ).get(table) as { ok: number } | undefined;
+  return Boolean(row);
+}
+
+/** Старый PK только по id → (owner_id, id), чтобы витрина и юзеры не делили одну строку. */
+function migrateCatalogTableToOwnerScope(db: Database.Database, table: 'cities' | 'places' | 'routes'): void {
+  if (!tableExists(db, table)) return;
+  if (tableHasColumn(db, table, 'owner_id')) return;
+
+  if (!tableHasColumn(db, table, 'user_id')) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE`);
+  }
+
+  const tmp = `${table}_owner_scoped`;
+  db.exec(`
+    CREATE TABLE ${tmp} (
+      owner_id TEXT NOT NULL DEFAULT '',
+      id TEXT NOT NULL,
+      json TEXT NOT NULL,
+      user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY (owner_id, id)
+    );
+    INSERT INTO ${tmp} (owner_id, id, json, user_id)
+    SELECT COALESCE(user_id, ''), id, json, user_id FROM ${table};
+    DROP TABLE ${table};
+    ALTER TABLE ${tmp} RENAME TO ${table};
+  `);
+}
+
+function ensureCatalogTable(db: Database.Database, table: 'cities' | 'places' | 'routes'): void {
+  if (!tableExists(db, table)) {
+    db.exec(`
+      CREATE TABLE ${table} (
+        owner_id TEXT NOT NULL DEFAULT '',
+        id TEXT NOT NULL,
+        json TEXT NOT NULL,
+        user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+        PRIMARY KEY (owner_id, id)
+      );
+    `);
+    return;
+  }
+  migrateCatalogTableToOwnerScope(db, table);
+}
+
 export function openDatabase(dbPath: string): Database.Database {
   const dir = path.dirname(dbPath);
   fs.mkdirSync(dir, { recursive: true });
   const db = new Database(dbPath);
   db.pragma('journal_mode = WAL');
+  db.pragma('foreign_keys = ON');
   db.exec(`
-    CREATE TABLE IF NOT EXISTS cities (
-      id TEXT PRIMARY KEY NOT NULL,
-      json TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS places (
-      id TEXT PRIMARY KEY NOT NULL,
-      json TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS routes (
-      id TEXT PRIMARY KEY NOT NULL,
-      json TEXT NOT NULL
-    );
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY NOT NULL,
       google_id TEXT UNIQUE NOT NULL,
@@ -69,14 +114,6 @@ export function openDatabase(dbPath: string): Database.Database {
       PRIMARY KEY (owner_id, target_id)
     );
   `);
-  // Add user_id column to existing tables if missing (non-destructive migration)
-  for (const table of ['cities', 'places', 'routes'] as const) {
-    try {
-      db.exec(`ALTER TABLE ${table} ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE`);
-    } catch (e) {
-      if (!(e instanceof Error && e.message.includes('duplicate column name'))) throw e;
-    }
-  }
   for (const col of [
     "subscription TEXT NOT NULL DEFAULT 'freemium'",
     "map_visibility TEXT NOT NULL DEFAULT 'public'",
@@ -87,16 +124,34 @@ export function openDatabase(dbPath: string): Database.Database {
       if (!(e instanceof Error && e.message.includes('duplicate column name'))) throw e;
     }
   }
+
+  // Старые БД могли создать cities/places/routes с PK(id) — мигрируем.
+  for (const table of ['cities', 'places', 'routes'] as const) {
+    if (!tableExists(db, table)) continue;
+    if (!tableHasColumn(db, table, 'user_id')) {
+      try {
+        db.exec(`ALTER TABLE ${table} ADD COLUMN user_id TEXT REFERENCES users(id) ON DELETE CASCADE`);
+      } catch (e) {
+        if (!(e instanceof Error && e.message.includes('duplicate column name'))) throw e;
+      }
+    }
+  }
+  for (const table of ['cities', 'places', 'routes'] as const) {
+    ensureCatalogTable(db, table);
+  }
+
   return db;
 }
 
+// ---- Showcase (owner_id = '') ------------------------------------------------
+
 export function getCatalog(db: Database.Database): Catalog {
-  const cityRows = db.prepare('SELECT json FROM cities ORDER BY id').all() as {
-    json: string;
-  }[];
-  const placeRows = db.prepare('SELECT json FROM places ORDER BY id').all() as {
-    json: string;
-  }[];
+  const cityRows = db.prepare(
+    `SELECT json FROM cities WHERE owner_id = ? ORDER BY id`,
+  ).all(SHOWCASE_OWNER_ID) as { json: string }[];
+  const placeRows = db.prepare(
+    `SELECT json FROM places WHERE owner_id = ? ORDER BY id`,
+  ).all(SHOWCASE_OWNER_ID) as { json: string }[];
   return {
     cities: cityRows.map((r) => JSON.parse(r.json) as City),
     places: placeRows.map((r) => normalizePlaceRow(JSON.parse(r.json))),
@@ -105,42 +160,49 @@ export function getCatalog(db: Database.Database): Catalog {
 
 export function replaceCatalog(db: Database.Database, catalog: Catalog): void {
   const insCity = db.prepare(
-    'INSERT INTO cities (id, json) VALUES (@id, @json)',
+    `INSERT INTO cities (owner_id, id, json, user_id) VALUES (@owner_id, @id, @json, NULL)`,
   );
   const insPlace = db.prepare(
-    'INSERT INTO places (id, json) VALUES (@id, @json)',
+    `INSERT INTO places (owner_id, id, json, user_id) VALUES (@owner_id, @id, @json, NULL)`,
   );
   const tx = db.transaction(() => {
-    db.exec('DELETE FROM cities');
-    db.exec('DELETE FROM places');
+    db.prepare(`DELETE FROM cities WHERE owner_id = ?`).run(SHOWCASE_OWNER_ID);
+    db.prepare(`DELETE FROM places WHERE owner_id = ?`).run(SHOWCASE_OWNER_ID);
     for (const c of catalog.cities) {
-      insCity.run({ id: c.id, json: JSON.stringify(c) });
+      insCity.run({ owner_id: SHOWCASE_OWNER_ID, id: c.id, json: JSON.stringify(c) });
     }
     for (const p of catalog.places) {
-      insPlace.run({ id: p.id, json: JSON.stringify(p) });
+      insPlace.run({ owner_id: SHOWCASE_OWNER_ID, id: p.id, json: JSON.stringify(p) });
     }
   });
   tx();
 }
 
 export function deletePlace(db: Database.Database, id: string): boolean {
-  const r = db.prepare('DELETE FROM places WHERE id = ?').run(id);
+  const r = db.prepare(
+    `DELETE FROM places WHERE id = ? AND owner_id = ?`,
+  ).run(id, SHOWCASE_OWNER_ID);
   return r.changes > 0;
 }
 
 export function upsertPlace(db: Database.Database, place: Place): void {
   db.prepare(
-    'INSERT INTO places (id, json) VALUES (@id, @json) ON CONFLICT(id) DO UPDATE SET json = excluded.json',
-  ).run({ id: place.id, json: JSON.stringify(place) });
+    `INSERT INTO places (owner_id, id, json, user_id) VALUES (@owner_id, @id, @json, NULL)
+     ON CONFLICT(owner_id, id) DO UPDATE SET json = excluded.json`,
+  ).run({ owner_id: SHOWCASE_OWNER_ID, id: place.id, json: JSON.stringify(place) });
 }
 
 export function deleteCity(db: Database.Database, id: string): boolean {
-  const r = db.prepare('DELETE FROM cities WHERE id = ?').run(id);
+  const r = db.prepare(
+    `DELETE FROM cities WHERE id = ? AND owner_id = ?`,
+  ).run(id, SHOWCASE_OWNER_ID);
   return r.changes > 0;
 }
 
 export function countPlacesInCity(db: Database.Database, cityId: string): number {
-  const rows = db.prepare('SELECT json FROM places').all() as { json: string }[];
+  const rows = db.prepare(
+    `SELECT json FROM places WHERE owner_id = ?`,
+  ).all(SHOWCASE_OWNER_ID) as { json: string }[];
   let n = 0;
   for (const row of rows) {
     const p = JSON.parse(row.json) as Place;
@@ -151,23 +213,29 @@ export function countPlacesInCity(db: Database.Database, cityId: string): number
 
 export function upsertCity(db: Database.Database, city: City): void {
   db.prepare(
-    'INSERT INTO cities (id, json) VALUES (@id, @json) ON CONFLICT(id) DO UPDATE SET json = excluded.json',
-  ).run({ id: city.id, json: JSON.stringify(city) });
+    `INSERT INTO cities (owner_id, id, json, user_id) VALUES (@owner_id, @id, @json, NULL)
+     ON CONFLICT(owner_id, id) DO UPDATE SET json = excluded.json`,
+  ).run({ owner_id: SHOWCASE_OWNER_ID, id: city.id, json: JSON.stringify(city) });
 }
 
 export function getRoutes(db: Database.Database): TravelRoute[] {
-  const rows = db.prepare('SELECT json FROM routes ORDER BY id').all() as { json: string }[];
+  const rows = db.prepare(
+    `SELECT json FROM routes WHERE owner_id = ? ORDER BY id`,
+  ).all(SHOWCASE_OWNER_ID) as { json: string }[];
   return rows.map((r) => JSON.parse(r.json) as TravelRoute);
 }
 
 export function upsertRoute(db: Database.Database, route: TravelRoute): void {
   db.prepare(
-    'INSERT INTO routes (id, json) VALUES (@id, @json) ON CONFLICT(id) DO UPDATE SET json = excluded.json',
-  ).run({ id: route.id, json: JSON.stringify(route) });
+    `INSERT INTO routes (owner_id, id, json, user_id) VALUES (@owner_id, @id, @json, NULL)
+     ON CONFLICT(owner_id, id) DO UPDATE SET json = excluded.json`,
+  ).run({ owner_id: SHOWCASE_OWNER_ID, id: route.id, json: JSON.stringify(route) });
 }
 
 export function deleteRoute(db: Database.Database, id: string): boolean {
-  const r = db.prepare('DELETE FROM routes WHERE id = ?').run(id);
+  const r = db.prepare(
+    `DELETE FROM routes WHERE id = ? AND owner_id = ?`,
+  ).run(id, SHOWCASE_OWNER_ID);
   return r.changes > 0;
 }
 
@@ -228,8 +296,12 @@ export function searchUsers(db: Database.Database, query: string, limit = 10): D
 // ---- User catalog ----------------------------------------------------------
 
 export function getUserCatalog(db: Database.Database, userId: string): Catalog {
-  const cityRows = db.prepare('SELECT json FROM cities WHERE user_id = ? ORDER BY id').all(userId) as { json: string }[];
-  const placeRows = db.prepare('SELECT json FROM places WHERE user_id = ? ORDER BY id').all(userId) as { json: string }[];
+  const cityRows = db.prepare(
+    `SELECT json FROM cities WHERE owner_id = ? ORDER BY id`,
+  ).all(userId) as { json: string }[];
+  const placeRows = db.prepare(
+    `SELECT json FROM places WHERE owner_id = ? ORDER BY id`,
+  ).all(userId) as { json: string }[];
   return {
     cities: cityRows.map((r) => JSON.parse(r.json) as City),
     places: placeRows.map((r) => normalizePlaceRow(JSON.parse(r.json))),
@@ -237,23 +309,30 @@ export function getUserCatalog(db: Database.Database, userId: string): Catalog {
 }
 
 export function getUserRoutes(db: Database.Database, userId: string): TravelRoute[] {
-  const rows = db.prepare('SELECT json FROM routes WHERE user_id = ? ORDER BY id').all(userId) as { json: string }[];
+  const rows = db.prepare(
+    `SELECT json FROM routes WHERE owner_id = ? ORDER BY id`,
+  ).all(userId) as { json: string }[];
   return rows.map((r) => JSON.parse(r.json) as TravelRoute);
 }
 
 export function upsertUserCity(db: Database.Database, userId: string, city: City): void {
   db.prepare(
-    'INSERT INTO cities (id, json, user_id) VALUES (@id, @json, @user_id) ON CONFLICT(id) DO UPDATE SET json = excluded.json, user_id = excluded.user_id',
-  ).run({ id: city.id, json: JSON.stringify(city), user_id: userId });
+    `INSERT INTO cities (owner_id, id, json, user_id) VALUES (@owner_id, @id, @json, @user_id)
+     ON CONFLICT(owner_id, id) DO UPDATE SET json = excluded.json`,
+  ).run({ owner_id: userId, id: city.id, json: JSON.stringify(city), user_id: userId });
 }
 
 export function deleteUserCity(db: Database.Database, userId: string, cityId: string): boolean {
-  const r = db.prepare('DELETE FROM cities WHERE id = ? AND user_id = ?').run(cityId, userId);
+  const r = db.prepare(
+    `DELETE FROM cities WHERE id = ? AND owner_id = ?`,
+  ).run(cityId, userId);
   return r.changes > 0;
 }
 
 export function countUserPlacesInCity(db: Database.Database, userId: string, cityId: string): number {
-  const rows = db.prepare('SELECT json FROM places WHERE user_id = ?').all(userId) as { json: string }[];
+  const rows = db.prepare(
+    `SELECT json FROM places WHERE owner_id = ?`,
+  ).all(userId) as { json: string }[];
   let n = 0;
   for (const row of rows) {
     const p = JSON.parse(row.json) as Place;
@@ -264,44 +343,58 @@ export function countUserPlacesInCity(db: Database.Database, userId: string, cit
 
 export function upsertUserPlace(db: Database.Database, userId: string, place: Place): void {
   db.prepare(
-    'INSERT INTO places (id, json, user_id) VALUES (@id, @json, @user_id) ON CONFLICT(id) DO UPDATE SET json = excluded.json, user_id = excluded.user_id',
-  ).run({ id: place.id, json: JSON.stringify(place), user_id: userId });
+    `INSERT INTO places (owner_id, id, json, user_id) VALUES (@owner_id, @id, @json, @user_id)
+     ON CONFLICT(owner_id, id) DO UPDATE SET json = excluded.json`,
+  ).run({ owner_id: userId, id: place.id, json: JSON.stringify(place), user_id: userId });
 }
 
 export function deleteUserPlace(db: Database.Database, userId: string, placeId: string): boolean {
-  const r = db.prepare('DELETE FROM places WHERE id = ? AND user_id = ?').run(placeId, userId);
+  const r = db.prepare(
+    `DELETE FROM places WHERE id = ? AND owner_id = ?`,
+  ).run(placeId, userId);
   return r.changes > 0;
 }
 
 export function upsertUserRoute(db: Database.Database, userId: string, route: TravelRoute): void {
   db.prepare(
-    'INSERT INTO routes (id, json, user_id) VALUES (@id, @json, @user_id) ON CONFLICT(id) DO UPDATE SET json = excluded.json, user_id = excluded.user_id',
-  ).run({ id: route.id, json: JSON.stringify(route), user_id: userId });
+    `INSERT INTO routes (owner_id, id, json, user_id) VALUES (@owner_id, @id, @json, @user_id)
+     ON CONFLICT(owner_id, id) DO UPDATE SET json = excluded.json`,
+  ).run({ owner_id: userId, id: route.id, json: JSON.stringify(route), user_id: userId });
 }
 
 export function deleteUserRoute(db: Database.Database, userId: string, routeId: string): boolean {
-  const r = db.prepare('DELETE FROM routes WHERE id = ? AND user_id = ?').run(routeId, userId);
+  const r = db.prepare(
+    `DELETE FROM routes WHERE id = ? AND owner_id = ?`,
+  ).run(routeId, userId);
   return r.changes > 0;
 }
 
 export function countUserPlaces(db: Database.Database, userId: string): number {
-  const row = db.prepare('SELECT COUNT(*) AS n FROM places WHERE user_id = ?').get(userId) as { n: number };
+  const row = db.prepare(
+    `SELECT COUNT(*) AS n FROM places WHERE owner_id = ?`,
+  ).get(userId) as { n: number };
   return row.n;
 }
 
 export function countUserRoutes(db: Database.Database, userId: string): number {
-  const row = db.prepare('SELECT COUNT(*) AS n FROM routes WHERE user_id = ?').get(userId) as { n: number };
+  const row = db.prepare(
+    `SELECT COUNT(*) AS n FROM routes WHERE owner_id = ?`,
+  ).get(userId) as { n: number };
   return row.n;
 }
 
 export function countUserCities(db: Database.Database, userId: string): number {
-  const row = db.prepare('SELECT COUNT(*) AS n FROM cities WHERE user_id = ?').get(userId) as { n: number };
+  const row = db.prepare(
+    `SELECT COUNT(*) AS n FROM cities WHERE owner_id = ?`,
+  ).get(userId) as { n: number };
   return row.n;
 }
 
 /** Уникальные страны по городам пользователя */
 export function countUserCountries(db: Database.Database, userId: string): number {
-  const rows = db.prepare('SELECT json FROM cities WHERE user_id = ?').all(userId) as { json: string }[];
+  const rows = db.prepare(
+    `SELECT json FROM cities WHERE owner_id = ?`,
+  ).all(userId) as { json: string }[];
   const codes = new Set<string>();
   for (const row of rows) {
     const city = JSON.parse(row.json) as City;
@@ -319,7 +412,9 @@ export function getUserUsage(db: Database.Database, userId: string): UserUsage {
 }
 
 export function userCountryCodes(db: Database.Database, userId: string): Set<string> {
-  const rows = db.prepare('SELECT json FROM cities WHERE user_id = ?').all(userId) as { json: string }[];
+  const rows = db.prepare(
+    `SELECT json FROM cities WHERE owner_id = ?`,
+  ).all(userId) as { json: string }[];
   const codes = new Set<string>();
   for (const row of rows) {
     const city = JSON.parse(row.json) as City;
@@ -351,7 +446,9 @@ export function isFavorite(db: Database.Database, ownerId: string, targetId: str
 /** Имена файлов в uploads/, привязанные к фото мест пользователя. */
 export function collectUserUploadFilenames(db: Database.Database, userId: string): string[] {
   const filenames = new Set<string>();
-  const placeRows = db.prepare('SELECT json FROM places WHERE user_id = ?').all(userId) as { json: string }[];
+  const placeRows = db.prepare(
+    `SELECT json FROM places WHERE owner_id = ?`,
+  ).all(userId) as { json: string }[];
   for (const row of placeRows) {
     const p = normalizePlaceRow(JSON.parse(row.json));
     if (p.photos) {
@@ -368,9 +465,9 @@ export function collectUserUploadFilenames(db: Database.Database, userId: string
 export function deleteUserAccount(db: Database.Database, userId: string): void {
   const tx = db.transaction(() => {
     db.prepare('DELETE FROM favorites WHERE owner_id = ? OR target_id = ?').run(userId, userId);
-    db.prepare('DELETE FROM cities WHERE user_id = ?').run(userId);
-    db.prepare('DELETE FROM places WHERE user_id = ?').run(userId);
-    db.prepare('DELETE FROM routes WHERE user_id = ?').run(userId);
+    db.prepare('DELETE FROM cities WHERE owner_id = ?').run(userId);
+    db.prepare('DELETE FROM places WHERE owner_id = ?').run(userId);
+    db.prepare('DELETE FROM routes WHERE owner_id = ?').run(userId);
     db.prepare('DELETE FROM users WHERE id = ?').run(userId);
   });
   tx();

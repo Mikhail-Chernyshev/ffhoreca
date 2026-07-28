@@ -36,7 +36,7 @@ import { useUserUsage } from '../hooks/useUserUsage';
 import { useFreemiumWarnings } from '../hooks/useFreemiumWarnings';
 import { useToast } from '../components/ToastProvider';
 import { limitReachedMessage } from '../lib/limitMessages';
-import type { AuthUser } from '../lib/apiAuth';
+import { authHeaders, type AuthUser } from '../lib/apiAuth';
 import type { UserApiResult } from '../lib/apiUserCatalog';
 import { usePageMeta } from '../lib/pageMeta';
 import { mapPageUrl } from '../lib/shareUrl';
@@ -93,9 +93,10 @@ export function UserMapPage() {
   const loadCatalog = useCallback(async () => {
     if (!base || !username) return false;
     try {
+      const headers = authHeaders();
       const [catRes, routesRes] = await Promise.all([
-        apiFetch(`${base}/api/users/${username}/catalog`),
-        apiFetch(`${base}/api/users/${username}/routes`),
+        apiFetch(`${base}/api/users/${username}/catalog`, { headers }),
+        apiFetch(`${base}/api/users/${username}/routes`, { headers }),
       ]);
       if (catRes.status === 403 || routesRes.status === 403) {
         setMapRestricted(true);
@@ -122,7 +123,7 @@ export function UserMapPage() {
     setMapRestricted(false);
     setProfileUser(null);
 
-    apiFetch(`${base}/api/users/${username}`)
+    apiFetch(`${base}/api/users/${username}`, { headers: authHeaders() })
       .then(async (r) => {
         if (r.status === 404) {
           setNotFound(true);

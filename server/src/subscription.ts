@@ -53,7 +53,7 @@ export function checkFreemiumRouteLimit(
   if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
   if (normalizeSubscription(user.subscription) === 'premium') return { ok: true };
   const count = countUserRoutes(db, user.id);
-  const exists = db.prepare('SELECT 1 FROM routes WHERE id = ? AND user_id = ?').get(routeId, user.id);
+  const exists = db.prepare('SELECT 1 FROM routes WHERE id = ? AND owner_id = ?').get(routeId, user.id);
   if (exists || count < FREEMIUM_LIMITS.routes) return { ok: true };
   return { ok: false, code: 'routes', limit: FREEMIUM_LIMITS.routes };
 }
@@ -66,7 +66,7 @@ export function checkFreemiumPlaceLimit(
   if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
   if (normalizeSubscription(user.subscription) === 'premium') return { ok: true };
   const count = countUserPlaces(db, user.id);
-  const exists = db.prepare('SELECT 1 FROM places WHERE id = ? AND user_id = ?').get(placeId, user.id);
+  const exists = db.prepare('SELECT 1 FROM places WHERE id = ? AND owner_id = ?').get(placeId, user.id);
   if (exists || count < FREEMIUM_LIMITS.places) return { ok: true };
   return { ok: false, code: 'places', limit: FREEMIUM_LIMITS.places };
 }

@@ -1,5 +1,6 @@
 import type { City } from '../data/types';
 import { apiBaseUrl, apiFetch } from './apiBase';
+import { authHeaders } from './apiAuth';
 import { apiErrorMessage, apiMessage } from './apiMessages';
 
 export async function postCity(city: City): Promise<{ ok: boolean; message: string }> {
@@ -8,7 +9,7 @@ export async function postCity(city: City): Promise<{ ok: boolean; message: stri
 
   const res = await apiFetch(`${base}/api/cities`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ city }),
   });
   const text = await res.text().catch(() => '');
@@ -22,6 +23,7 @@ export async function deleteCityById(id: string): Promise<{ ok: boolean; message
 
   const res = await apiFetch(`${base}/api/cities/${encodeURIComponent(id)}`, {
     method: 'DELETE',
+    headers: authHeaders(),
   });
   const text = await res.text().catch(() => '');
   if (res.ok) return { ok: true, message: apiMessage('api.cityDeleted') };

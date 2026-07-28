@@ -595,7 +595,7 @@ app.post('/api/user/cities', requireAuth, async (c) => {
   const city = rec.city;
   if (!isValidCity(city)) return c.json({ error: 'Некорректный город' }, 400);
   const cityObj = city as City;
-  const exists = db.prepare('SELECT 1 FROM cities WHERE id = ? AND user_id = ?').get(cityObj.id, user.id);
+  const exists = db.prepare('SELECT 1 FROM cities WHERE id = ? AND owner_id = ?').get(cityObj.id, user.id);
   const limit = checkFreemiumCityLimit(db, user, cityObj, Boolean(exists));
   if (!limit.ok) return c.json({ error: limitErrorMessage(limit.code, limit.limit), code: limit.code }, 403);
   try {

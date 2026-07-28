@@ -1,5 +1,6 @@
 import type { TravelRoute } from '../data/types';
 import { apiBaseUrl, apiFetch } from './apiBase';
+import { authHeaders } from './apiAuth';
 import { apiErrorMessage, apiMessage } from './apiMessages';
 
 export async function fetchRoutes(): Promise<TravelRoute[]> {
@@ -16,7 +17,7 @@ export async function postRoute(route: TravelRoute): Promise<{ ok: boolean; mess
 
   const res = await apiFetch(`${base}/api/routes`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
     body: JSON.stringify({ route }),
   });
   const text = await res.text().catch(() => '');
@@ -30,6 +31,7 @@ export async function deleteRouteById(id: string): Promise<{ ok: boolean; messag
 
   const res = await apiFetch(`${base}/api/routes/${encodeURIComponent(id)}`, {
     method: 'DELETE',
+    headers: authHeaders(),
   });
   const text = await res.text().catch(() => '');
   if (res.ok) return { ok: true, message: apiMessage('api.routeDeleted') };

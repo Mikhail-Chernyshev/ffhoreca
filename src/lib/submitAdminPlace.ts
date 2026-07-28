@@ -1,5 +1,6 @@
 import type { City, Place } from '../data/types';
 import { apiFetch } from './apiBase';
+import { authHeaders } from './apiAuth';
 
 export type SubmitAdminPlaceResult =
   | { ok: true; message: string }
@@ -22,7 +23,7 @@ export async function submitAdminPlaceToApi(
   try {
     const res = await apiFetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ token, place, city }),
     });
     if (res.ok) {
@@ -59,7 +60,7 @@ export async function deleteAdminPlaceFromApi(
   try {
     const res = await apiFetch(deleteUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
       body: JSON.stringify({ token, id: placeId }),
     });
     if (res.ok) {
