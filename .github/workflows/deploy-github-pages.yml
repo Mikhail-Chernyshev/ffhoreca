@@ -28,7 +28,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: npm
 
       - name: Install
@@ -42,11 +42,16 @@ jobs:
           VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || format('/{0}/', github.event.repository.name) }}
         run: npm run build
 
-      - name: Copy budget HTML for mobile/Pages
+      - name: Copy static HTML docs into dist
         run: |
+          set -e
           cp docs/budget-2030.html dist/budget-2030.html
           cp "docs/budget-2030 copy.html" dist/budget-2030-copy.html
-          cp docs/todo.html dist/todo.html
+          if [ -f docs/todo.html ]; then
+            cp docs/todo.html dist/todo.html
+          else
+            echo "docs/todo.html not in repo — skip"
+          fi
 
       - uses: actions/upload-pages-artifact@v3
         with:
