@@ -23,9 +23,9 @@ function cacheKey(
   ].join('|');
 }
 
-/** Авто и автобус — по дорогам; остальное — дуга на карте. */
+/** Авто, автобус и временно поезд — по дорогам OSRM; остальное — дуга на карте. */
 export function usesRoadRouting(mode: UserRouteMode): boolean {
-  return mode === 'car' || mode === 'bus';
+  return mode === 'car' || mode === 'bus' || mode === 'train';
 }
 
 function osrmProfile(_mode: UserRouteMode): 'driving' {
