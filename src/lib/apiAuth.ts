@@ -172,6 +172,27 @@ export async function searchUsers(q: string): Promise<AuthUser[]> {
   return data.users;
 }
 
+export interface AdminUserListItem extends AuthUser {
+  created_at?: number;
+}
+
+export async function fetchAdminUsers(): Promise<AdminUserListItem[]> {
+  const base = apiBaseUrl();
+  if (!base) throw new Error('API не настроен');
+  const res = await apiFetch(`${base}/api/admin/users`, {
+    headers: authHeaders(),
+  });
+  const data = (await res.json().catch(() => ({}))) as {
+    users?: AdminUserListItem[];
+    error?: string;
+  };
+  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+  return (data.users ?? []).map((u) => ({
+    ...parseAuthUser(u),
+    created_at: u.created_at,
+  }));
+}
+
 export async function fetchUserFavorites(): Promise<AuthUser[]> {
   const res = await apiFetch(`${apiBaseUrl()}/api/user/favorites`, {
     headers: authHeaders(),

@@ -3251,6 +3251,26 @@
   background: rgba(245, 166, 35, 0.12);
 }
 
+.auth-user__admin-users {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: none;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  cursor: pointer;
+  color: var(--text-muted, #64748b);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1.2;
+}
+
+.auth-user__admin-users:hover {
+  color: var(--text, #222);
+  border-color: color-mix(in srgb, currentColor 45%, transparent);
+  background: color-mix(in srgb, currentColor 6%, transparent);
+}
+
 .auth-user__name {
   display: inline-flex;
   align-items: center;

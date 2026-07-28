@@ -26,6 +26,7 @@ import { AppHeader } from '../components/AppHeader';
 import { AppFooter } from '../components/AppFooter';
 import { AuthButton } from '../components/AuthButton';
 import { FavoritesModal } from '../components/FavoritesModal';
+import { AdminUsersModal } from '../components/AdminUsersModal';
 import { AccountModal } from '../components/AccountModal';
 import { MapRestrictedOverlay } from '../components/MapRestrictedOverlay';
 import { useAlert } from '../components/AlertProvider';
@@ -40,6 +41,7 @@ import { authHeaders, type AuthUser } from '../lib/apiAuth';
 import type { UserApiResult } from '../lib/apiUserCatalog';
 import { usePageMeta } from '../lib/pageMeta';
 import { mapPageUrl } from '../lib/shareUrl';
+import { useAdminMode } from '../hooks/useAdminMode';
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] };
 
@@ -49,6 +51,7 @@ export function UserMapPage() {
   const navigate = useNavigate();
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser();
   const [favoritesOpen, setFavoritesOpen] = useState(false);
+  const [adminUsersOpen, setAdminUsersOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [catalog, setCatalog] = useState<Catalog>(EMPTY_CATALOG);
   const [routes, setRoutes] = useState<TravelRoute[]>([]);
@@ -68,6 +71,7 @@ export function UserMapPage() {
   const mapRef = useRef<WorldMapRef>(null);
 
   const canEditMap = useCanEditMap(username);
+  const adminMode = useAdminMode(currentUser?.email);
   const mapMode = canEditMap ? 'ownMap' as const : 'sharedMap' as const;
   const onboarding = useMapOnboarding(mapMode !== 'sharedMap');
   const { notify: onboardingNotify, setTourOpen, skipAll, skipped } = onboarding;
@@ -291,6 +295,8 @@ export function UserMapPage() {
             onLogout={handleLogout}
             onOpenFavorites={() => setFavoritesOpen(true)}
             onOpenAccount={() => setAccountOpen(true)}
+            isAdmin={adminMode}
+            onOpenAdminUsers={() => setAdminUsersOpen(true)}
           />
         }
       />
@@ -431,6 +437,13 @@ export function UserMapPage() {
           currentUser={currentUser}
           onClose={() => setFavoritesOpen(false)}
           onOpenProfile={(uname) => { setFavoritesOpen(false); navigate(`/${uname}`); }}
+        />
+      ) : null}
+
+      {adminUsersOpen && adminMode ? (
+        <AdminUsersModal
+          onClose={() => setAdminUsersOpen(false)}
+          onOpenProfile={(uname) => { setAdminUsersOpen(false); navigate(`/${uname}`); }}
         />
       ) : null}
 

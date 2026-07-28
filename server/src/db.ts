@@ -305,6 +305,19 @@ export function searchUsers(db: Database.Database, query: string, limit = 10): D
   ).all(q, q, limit) as DbUser[];
 }
 
+/** Все пользователи (для админ-панели). */
+export function listAllUsers(db: Database.Database, limit = 500): DbUser[] {
+  const safeLimit = Math.min(Math.max(1, limit), 2000);
+  return db.prepare(
+    `SELECT * FROM users
+     ORDER BY
+       CASE WHEN username IS NULL THEN 1 ELSE 0 END,
+       LOWER(COALESCE(username, '')),
+       created_at DESC
+     LIMIT ?`,
+  ).all(safeLimit) as DbUser[];
+}
+
 // ---- User catalog ----------------------------------------------------------
 
 export function getUserCatalog(db: Database.Database, userId: string): Catalog {

@@ -34,9 +34,20 @@ interface Props {
   onLogout: () => void;
   onOpenFavorites: () => void;
   onOpenAccount: () => void;
+  /** Админ витрины — кнопка списка всех пользователей */
+  isAdmin?: boolean;
+  onOpenAdminUsers?: () => void;
 }
 
-export function AuthButton({ user, loading, onLogout, onOpenFavorites, onOpenAccount }: Props) {
+export function AuthButton({
+  user,
+  loading,
+  onLogout,
+  onOpenFavorites,
+  onOpenAccount,
+  isAdmin = false,
+  onOpenAdminUsers,
+}: Props) {
   const t = useT();
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
@@ -81,6 +92,17 @@ export function AuthButton({ user, loading, onLogout, onOpenFavorites, onOpenAcc
   return (
     <div className="auth-user">
       <div className="auth-user__row">
+        {isAdmin && onOpenAdminUsers ? (
+          <button
+            type="button"
+            className="auth-user__admin-users"
+            onClick={onOpenAdminUsers}
+            title={t('adminUsers.open')}
+            aria-label={t('adminUsers.open')}
+          >
+            {t('adminUsers.button')}
+          </button>
+        ) : null}
         <button
           type="button"
           className="auth-user__favorites"

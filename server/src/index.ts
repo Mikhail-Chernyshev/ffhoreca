@@ -16,6 +16,7 @@ import {
   upsertCity, upsertPlace, upsertRoute,
   findUserByGoogleId, findUserById, findUserByUsername,
   createUser, updateUser, isUsernameAvailable, searchUsers,
+  listAllUsers,
   getUserCatalog, getUserRoutes,
   upsertUserCity, deleteUserCity, countUserPlacesInCity,
   upsertUserPlace, deleteUserPlace,
@@ -561,6 +562,19 @@ app.get('/api/users/search', (c) => {
   if (q.length < 2) return c.json({ users: [] });
   const users = searchUsers(db, q, 10);
   return c.json({ users: users.map(serializePublicUser) });
+});
+
+app.get('/api/admin/users', async (c) => {
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
+  const limited = rateLimitOrResponse(c, 'admin-users', 30, 60_000);
+  if (limited) return limited;
+  const users = listAllUsers(db, 1000);
+  return c.json({
+    users: users.map((u) => ({
+      ...serializeAuthUser(u),
+      created_at: u.created_at,
+    })),
+  });
 });
 
 app.get('/api/users/:username', async (c) => {

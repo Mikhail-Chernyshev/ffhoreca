@@ -40,6 +40,7 @@ import { MapEditorActions } from './components/MapEditorActions'
 import { useCanEditMap } from './hooks/useCanEditMap'
 import { AuthButton } from './components/AuthButton'
 import { FavoritesModal } from './components/FavoritesModal'
+import { AdminUsersModal } from './components/AdminUsersModal'
 import { AccountModal } from './components/AccountModal'
 import { useAlert } from './components/AlertProvider'
 import { MapOnboarding } from './components/MapOnboarding'
@@ -83,6 +84,7 @@ function App() {
   const adminMode = useAdminMode(currentUser?.email)
   const canEditShowcase = useCanEditMap()
   const [favoritesOpen, setFavoritesOpen] = useState(false)
+  const [adminUsersOpen, setAdminUsersOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
   const onboardingEnabled = !adminMode
   const onboarding = useMapOnboarding(onboardingEnabled)
@@ -340,6 +342,8 @@ function App() {
             onLogout={handleLogout}
             onOpenFavorites={() => setFavoritesOpen(true)}
             onOpenAccount={() => setAccountOpen(true)}
+            isAdmin={adminMode}
+            onOpenAdminUsers={() => setAdminUsersOpen(true)}
           />
         }
       />
@@ -454,6 +458,12 @@ function App() {
           currentUser={currentUser}
           onClose={() => setFavoritesOpen(false)}
           onOpenProfile={(username) => { setFavoritesOpen(false); navigate(`/${username}`); }}
+        />
+      ) : null}
+      {adminUsersOpen && adminMode ? (
+        <AdminUsersModal
+          onClose={() => setAdminUsersOpen(false)}
+          onOpenProfile={(username) => { setAdminUsersOpen(false); navigate(`/${username}`); }}
         />
       ) : null}
       {accountOpen && currentUser ? (

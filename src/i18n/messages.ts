@@ -327,6 +327,15 @@ const ru = {
       generic: 'Не удалось войти. Попробуйте ещё раз.',
     },
   },
+  adminUsers: {
+    open: 'Все пользователи',
+    button: 'Users',
+    title: 'Пользователи ({{count}})',
+    searchPlaceholder: 'Поиск по имени, @username, email…',
+    loading: 'Загрузка…',
+    empty: 'Никого не найдено.',
+    noUsername: 'без username',
+  },
   account: {
     title: 'Аккаунт',
     usernameTitle: 'Юзернейм',
@@ -784,6 +793,15 @@ const en = {
       server_error: 'Server error during sign-in. Try again later.',
       generic: 'Sign-in failed. Please try again.',
     },
+  },
+  adminUsers: {
+    open: 'All users',
+    button: 'Users',
+    title: 'Users ({{count}})',
+    searchPlaceholder: 'Search by name, @username, email…',
+    loading: 'Loading…',
+    empty: 'No users found.',
+    noUsername: 'no username',
   },
   account: {
     title: 'Account',
