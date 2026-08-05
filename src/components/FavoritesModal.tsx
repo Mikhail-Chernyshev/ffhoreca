@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchUserFavorites,
   searchUsers,
@@ -7,6 +8,7 @@ import {
   type AuthUser,
 } from '../lib/apiAuth';
 import { useT } from '../i18n/LocaleContext';
+import { queryKeys } from '../lib/queryKeys';
 
 interface Props {
   currentUser: AuthUser;
@@ -16,25 +18,14 @@ interface Props {
 
 export function FavoritesModal({ currentUser, onClose, onOpenProfile }: Props) {
   const t = useT();
-  const [favorites, setFavorites] = useState<AuthUser[]>([]);
+  const qc = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<AuthUser[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [loadingFavs, setLoadingFavs] = useState(true);
-
-  const loadFavorites = useCallback(async () => {
-    setLoadingFavs(true);
-    try {
-      const favs = await fetchUserFavorites();
-      setFavorites(favs);
-    } finally {
-      setLoadingFavs(false);
-    }
-  }, []);
+  const [debouncedQuery, setDebouncedQuery] = useState('');
 
   useEffect(() => {
-    void loadFavorites();
-  }, [loadFavorites]);
+    const timer = setTimeout(() => setDebouncedQuery(searchQuery.trim()), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -44,40 +35,58 @@ export function FavoritesModal({ currentUser, onClose, onOpenProfile }: Props) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  useEffect(() => {
-    if (searchQuery.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setSearching(true);
-      try {
-        const results = await searchUsers(searchQuery);
-        setSearchResults(results.filter((u) => u.id !== currentUser.id));
-      } finally {
-        setSearching(false);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, currentUser.id]);
+  const favoritesQuery = useQuery({
+    queryKey: queryKeys.favorites,
+    queryFn: fetchUserFavorites,
+  });
+  const favorites = favoritesQuery.data ?? [];
 
-  const handleAdd = async (user: AuthUser) => {
-    try {
-      await addToFavorites(user.id);
-      setFavorites((prev) => (prev.find((f) => f.id === user.id) ? prev : [user, ...prev]));
-    } catch {
-      /* leave list unchanged */
-    }
-  };
+  const searchQueryEnabled = debouncedQuery.length >= 2;
+  const searchUsersQuery = useQuery({
+    queryKey: queryKeys.userSearch(debouncedQuery),
+    queryFn: () => searchUsers(debouncedQuery),
+    enabled: searchQueryEnabled,
+  });
+  const searchResults = (searchUsersQuery.data ?? []).filter(
+    (u) => u.id !== currentUser.id,
+  );
+  const searching = searchUsersQuery.isFetching;
 
-  const handleRemove = async (userId: string) => {
-    try {
-      await removeFromFavorites(userId);
-      setFavorites((prev) => prev.filter((f) => f.id !== userId));
-    } catch {
-      /* leave list unchanged */
-    }
-  };
+  const addFav = useMutation({
+    mutationFn: (user: AuthUser) => addToFavorites(user.id),
+    onMutate: async (user) => {
+      await qc.cancelQueries({ queryKey: queryKeys.favorites });
+      const prev = qc.getQueryData<AuthUser[]>(queryKeys.favorites);
+      qc.setQueryData<AuthUser[]>(queryKeys.favorites, (old = []) =>
+        old.some((f) => f.id === user.id) ? old : [user, ...old],
+      );
+      return { prev };
+    },
+    onError: (_e, _user, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKeys.favorites, ctx.prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.favorites });
+    },
+  });
+
+  const removeFav = useMutation({
+    mutationFn: (userId: string) => removeFromFavorites(userId),
+    onMutate: async (userId) => {
+      await qc.cancelQueries({ queryKey: queryKeys.favorites });
+      const prev = qc.getQueryData<AuthUser[]>(queryKeys.favorites);
+      qc.setQueryData<AuthUser[]>(queryKeys.favorites, (old = []) =>
+        old.filter((f) => f.id !== userId),
+      );
+      return { prev };
+    },
+    onError: (_e, _id, ctx) => {
+      if (ctx?.prev) qc.setQueryData(queryKeys.favorites, ctx.prev);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.favorites });
+    },
+  });
 
   const isFav = (id: string) => favorites.some((f) => f.id === id);
 
@@ -118,7 +127,7 @@ export function FavoritesModal({ currentUser, onClose, onOpenProfile }: Props) {
             {searching && <span className="favorites-modal__spinner" />}
           </div>
 
-          {searchQuery.trim().length >= 2 && (
+          {searchQueryEnabled && (
             <div className="favorites-modal__results">
               {searchResults.length === 0 && !searching && (
                 <p className="favorites-modal__empty">{t('favorites.noResults')}</p>
@@ -129,7 +138,9 @@ export function FavoritesModal({ currentUser, onClose, onOpenProfile }: Props) {
                   <button
                     type="button"
                     className={`fav-btn ${isFav(u.id) ? 'fav-btn--active' : ''}`}
-                    onClick={() => (isFav(u.id) ? handleRemove(u.id) : handleAdd(u))}
+                    onClick={() =>
+                      isFav(u.id) ? removeFav.mutate(u.id) : addFav.mutate(u)
+                    }
                     title={isFav(u.id) ? t('favorites.remove') : t('favorites.add')}
                   >
                     {isFav(u.id) ? '★' : '☆'}
@@ -141,7 +152,7 @@ export function FavoritesModal({ currentUser, onClose, onOpenProfile }: Props) {
 
           <div className="favorites-modal__list">
             <p className="favorites-modal__section-title">{t('favorites.saved')}</p>
-            {loadingFavs ? (
+            {favoritesQuery.isPending ? (
               <p className="favorites-modal__empty">{t('favorites.loading')}</p>
             ) : favorites.length === 0 ? (
               <p className="favorites-modal__empty">{t('favorites.empty')}</p>
@@ -152,7 +163,7 @@ export function FavoritesModal({ currentUser, onClose, onOpenProfile }: Props) {
                   <button
                     type="button"
                     className="fav-btn fav-btn--active"
-                    onClick={() => handleRemove(u.id)}
+                    onClick={() => removeFav.mutate(u.id)}
                     title={t('favorites.remove')}
                   >
                     ★

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { AddCityModal } from './components/AddCityModal'
 import { AddPlaceModal } from './components/AddPlaceModal'
@@ -14,7 +15,7 @@ import {
   mergeCatalogWithAdminPlaces,
   placesForFilter,
 } from './data/selectors'
-import type { Catalog, CategoryFilter, City, Place, TravelRoute } from './data/types'
+import type { Catalog, CategoryFilter, City, Place } from './data/types'
 import { fetchRoutes } from './lib/apiRoutes'
 import { useAdminMode } from './hooks/useAdminMode'
 import { useAppSplash } from './hooks/useAppSplash'
@@ -25,6 +26,7 @@ import {
   saveAdminPlacesToStorage,
 } from './lib/adminLocalPlacesStorage'
 import { fetchCatalogFromApi } from './lib/fetchCatalog'
+import { queryKeys } from './lib/queryKeys'
 import {
   adminPlacesApiUrlFromEnv,
   deleteAdminPlaceFromApi,
@@ -69,16 +71,12 @@ function App() {
   const [deletedPlaceIds, setDeletedPlaceIds] = useState<Set<string>>(() =>
     apiConfiguredAtInit ? new Set() : loadDeletedPlaceIds(),
   )
-  const [remoteCatalog, setRemoteCatalog] = useState<Catalog | null>(null)
-  const [catalogLoadError, setCatalogLoadError] = useState(false)
-  const [routesLoadError, setRoutesLoadError] = useState(false)
   const [addCityOpen, setAddCityOpen] = useState(false)
   const [addPlaceOpen, setAddPlaceOpen] = useState(false)
   const [addRouteOpen, setAddRouteOpen] = useState(false)
   const [managerOpen, setManagerOpen] = useState(false)
-  const [userRoutes, setUserRoutes] = useState<TravelRoute[]>([])
-  const [routesLoaded, setRoutesLoaded] = useState(!apiConfiguredAtInit)
   const mapRef = useRef<WorldMapRef>(null)
+  const queryClient = useQueryClient()
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser()
   const { showAlert } = useAlert()
   const adminMode = useAdminMode(currentUser?.email)
@@ -115,47 +113,32 @@ function App() {
 
   const apiConfigured = apiBaseUrl() !== ''
 
-  useEffect(() => {
-    if (!apiConfigured) return
-    let cancelled = false
-    void fetchCatalogFromApi()
-      .then((c) => {
-        if (!cancelled) {
-          setRemoteCatalog(c)
-          setCatalogLoadError(false)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setCatalogLoadError(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [apiConfigured])
+  const catalogQuery = useQuery({
+    queryKey: queryKeys.showcaseCatalog,
+    queryFn: fetchCatalogFromApi,
+    enabled: apiConfigured,
+  })
+  const routesQuery = useQuery({
+    queryKey: queryKeys.showcaseRoutes,
+    queryFn: fetchRoutes,
+    enabled: apiConfigured,
+  })
 
-  useEffect(() => {
+  const remoteCatalog = catalogQuery.data ?? null
+  const catalogLoadError = catalogQuery.isError
+  const userRoutes = routesQuery.data ?? []
+  const routesLoadError = routesQuery.isError
+  const routesLoaded = !apiConfigured || routesQuery.isFetched
+
+  const refreshShowcaseCatalog = useCallback(async () => {
     if (!apiConfigured) return
-    let cancelled = false
-    void fetchRoutes()
-      .then((routes) => {
-        if (!cancelled) {
-          setUserRoutes(routes)
-          setRoutesLoadError(false)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setUserRoutes([])
-          setRoutesLoadError(true)
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setRoutesLoaded(true)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [apiConfigured])
+    await queryClient.invalidateQueries({ queryKey: queryKeys.showcaseCatalog })
+  }, [apiConfigured, queryClient])
+
+  const refreshShowcaseRoutes = useCallback(async () => {
+    if (!apiConfigured) return
+    await queryClient.invalidateQueries({ queryKey: queryKeys.showcaseRoutes })
+  }, [apiConfigured, queryClient])
 
   const dataReady =
     !apiConfigured ||
@@ -224,13 +207,7 @@ function App() {
       if (postUrl && adminMode) {
         const r = await submitAdminPlaceToApi(postUrl, '', place, city);
         if (r.ok) {
-          if (base) {
-            try {
-              setRemoteCatalog(await fetchCatalogFromApi());
-            } catch {
-              /* оставляем старый remoteCatalog */
-            }
-          }
+          if (base) await refreshShowcaseCatalog();
           return { ok: true };
         }
         showAlert(
@@ -249,7 +226,7 @@ function App() {
 
       return { ok: false, message: t('app.errorMissingApiOrToken') };
     },
-    [apiConfigured, t, adminMode, showAlert],
+    [apiConfigured, t, adminMode, showAlert, refreshShowcaseCatalog],
   );
 
   const handlePlaceDeleted = useCallback(
@@ -262,13 +239,7 @@ function App() {
       if (postUrl && adminMode) {
         const r = await deleteAdminPlaceFromApi(postUrl, '', placeId)
         if (r.ok) {
-          if (base) {
-            try {
-              setRemoteCatalog(await fetchCatalogFromApi())
-            } catch {
-              /* ignore */
-            }
-          }
+          if (base) await refreshShowcaseCatalog()
           return true
         }
         showAlert(
@@ -295,7 +266,7 @@ function App() {
       showAlert(t('app.errorMissingApiOrToken'))
       return false
     },
-    [apiConfigured, t, adminMode, showAlert],
+    [apiConfigured, t, adminMode, showAlert, refreshShowcaseCatalog],
   )
 
   const handlePlaceUpdatedFromModal = useCallback(
@@ -402,13 +373,7 @@ function App() {
           catalog={catalogMerged}
           onClose={() => setAddCityOpen(false)}
           onSaved={async () => {
-            if (apiConfigured) {
-              try {
-                setRemoteCatalog(await fetchCatalogFromApi())
-              } catch {
-                /* оставляем старый remoteCatalog */
-              }
-            }
+            await refreshShowcaseCatalog()
             onboardingNotify('cityAdded')
           }}
         />
@@ -431,13 +396,10 @@ function App() {
           catalog={catalogMerged}
           onClose={() => setManagerOpen(false)}
           onRoutesChanged={() => {
-            void fetchRoutes().then((r) => setUserRoutes(r)).catch(() => {})
+            void refreshShowcaseRoutes()
           }}
           onCitiesChanged={() => {
-            if (!apiConfigured) return
-            void fetchCatalogFromApi()
-              .then((c) => setRemoteCatalog(c))
-              .catch(() => {})
+            void refreshShowcaseCatalog()
           }}
           onDeletePlace={handlePlaceDeleted}
           onEditPlace={(place) => { setSelectedPlace(place); }}
@@ -448,7 +410,7 @@ function App() {
           catalog={catalogMerged}
           onClose={() => setAddRouteOpen(false)}
           onSaved={() => {
-            void fetchRoutes().then((routes) => setUserRoutes(routes)).catch(() => {})
+            void refreshShowcaseRoutes()
             onboardingNotify('routeAdded')
           }}
         />

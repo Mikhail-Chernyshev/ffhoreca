@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   fetchCurrentUser,
   logout as doLogout,
   type AuthUser,
 } from '../lib/apiAuth';
+import { queryKeys } from '../lib/queryKeys';
 
 export interface AuthState {
   user: AuthUser | null;
@@ -13,28 +14,30 @@ export interface AuthState {
 }
 
 export function useCurrentUser(): AuthState {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const qc = useQueryClient();
 
-  const refetch = useCallback(async () => {
-    setLoading(true);
-    try {
-      const u = await fetchCurrentUser();
-      setUser(u);
-    } catch {
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const q = useQuery({
+    queryKey: queryKeys.authMe,
+    queryFn: fetchCurrentUser,
+  });
 
-  useEffect(() => {
-    void refetch();
-  }, [refetch]);
+  const logoutMutation = useMutation({
+    mutationFn: doLogout,
+    onSuccess: () => {
+      qc.setQueryData(queryKeys.authMe, null);
+      void qc.invalidateQueries({ queryKey: ['auth'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.favorites });
+    },
+  });
 
-  const logout = useCallback(() => {
-    void doLogout().then(() => setUser(null));
-  }, []);
-
-  return { user, loading, refetch, logout };
+  return {
+    user: q.data ?? null,
+    loading: q.isPending,
+    refetch: async () => {
+      await q.refetch();
+    },
+    logout: () => {
+      logoutMutation.mutate();
+    },
+  };
 }
