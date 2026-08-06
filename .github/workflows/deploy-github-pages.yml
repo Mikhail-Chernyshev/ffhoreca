@@ -38,6 +38,10 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
+          # Нужен для автоподстановки Google rating в «Новое место». Без него — Photon без рейтинга.
+          # В Google Cloud → API key → Application restrictions → HTTP referrers добавь:
+          # https://mikhail-chernyshev.github.io/*
+          VITE_GOOGLE_PLACES_API_KEY: ${{ secrets.VITE_GOOGLE_PLACES_API_KEY }}
           # Подкаталог на Pages: /имя-репозитория/ (для user site задай Variables → VITE_BASE_PATH = /)
           VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || format('/{0}/', github.event.repository.name) }}
         run: npm run build

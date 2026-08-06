@@ -143,7 +143,7 @@ async function searchGoogleCities(
   query: string,
   apiKey: string,
   signal?: AbortSignal,
-): Promise<CitySuggestion[]> {
+): Promise<CitySuggestion[] | null> {
   const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
     method: 'POST',
     signal,
@@ -160,7 +160,7 @@ async function searchGoogleCities(
     }),
   });
 
-  if (!res.ok) return [];
+  if (!res.ok) return null;
 
   const data = (await res.json()) as GooglePlacesResponse;
   return dedupeCitySuggestions(
@@ -340,7 +340,13 @@ export async function searchCities(
   if (q.length < 2) return [];
 
   if (GOOGLE_API_KEY) {
-    return searchGoogleCities(q, GOOGLE_API_KEY, signal);
+    try {
+      const google = await searchGoogleCities(q, GOOGLE_API_KEY, signal);
+      if (google) return google;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') throw e;
+      /* fall through to Photon */
+    }
   }
   return searchPhotonCities(q, signal);
 }

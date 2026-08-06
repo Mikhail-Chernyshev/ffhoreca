@@ -128,7 +128,7 @@ async function searchGooglePlaces(
   bias: { lat: number; lng: number } | undefined,
   apiKey: string,
   signal?: AbortSignal,
-): Promise<AddressSuggestion[]> {
+): Promise<AddressSuggestion[] | null> {
   const body: Record<string, unknown> = {
     textQuery: query,
     languageCode: searchLanguageForQuery(query),
@@ -156,7 +156,8 @@ async function searchGooglePlaces(
     body: JSON.stringify(body),
   });
 
-  if (!res.ok) return [];
+  // null = ошибка API (часто Referer / billing) → вызывающий код уйдёт в Photon
+  if (!res.ok) return null;
 
   const data = (await res.json()) as GooglePlacesResponse;
   const results: AddressSuggestion[] = [];
@@ -303,7 +304,13 @@ export async function searchPhotonAddresses(
   if (q.length < 3) return [];
 
   if (GOOGLE_API_KEY) {
-    return searchGooglePlaces(q, bias, GOOGLE_API_KEY, signal);
+    try {
+      const google = await searchGooglePlaces(q, bias, GOOGLE_API_KEY, signal);
+      if (google) return google;
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') throw e;
+      /* fall through to Photon */
+    }
   }
   return searchPhoton(q, bias, signal);
 }
