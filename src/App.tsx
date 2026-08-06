@@ -331,7 +331,11 @@ function App() {
         hideHelpControls
       />
 
-      <CategoryTabs value={filter} onChange={setFilter} />
+      <CategoryTabs
+        value={filter}
+        onChange={setFilter}
+        catalog={catalogMerged}
+      />
 
       {canEditShowcase ? (
         <MapEditorActions

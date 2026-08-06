@@ -369,6 +369,26 @@ export function placesForFilter(
   return catalog.places.filter((p) => placeMatchesFilter(p, filter));
 }
 
+/** Счётчики для табов фильтра карты (что показывается при выборе таба). */
+export function categoryTabCounts(
+  catalog: Catalog,
+): Record<CategoryFilter, number> {
+  return {
+    all: catalog.places.length,
+    places: placesForFilter(catalog, 'places').length,
+    cities: allCatalogCitiesForMap(catalog).length,
+    lodging: placesForFilter(catalog, 'lodging').length,
+    food: placesForFilter(catalog, 'food').length,
+    bar: placesForFilter(catalog, 'bar').length,
+    airport: placesForFilter(catalog, 'airport').length,
+  };
+}
+
+export function formatTabCount(n: number): string {
+  if (n > 99) return '99+';
+  return String(Math.max(0, n));
+}
+
 /** Места из админ-формы (localStorage) склеиваются после записей из `catalog.ts`. */
 export function mergeCatalogWithAdminPlaces(
   base: Catalog,

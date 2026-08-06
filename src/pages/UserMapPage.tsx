@@ -313,7 +313,7 @@ export function UserMapPage() {
         hideHelpControls
       />
 
-      <CategoryTabs value={filter} onChange={setFilter} />
+      <CategoryTabs value={filter} onChange={setFilter} catalog={catalog} />
 
       {canEditMap ? (
         <MapEditorActions

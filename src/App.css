@@ -453,9 +453,12 @@
 }
 
 .category-tabs__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   font: inherit;
   font-size: 0.95rem;
-  padding: 0.45rem 1rem;
+  padding: 0.45rem 0.85rem 0.45rem 1rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -475,6 +478,23 @@
 .category-tabs__btn--active {
   background: var(--accent-bg);
   border-color: var(--accent-border);
+  color: var(--text-h);
+}
+
+.category-tabs__count {
+  min-width: 1.35rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--text);
+  background: color-mix(in srgb, var(--text-h) 10%, transparent);
+}
+
+.category-tabs__btn--active .category-tabs__count {
+  background: color-mix(in srgb, var(--accent-border) 35%, transparent);
   color: var(--text-h);
 }
 
