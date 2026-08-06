@@ -32,10 +32,10 @@ const ru = {
     adminAddRoute: '+ Маршрут',
     adminOpenManager: '☰ Список',
     alertPlaceRejected: 'Сервер не принял место:',
-    alertPlaceRejectedLocal:
-      'Сохраняю копию в этом браузере (localStorage).',
+    alertPlaceRejectedLocal: 'Сохраняю копию в этом браузере (localStorage).',
     alertPlaceDeleteFailed: 'Не удалось удалить место:',
-    errorMissingApiOrToken: 'Войдите под учётной записью администратора витрины',
+    errorMissingApiOrToken:
+      'Войдите под учётной записью администратора витрины',
     routesLoadError:
       'Не удалось загрузить маршруты витрины. Карта мест доступна, маршруты временно скрыты.',
   },
@@ -117,8 +117,10 @@ const ru = {
     photosHint: 'Загрузите файлы или укажите URL по одному на строку.',
     uploadingFiles: 'Загрузка файлов…',
     ariaRemovePhoto: 'Удалить фото',
-    errorSelectFromSearch: 'Сначала найдите и выберите место в поле поиска — город подставится автоматически.',
-    errorOptionalFields: 'Проверьте корректность опциональных полей (оценка 0–5, координаты).',
+    errorSelectFromSearch:
+      'Сначала найдите и выберите место в поле поиска — город подставится автоматически.',
+    errorOptionalFields:
+      'Проверьте корректность опциональных полей (оценка 0–5, координаты).',
     errorPhotoUpload: 'Не удалось загрузить фото на сервер.',
     errorPhotoUploadDetail: 'Ошибка загрузки фото: {{message}}',
   },
@@ -126,8 +128,10 @@ const ru = {
     title: 'Добавить маршрут',
     intro:
       'В списке точек доступны только города из раздела «Города». Если нужного города нет — сначала добавьте его там.',
+    introPlane:
+      'Для авиа выбирайте аэропорт. Если у города несколько — все будут в списке (название аэропорта и город).',
     transitHint:
-      'Если хотите добавить в маршрут транзитный город, добавьте его аэропорт через «+ Место».',
+      'Нет нужного аэропорта? Добавьте его через «+ Место» с категорией «Аэропорты».',
     transportMode: 'Вид транспорта',
     waypoints: 'Точки маршрута',
     addVia: '+ Добавить промежуточную точку',
@@ -136,8 +140,14 @@ const ru = {
     placeholderOrigin: 'Выберите город отправления…',
     placeholderDestination: 'Выберите город назначения…',
     placeholderVia: 'Промежуточный город…',
+    placeholderOriginAirport: 'Аэропорт отправления…',
+    placeholderDestinationAirport: 'Аэропорт назначения…',
+    placeholderViaAirport: 'Промежуточный аэропорт…',
     errorAllWaypoints: 'Заполните все точки маршрута.',
     errorCityNotFound: 'Город не найден в каталоге: {{id}}',
+    errorAirportNotFound: 'Аэропорт не найден в каталоге: {{id}}',
+    errorNoAirports:
+      'В каталоге нет аэропортов. Добавьте аэропорт через «+ Место», затем создайте маршрут.',
     errorAdjacentDuplicate: 'Соседние точки не должны совпадать.',
   },
   manager: {
@@ -160,7 +170,8 @@ const ru = {
       'Место «{{name}}» будет удалено без возможности восстановления.',
     confirmDeleteCityTitle: 'Удалить город?',
     confirmDeleteCityMessage: 'Город «{{name}}» будет удалён из каталога.',
-    ariaDeleteCityBlocked: 'Нельзя удалить город {{name}} — есть привязанные места',
+    ariaDeleteCityBlocked:
+      'Нельзя удалить город {{name}} — есть привязанные места',
     deleteCityBlockedTooltip:
       'Город «{{name}}» нельзя удалить: в нём {{count}} мест(а). Сначала удалите места.',
     boardingPassLabel: 'ПОСАДОЧНЫЙ ТАЛОН',
@@ -192,7 +203,8 @@ const ru = {
     alertSummaryRequired: 'Краткое описание не может быть пустым.',
     alertStoryRequired: 'Текст впечатлений не может быть пустым.',
     alertRatingRange: 'Введите оценку от 0 до 5.',
-    alertUploadNeedsApi: 'Загрузка файлов требует входа под учётной записью администратора витрины.',
+    alertUploadNeedsApi:
+      'Загрузка файлов требует входа под учётной записью администратора витрины.',
     alertPhotoUploadFailed: 'Ошибка загрузки фото на сервер.',
     alertGenericError: 'Ошибка: {{message}}',
   },
@@ -272,14 +284,17 @@ const ru = {
     emailLabel: 'Email',
     emailPlaceholder: 'you@example.com',
     messageLabel: 'Комментарий (необязательно)',
-    messagePlaceholder: 'Что именно нарушает правила? Для «Другое» комментарий обязателен.',
+    messagePlaceholder:
+      'Что именно нарушает правила? Для «Другое» комментарий обязателен.',
     submit: 'Отправить жалобу',
     sending: 'Отправка…',
     sent: 'Спасибо. Жалоба отправлена — мы рассмотрим её в ближайшее время.',
     emailRequired: 'Укажите email',
     emailInvalid: 'Некорректный email',
-    messageRequiredForOther: 'Для причины «Другое» нужен комментарий (не короче 10 символов)',
-    sendError: 'Не удалось отправить. Попробуйте позже или напишите на tipsfromtripsapp@gmail.com',
+    messageRequiredForOther:
+      'Для причины «Другое» нужен комментарий (не короче 10 символов)',
+    sendError:
+      'Не удалось отправить. Попробуйте позже или напишите на tipsfromtripsapp@gmail.com',
     reason: {
       csam: 'Материалы с участием несовершеннолетних',
       sexual: 'Откровенный сексуальный контент (18+)',
@@ -317,7 +332,8 @@ const ru = {
     myMap: 'Моя карта',
     account: 'Аккаунт',
     logoutConfirmTitle: 'Выйти из аккаунта?',
-    logoutConfirmMessage: 'Вы выйдете из текущей сессии. Чтобы снова редактировать карту, потребуется войти заново.',
+    logoutConfirmMessage:
+      'Вы выйдете из текущей сессии. Чтобы снова редактировать карту, потребуется войти заново.',
     error: {
       exchange_failed: 'Не удалось завершить вход. Попробуйте ещё раз.',
       invalid_state: 'Сессия входа устарела. Войдите снова.',
@@ -366,15 +382,18 @@ const ru = {
     shareLinkCopied: 'Ссылка скопирована',
     comingSoon: 'Скоро',
     visibilityTitle: 'Видимость карты',
-    visibilityHint: 'При «Публичной» карту по ссылке видят все. При «Приватной» — только вы; избранное доступ не открывает.',
+    visibilityHint:
+      'При «Публичной» карту по ссылке видят все. При «Приватной» — только вы; избранное доступ не открывает.',
     visibilityPublic: 'Публичная',
     visibilityPublicHint: 'Любой, у кого есть ссылка, может открыть карту.',
     visibilitySubscribers: 'Приватная',
-    visibilitySubscribersHint: 'Карту видите только вы. Другие пользователи, в том числе из избранного, по ссылке не откроют.',
+    visibilitySubscribersHint:
+      'Карту видите только вы. Другие пользователи, в том числе из избранного, по ссылке не откроют.',
     loadError: 'Не удалось загрузить данные аккаунта',
     saveError: 'Не удалось сохранить настройки',
     deleteTitle: 'Удаление аккаунта',
-    deleteHint: 'Безвозвратно удалит профиль, карту, места, маршруты и загруженные фото.',
+    deleteHint:
+      'Безвозвратно удалит профиль, карту, места, маршруты и загруженные фото.',
     deleteButton: 'Удалить аккаунт',
     deleteConfirmTitle: 'Удалить аккаунт?',
     deleteConfirmMessage:
@@ -382,11 +401,16 @@ const ru = {
     deleteError: 'Не удалось удалить аккаунт',
   },
   limits: {
-    approachingCountries: 'Вы добавили {{used}} из {{max}} стран. Скоро лимит Freemium.',
-    approachingRoutes: 'Вы добавили {{used}} из {{max}} маршрутов. Скоро лимит Freemium.',
-    approachingPlaces: 'Вы добавили {{used}} из {{max}} мест. Скоро лимит Freemium.',
-    reachedCountries: 'Лимит Freemium: не более 10 стран. Перейдите на Premium.',
-    reachedRoutes: 'Лимит Freemium: не более 15 маршрутов. Перейдите на Premium.',
+    approachingCountries:
+      'Вы добавили {{used}} из {{max}} стран. Скоро лимит Freemium.',
+    approachingRoutes:
+      'Вы добавили {{used}} из {{max}} маршрутов. Скоро лимит Freemium.',
+    approachingPlaces:
+      'Вы добавили {{used}} из {{max}} мест. Скоро лимит Freemium.',
+    reachedCountries:
+      'Лимит Freemium: не более 10 стран. Перейдите на Premium.',
+    reachedRoutes:
+      'Лимит Freemium: не более 15 маршрутов. Перейдите на Premium.',
     reachedPlaces: 'Лимит Freemium: не более 50 мест. Перейдите на Premium.',
   },
   mapRestricted: {
@@ -401,7 +425,8 @@ const ru = {
     noResults: 'Никого не нашли',
     saved: 'Сохранённые карты',
     loading: 'Загрузка…',
-    empty: 'Вы ещё не добавили карты в избранное.\nПопробуйте найти пользователя по имени или юзернейму выше.',
+    empty:
+      'Вы ещё не добавили карты в избранное.\nПопробуйте найти пользователя по имени или юзернейму выше.',
     add: 'Добавить в избранное',
     remove: 'Убрать из избранного',
   },
@@ -437,7 +462,8 @@ const ru = {
     checklistAddCity: 'Добавить город',
     checklistAddPlace: 'Добавить место',
     checklistOpenPlace: 'Открыть карточку места',
-    checklistShare: 'Поделиться ссылкой на карту (для соцсетей — через «Ссылка для соцсетей» в аккаунте)',
+    checklistShare:
+      'Поделиться ссылкой на карту (для соцсетей — через «Ссылка для соцсетей» в аккаунте)',
     hintFirstCity:
       'Город на карте! Полный список городов и мест — в кнопке «☰ Список».',
     hintFirstPlace:
@@ -497,7 +523,8 @@ const en = {
     en: 'EN',
   },
   app: {
-    tagline: 'Points we’ve been: hotels, places, bars and restaurants worldwide',
+    tagline:
+      'Points we’ve been: hotels, places, bars and restaurants worldwide',
     catalogLoading: 'Loading catalog from server…',
     catalogLoadError:
       'Could not load catalog from API. Built-in data is not used as fallback — check network, CORS and VITE_API_BASE_URL.',
@@ -559,7 +586,8 @@ const en = {
     intro:
       'Search via Google Places (if VITE_GOOGLE_PLACES_API_KEY is set). The city is saved on the server and appears in the catalog and on the map.',
     search: 'Find city',
-    searchHint: 'Type a name — pick a suggestion to fill coordinates and country.',
+    searchHint:
+      'Type a name — pick a suggestion to fill coordinates and country.',
     searchPlaceholder: 'Start typing a city name…',
     countryCode: 'Country code (ISO, 2 letters)',
     lng: 'Longitude',
@@ -589,7 +617,8 @@ const en = {
     photosHint: 'Upload files or enter one URL per line.',
     uploadingFiles: 'Uploading files…',
     ariaRemovePhoto: 'Remove photo',
-    errorSelectFromSearch: 'Find and pick a place in search first — the city will be filled automatically.',
+    errorSelectFromSearch:
+      'Find and pick a place in search first — the city will be filled automatically.',
     errorOptionalFields: 'Check optional fields (rating 0–5, coordinates).',
     errorPhotoUpload: 'Could not upload photos to the server.',
     errorPhotoUploadDetail: 'Photo upload error: {{message}}',
@@ -598,8 +627,10 @@ const en = {
     title: 'Add route',
     intro:
       'Only cities from your Cities list are available as waypoints. Add a city there first if it is missing.',
+    introPlane:
+      'For flights, pick an airport. If a city has several, each appears in the list (airport name and city).',
     transitHint:
-      'To include a transit city in a route, add its airport via “+ Place”.',
+      'Missing an airport? Add it via “+ Place” with the Airports category.',
     transportMode: 'Transport mode',
     waypoints: 'Route waypoints',
     addVia: '+ Add via point',
@@ -608,8 +639,14 @@ const en = {
     placeholderOrigin: 'Select origin city…',
     placeholderDestination: 'Select destination city…',
     placeholderVia: 'Via city…',
+    placeholderOriginAirport: 'Origin airport…',
+    placeholderDestinationAirport: 'Destination airport…',
+    placeholderViaAirport: 'Via airport…',
     errorAllWaypoints: 'Fill in all route waypoints.',
     errorCityNotFound: 'City not found in catalog: {{id}}',
+    errorAirportNotFound: 'Airport not found in catalog: {{id}}',
+    errorNoAirports:
+      'No airports in the catalog yet. Add an airport via “+ Place”, then create the route.',
     errorAdjacentDuplicate: 'Adjacent waypoints must not be the same.',
   },
   manager: {
@@ -630,7 +667,8 @@ const en = {
     confirmDeletePlaceTitle: 'Delete place?',
     confirmDeletePlaceMessage: 'Place «{{name}}» will be permanently deleted.',
     confirmDeleteCityTitle: 'Delete city?',
-    confirmDeleteCityMessage: 'City «{{name}}» will be removed from the catalog.',
+    confirmDeleteCityMessage:
+      'City «{{name}}» will be removed from the catalog.',
     ariaDeleteCityBlocked: 'Cannot delete city {{name}} — it has linked places',
     deleteCityBlockedTooltip:
       'Cannot delete «{{name}}»: it has {{count}} place(s). Delete places first.',
@@ -650,7 +688,8 @@ const en = {
     report: 'Report',
     confirmDeleteTitle: 'Delete place?',
     confirmDeleteMessage: '«{{name}}» will be permanently deleted.',
-    emptySummaryHint: 'Add description in catalog: summary and story fields for the place.',
+    emptySummaryHint:
+      'Add description in catalog: summary and story fields for the place.',
     ariaCoords: 'Coordinates',
     ariaPrevPhoto: 'Previous photo',
     ariaNextPhoto: 'Next photo',
@@ -661,12 +700,14 @@ const en = {
     alertSummaryRequired: 'Summary cannot be empty.',
     alertStoryRequired: 'Story text cannot be empty.',
     alertRatingRange: 'Enter a rating from 0 to 5.',
-    alertUploadNeedsApi: 'File upload requires logging in as the showcase admin.',
+    alertUploadNeedsApi:
+      'File upload requires logging in as the showcase admin.',
     alertPhotoUploadFailed: 'Photo upload to server failed.',
     alertGenericError: 'Error: {{message}}',
   },
   cityModal: {
-    emptySummaryHint: 'Add description in catalog: summary and story fields for the city.',
+    emptySummaryHint:
+      'Add description in catalog: summary and story fields for the city.',
     notesHeading: 'Description',
   },
   map: {
@@ -689,7 +730,8 @@ const en = {
     hintFilterPlaces:
       'Misc and cities that have them; other venues after zooming in.',
     hintFilterCities: 'Cities only; venues hidden.',
-    hintFilterAll: 'Without city GeoJSON — point only; venues after zooming in.',
+    hintFilterAll:
+      'Without city GeoJSON — point only; venues after zooming in.',
     hintFilterAirport: 'Airports only (after zooming in).',
     hintFilterDefault: 'Venues for the selected tab — after zooming in.',
     aboutIntro:
@@ -712,7 +754,8 @@ const en = {
     link: 'Feedback',
     expand: 'Expand feedback section',
     collapse: 'Collapse feedback section',
-    intro: 'Questions, ideas, and bugs — reach out directly or use the form below.',
+    intro:
+      'Questions, ideas, and bugs — reach out directly or use the form below.',
     emailLabel: 'Email',
     telegramLabel: 'Telegram',
     formTitle: 'Send us a message',
@@ -732,7 +775,7 @@ const en = {
   },
   report: {
     title: 'Report this place',
-    subtitle: '«{{name}}» on @{{username}}\'s map',
+    subtitle: "«{{name}}» on @{{username}}'s map",
     reasonLabel: 'Reason',
     nameLabel: 'Name',
     namePlaceholder: 'How should we address you',
@@ -745,8 +788,10 @@ const en = {
     sent: 'Thank you. Your report has been sent — we will review it soon.',
     emailRequired: 'Please enter your email',
     emailInvalid: 'Invalid email address',
-    messageRequiredForOther: 'For “Other”, please add a comment (at least 10 characters)',
-    sendError: 'Could not send. Try again later or email tipsfromtripsapp@gmail.com',
+    messageRequiredForOther:
+      'For “Other”, please add a comment (at least 10 characters)',
+    sendError:
+      'Could not send. Try again later or email tipsfromtripsapp@gmail.com',
     reason: {
       csam: 'Child sexual abuse material',
       sexual: 'Explicit sexual content (18+)',
@@ -784,7 +829,8 @@ const en = {
     myMap: 'My map',
     account: 'Account',
     logoutConfirmTitle: 'Sign out?',
-    logoutConfirmMessage: 'You will be signed out of your current session. Sign in again to edit your map.',
+    logoutConfirmMessage:
+      'You will be signed out of your current session. Sign in again to edit your map.',
     error: {
       exchange_failed: 'Could not finish sign-in. Please try again.',
       invalid_state: 'Sign-in session expired. Please sign in again.',
@@ -833,15 +879,18 @@ const en = {
     shareLinkCopied: 'Link copied',
     comingSoon: 'Coming soon',
     visibilityTitle: 'Map visibility',
-    visibilityHint: 'Public maps are open to anyone with the link. Private maps are visible only to you; favorites do not grant access.',
+    visibilityHint:
+      'Public maps are open to anyone with the link. Private maps are visible only to you; favorites do not grant access.',
     visibilityPublic: 'Public',
     visibilityPublicHint: 'Anyone with the link can open your map.',
     visibilitySubscribers: 'Private',
-    visibilitySubscribersHint: 'Only you can view your map. Other users, including favorites, cannot open it via link.',
+    visibilitySubscribersHint:
+      'Only you can view your map. Other users, including favorites, cannot open it via link.',
     loadError: 'Failed to load account data',
     saveError: 'Failed to save settings',
     deleteTitle: 'Delete account',
-    deleteHint: 'Permanently removes your profile, map, places, routes, and uploaded photos.',
+    deleteHint:
+      'Permanently removes your profile, map, places, routes, and uploaded photos.',
     deleteButton: 'Delete account',
     deleteConfirmTitle: 'Delete account?',
     deleteConfirmMessage:
@@ -849,9 +898,12 @@ const en = {
     deleteError: 'Could not delete account',
   },
   limits: {
-    approachingCountries: 'You have added {{used}} of {{max}} countries. Freemium limit is near.',
-    approachingRoutes: 'You have added {{used}} of {{max}} routes. Freemium limit is near.',
-    approachingPlaces: 'You have added {{used}} of {{max}} places. Freemium limit is near.',
+    approachingCountries:
+      'You have added {{used}} of {{max}} countries. Freemium limit is near.',
+    approachingRoutes:
+      'You have added {{used}} of {{max}} routes. Freemium limit is near.',
+    approachingPlaces:
+      'You have added {{used}} of {{max}} places. Freemium limit is near.',
     reachedCountries: 'Freemium limit: up to 10 countries. Upgrade to Premium.',
     reachedRoutes: 'Freemium limit: up to 15 routes. Upgrade to Premium.',
     reachedPlaces: 'Freemium limit: up to 50 places. Upgrade to Premium.',
@@ -868,7 +920,8 @@ const en = {
     noResults: 'No users found',
     saved: 'Saved maps',
     loading: 'Loading…',
-    empty: 'You have no saved maps yet.\nTry searching for a user by name or username above.',
+    empty:
+      'You have no saved maps yet.\nTry searching for a user by name or username above.',
     add: 'Add to favorites',
     remove: 'Remove from favorites',
   },
@@ -904,7 +957,8 @@ const en = {
     checklistAddCity: 'Add a city',
     checklistAddPlace: 'Add a place',
     checklistOpenPlace: 'Open a place card',
-    checklistShare: 'Share your map link (for social apps — “Social share link” in account)',
+    checklistShare:
+      'Share your map link (for social apps — “Social share link” in account)',
     hintFirstCity:
       'City on the map! Full list of cities and places — in the «☰ List» button.',
     hintFirstPlace:
@@ -918,7 +972,7 @@ const en = {
     tourTitle: 'How it works',
     tourSlide1Title: 'Your travel map',
     tourSlide1Body:
-      'Collect cities and places you\'ve been. Your map is public — share the link with friends.',
+      "Collect cities and places you've been. Your map is public — share the link with friends.",
     tourSlide2Title: 'Cities and places',
     tourSlide2Body:
       'Tap «+ City» or «+ Place», search, add a description and photos.',
@@ -930,18 +984,21 @@ const en = {
       '«+ Route» draws paths between cities. «☰ List» — all cities, places, and routes.',
     tourSlide5Title: 'Share',
     tourSlide5Body:
-      'Your map link includes your username. Save others\' maps to favorites (★).',
+      "Your map link includes your username. Save others' maps to favorites (★).",
     tourShowcaseSlide1Title: 'Example map',
     tourShowcaseSlide1Body:
       'The home page is a demo map. Sign in to create your own.',
     tourShowcaseSlide2Title: 'Your own map',
     tourShowcaseSlide2Body:
       'After sign-in, pick a username — you get an empty personal map to fill from scratch.',
-    tourDontAutoOpen: 'Don\'t suggest on open',
+    tourDontAutoOpen: "Don't suggest on open",
   },
 };
 
-export const messages: Record<AppLocale, typeof ru> = { ru, en: en as typeof ru };
+export const messages: Record<AppLocale, typeof ru> = {
+  ru,
+  en: en as typeof ru,
+};
 
 export type MessageTree = typeof ru;
 

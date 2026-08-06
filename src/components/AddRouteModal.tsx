@@ -1,9 +1,17 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import type { Catalog, RouteWaypoint, TravelRoute, UserRouteMode } from '../data/types';
-import { catalogCitiesListed } from '../data/selectors';
+import {
+  airportsForRoutePicker,
+  catalogCitiesListed,
+} from '../data/selectors';
 import { postRoute } from '../lib/apiRoutes';
 import { RouteModeIcon } from './RouteModeIcon';
-import { CitySearchSelect } from './CitySearchSelect';
+import {
+  CitySearchSelect,
+  cityOptionMatchesQuery,
+  cityOptionsFromCatalog,
+  type SearchSelectOption,
+} from './CitySearchSelect';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { routeModeAria } from '../i18n/labels';
 
@@ -22,6 +30,21 @@ function cityToWaypoint(cityId: string, catalog: Catalog): RouteWaypoint | null 
   return { cityId: city.id, name: city.name, lat: city.lat, lng: city.lng };
 }
 
+function airportToWaypoint(
+  placeId: string,
+  catalog: Catalog,
+): RouteWaypoint | null {
+  const airport = airportsForRoutePicker(catalog).find((a) => a.placeId === placeId);
+  if (!airport) return null;
+  return {
+    cityId: airport.cityId,
+    placeId: airport.placeId,
+    name: airport.name,
+    lat: airport.lat,
+    lng: airport.lng,
+  };
+}
+
 export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
   const t = useT();
   const { locale } = useLocale();
@@ -30,7 +53,30 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const listedCities = useMemo(() => catalogCitiesListed(catalog), [catalog]);
+  const airports = useMemo(() => airportsForRoutePicker(catalog), [catalog]);
+  const citiesById = useMemo(
+    () => new Map(listedCities.map((c) => [c.id, c])),
+    [listedCities],
+  );
+
+  const pickerOptions: SearchSelectOption[] = useMemo(() => {
+    if (mode === 'plane') {
+      return airports.map((a) => ({
+        id: a.placeId,
+        name: a.name,
+        secondary: a.cityName,
+      }));
+    }
+    return cityOptionsFromCatalog(listedCities);
+  }, [mode, airports, listedCities]);
+
   const waypointPlaceholder = (index: number, total: number): string => {
+    if (mode === 'plane') {
+      if (index === 0) return t('addRoute.placeholderOriginAirport');
+      if (total >= 2 && index === total - 1) return t('addRoute.placeholderDestinationAirport');
+      return t('addRoute.placeholderViaAirport');
+    }
     if (index === 0) return t('addRoute.placeholderOrigin');
     if (total >= 2 && index === total - 1) return t('addRoute.placeholderDestination');
     return t('addRoute.placeholderVia');
@@ -49,9 +95,20 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
     setWaypointIds((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleModeChange = (next: UserRouteMode) => {
+    setMode(next);
+    setWaypointIds((prev) => prev.map(() => ''));
+    setError(null);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (mode === 'plane' && airports.length === 0) {
+      setError(t('addRoute.errorNoAirports'));
+      return;
+    }
 
     const waypoints: RouteWaypoint[] = [];
     for (let i = 0; i < waypointIds.length; i++) {
@@ -60,16 +117,27 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
         setError(t('addRoute.errorAllWaypoints'));
         return;
       }
-      const wp = cityToWaypoint(id, catalog);
+      const wp =
+        mode === 'plane' ? airportToWaypoint(id, catalog) : cityToWaypoint(id, catalog);
       if (!wp) {
-        setError(t('addRoute.errorCityNotFound', { id }));
+        setError(
+          mode === 'plane'
+            ? t('addRoute.errorAirportNotFound', { id })
+            : t('addRoute.errorCityNotFound', { id }),
+        );
         return;
       }
       waypoints.push(wp);
     }
 
     for (let i = 0; i < waypoints.length - 1; i++) {
-      if (waypoints[i]!.cityId === waypoints[i + 1]!.cityId) {
+      const a = waypoints[i]!;
+      const b = waypoints[i + 1]!;
+      const same =
+        mode === 'plane'
+          ? (a.placeId ?? a.cityId) === (b.placeId ?? b.cityId)
+          : a.cityId === b.cityId;
+      if (same) {
         setError(t('addRoute.errorAdjacentDuplicate'));
         return;
       }
@@ -87,8 +155,8 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
       if (!result.ok) { setError(result.message); return; }
       onSaved();
       onClose();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
@@ -109,8 +177,12 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
         <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>×</button>
 
         <h2 id="add-route-modal-title" className="modal-title">{t('addRoute.title')}</h2>
-        <p className="modal-summary modal-summary--muted">{t('addRoute.intro')}</p>
-        <p className="modal-summary modal-summary--muted">{t('addRoute.transitHint')}</p>
+        <p className="modal-summary modal-summary--muted">
+          {mode === 'plane' ? t('addRoute.introPlane') : t('addRoute.intro')}
+        </p>
+        {mode === 'plane' ? (
+          <p className="modal-summary modal-summary--muted">{t('addRoute.transitHint')}</p>
+        ) : null}
 
         <form className="add-place-form" onSubmit={handleSubmit}>
 
@@ -128,7 +200,7 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
                     name="route-mode"
                     value={m}
                     checked={mode === m}
-                    onChange={() => setMode(m)}
+                    onChange={() => handleModeChange(m)}
                     className="add-route-mode-picker__input"
                   />
                   <RouteModeIcon mode={m} />
@@ -141,17 +213,22 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
             <div className="add-place-form__legend" style={{ marginBottom: '0.5rem' }}>
               {t('addRoute.waypoints')}
             </div>
-            {waypointIds.map((cityId, i) => (
+            {waypointIds.map((selectedId, i) => (
               <div key={i} className="add-route-waypoints__row">
                 <span className="add-route-waypoints__letter">
                   {String.fromCharCode(65 + i)}
                 </span>
                 <CitySearchSelect
-                  cities={catalogCitiesListed(catalog)}
-                  value={cityId}
+                  options={pickerOptions}
+                  value={selectedId}
                   onChange={(id) => setWaypointAt(i, id)}
                   placeholder={waypointPlaceholder(i, waypointIds.length)}
                   required
+                  matchesQuery={
+                    mode === 'plane'
+                      ? undefined
+                      : (option, q) => cityOptionMatchesQuery(option, q, citiesById)
+                  }
                 />
                 {waypointIds.length > 2 && (
                   <button

@@ -6,6 +6,7 @@ import type {
   City,
   Place,
   PlaceCategory,
+  UserRouteMode,
 } from './types';
 
 const GEO_ID_PAD = 3;
@@ -367,6 +368,70 @@ export function placesForFilter(
   filter: CategoryFilter,
 ): Place[] {
   return catalog.places.filter((p) => placeMatchesFilter(p, filter));
+}
+
+/** Аэропорт для выбора точки авиамаршрута */
+export type RouteAirportOption = {
+  placeId: string;
+  cityId: string;
+  /** Название аэропорта */
+  name: string;
+  /** Город для подписи в списке */
+  cityName: string;
+  lat: number;
+  lng: number;
+};
+
+/** Все аэропорты каталога для пикера авиамаршрута (несколько на город — отдельные пункты). */
+export function airportsForRoutePicker(catalog: Catalog): RouteAirportOption[] {
+  const out: RouteAirportOption[] = [];
+  for (const place of catalog.places) {
+    if (!place.categories.includes('airport')) continue;
+    const [lng, lat] = placeCoordinates(catalog, place);
+    const cityId = canonicalCityId(catalog, place.cityId, { lat, lng });
+    out.push({
+      placeId: place.id,
+      cityId,
+      name: place.name,
+      cityName: cityLabelForPlace(catalog, place),
+      lat,
+      lng,
+    });
+  }
+  out.sort(
+    (a, b) =>
+      a.cityName.localeCompare(b.cityName, undefined, { sensitivity: 'base' }) ||
+      a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+  );
+  return out;
+}
+
+/**
+ * Координаты точки маршрута: для plane — явный аэропорт или единственный аэропорт города;
+ * иначе lat/lng из waypoint.
+ */
+export function resolveRouteWaypointCoords(
+  catalog: Catalog,
+  waypoint: { cityId: string; lat: number; lng: number; placeId?: string },
+  mode: UserRouteMode,
+): [number, number] {
+  if (mode !== 'plane') return [waypoint.lng, waypoint.lat];
+
+  if (waypoint.placeId) {
+    const place = catalog.places.find((p) => p.id === waypoint.placeId);
+    if (place?.categories.includes('airport')) {
+      return placeCoordinates(catalog, place);
+    }
+  }
+
+  const airports = airportsForRoutePicker(catalog).filter(
+    (a) => a.cityId === waypoint.cityId,
+  );
+  if (airports.length === 1) {
+    return [airports[0]!.lng, airports[0]!.lat];
+  }
+
+  return [waypoint.lng, waypoint.lat];
 }
 
 /** Счётчики для табов фильтра карты (что показывается при выборе таба). */

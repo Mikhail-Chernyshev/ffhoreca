@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useReducer, useState, useSyncExternalStore } from 'react';
 import { Layer, Marker, Source } from 'react-map-gl/maplibre';
 import type { FeatureCollection, Geometry } from 'geojson';
-import type { TravelRoute, UserRouteMode } from '../data/types';
+import type { Catalog, TravelRoute, UserRouteMode } from '../data/types';
+import { resolveRouteWaypointCoords } from '../data/selectors';
 import { greatCircleArc, type LngLatDeg } from '../lib/greatCircle';
 import { fetchOsrmRoadRoute, usesRoadRouting } from '../lib/osrmRoute';
 import { positionAndBearingOneWayOnArc } from '../lib/travelStoryRoutes';
@@ -192,28 +193,31 @@ function VehicleMarkers({
 
 type Props = {
   routes: TravelRoute[];
+  catalog: Catalog;
   mapThemeDark: boolean;
 };
 
-export function UserRoutes({ routes, mapThemeDark }: Props) {
+export function UserRoutes({ routes, catalog, mapThemeDark }: Props) {
   const segmentDefs = useMemo((): SegmentDef[] => {
     const result: SegmentDef[] = [];
     for (const route of routes) {
       for (let i = 0; i < route.waypoints.length - 1; i++) {
         const from = route.waypoints[i]!;
         const to = route.waypoints[i + 1]!;
+        const [fromLng, fromLat] = resolveRouteWaypointCoords(catalog, from, route.mode);
+        const [toLng, toLat] = resolveRouteWaypointCoords(catalog, to, route.mode);
         result.push({
           id: `${route.id}-${i}`,
           mode: route.mode,
-          fromLng: from.lng,
-          fromLat: from.lat,
-          toLng: to.lng,
-          toLat: to.lat,
+          fromLng,
+          fromLat,
+          toLng,
+          toLat,
         });
       }
     }
     return result;
-  }, [routes]);
+  }, [routes, catalog]);
 
   const [roadCoordsById, setRoadCoordsById] = useState<Record<string, LngLatDeg[]>>({});
   const [roadFailedIds, setRoadFailedIds] = useState<Set<string>>(() => new Set());

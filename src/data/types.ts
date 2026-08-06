@@ -63,6 +63,8 @@ export interface RouteWaypoint {
   name: string;
   lat: number;
   lng: number;
+  /** Id места-аэропорта (для mode=plane); старые маршруты могут быть без него */
+  placeId?: string;
 }
 
 /** Маршрут, созданный пользователем */

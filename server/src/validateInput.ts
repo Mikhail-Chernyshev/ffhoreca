@@ -28,6 +28,7 @@ export function isValidRoute(x: unknown): x is TravelRoute {
     if (!hasMaxLen(wp.cityId, FIELD_LIMITS.id)) return false;
     if (!hasMaxLen(wp.name, FIELD_LIMITS.waypointName)) return false;
     if (typeof wp.lat !== 'number' || typeof wp.lng !== 'number') return false;
+    if (wp.placeId != null && !hasMaxLen(wp.placeId, FIELD_LIMITS.id)) return false;
   }
   if (typeof r.mode !== 'string' || !ROUTE_MODES.has(r.mode as UserRouteMode)) return false;
   return true;

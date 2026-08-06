@@ -435,254 +435,267 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
       {loading ? (
         <div className='world-map-skeleton' role='status' aria-live='polite'>
           <span className='world-map-skeleton__shimmer' aria-hidden />
-          <span className='world-map-skeleton__label'>{t('app.catalogLoading')}</span>
+          <span className='world-map-skeleton__label'>
+            {t('app.catalogLoading')}
+          </span>
         </div>
       ) : null}
       <div className='world-map-viewport'>
         <div className='world-map-zoom-controls maplibregl-ctrl maplibregl-ctrl-group'>
-        <button
-          type='button'
-          className='maplibregl-ctrl-zoom-in'
-          aria-label={t('map.ariaZoomIn')}
-          onClick={handleZoomIn}
-        >
-          <span className='maplibregl-ctrl-icon' aria-hidden />
-        </button>
-        <button
-          type='button'
-          className='maplibregl-ctrl-zoom-out'
-          aria-label={t('map.ariaZoomOut')}
-          onClick={handleZoomOut}
-        >
-          <span className='maplibregl-ctrl-icon' aria-hidden />
-        </button>
-        <button
-          type='button'
-          className='world-map-zoom-controls__reset'
-          aria-label={t('map.ariaResetView')}
-          title={t('map.titleResetView')}
-          onClick={handleResetView}
-        >
-          ⌂
-        </button>
-        <button
-          type='button'
-          className={
-            globeMode
-              ? 'world-map-zoom-controls__globe world-map-zoom-controls__globe--active'
-              : 'world-map-zoom-controls__globe'
-          }
-          aria-label={
-            globeMode ? t('map.ariaToggleFlat') : t('map.ariaToggleGlobe')
-          }
-          title={globeMode ? t('map.titleFlatMode') : t('map.titleGlobeMode')}
-          aria-pressed={globeMode}
-          onClick={handleToggleGlobe}
-        >
-          <span className='world-map-zoom-controls__globe-icon' aria-hidden>
-            {globeMode ? (
-              <svg viewBox='0 0 20 20' width='16' height='16'>
-                <rect
-                  x='2'
-                  y='4'
-                  width='16'
-                  height='12'
-                  rx='1.5'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='1.5'
-                />
-                <path
-                  d='M2 8h16M7 4v12M13 4v12'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='1.2'
-                />
-              </svg>
-            ) : (
-              <svg viewBox='0 0 20 20' width='16' height='16'>
-                <circle
-                  cx='10'
-                  cy='10'
-                  r='7.5'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='1.5'
-                />
-                <path
-                  d='M2.5 10h15M10 2.5c2 2.4 2 12.6 0 15M10 2.5c-2 2.4-2 12.6 0 15'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='1.2'
-                />
-              </svg>
-            )}
-          </span>
-        </button>
-      </div>
-      <Map
-        ref={mapRef}
-        mapStyle={CARTO_VECTOR_STYLE}
-        initialViewState={{
-          longitude: MAP_DEFAULT_LONGITUDE,
-          latitude: MAP_DEFAULT_LATITUDE,
-          zoom: MAP_DEFAULT_ZOOM,
-        }}
-        minZoom={MAP_MIN_ZOOM}
-        maxZoom={MAP_MAX_ZOOM}
-        style={{ width: '100%', height: '100%' }}
-        reuseMaps
-        /** Иначе по умолчанию true — дубликаты мира у ±180° дают «полосу» на заливке (Россия и др.). */
-        renderWorldCopies={false}
-        onLoad={handleMapLoad}
-        onMove={handleMove}
-        onMoveEnd={handleMoveEnd}
-        dragRotate={globeMode}
-        pitchWithRotate={globeMode}
-        touchPitch={false}
-        cursor='grab'
-        attributionControl={false}
-      >
-        <AttributionControl compact position='bottom-right' />
-
-        <Source id='atlas-countries' type='geojson' data={countriesGeo}>
-          <Layer
-            id={LAYER_ATLAS_COUNTRIES_FILL}
-            type='fill'
-            maxzoom={COUNTRY_FILL_LAYER_MAX_ZOOM}
-            beforeId={fillBeforeId}
-            paint={countryFillPaint as never}
-          />
-        </Source>
-
-        <UserRoutes routes={userRoutes} mapThemeDark={mapThemeDark} />
-
-        {showCityBoundaries ? (
-          <Source
-            id='city-boundaries'
-            type='geojson'
-            data={
-              cityBoundaryGeo as FeatureCollection<Geometry, GeoJsonProperties>
-            }
+          <button
+            type='button'
+            className='maplibregl-ctrl-zoom-in'
+            aria-label={t('map.ariaZoomIn')}
+            onClick={handleZoomIn}
           >
+            <span className='maplibregl-ctrl-icon' aria-hidden />
+          </button>
+          <button
+            type='button'
+            className='maplibregl-ctrl-zoom-out'
+            aria-label={t('map.ariaZoomOut')}
+            onClick={handleZoomOut}
+          >
+            <span className='maplibregl-ctrl-icon' aria-hidden />
+          </button>
+          <button
+            type='button'
+            className='world-map-zoom-controls__reset'
+            aria-label={t('map.ariaResetView')}
+            title={t('map.titleResetView')}
+            onClick={handleResetView}
+          >
+            ⌂
+          </button>
+          <button
+            type='button'
+            className={
+              globeMode
+                ? 'world-map-zoom-controls__globe world-map-zoom-controls__globe--active'
+                : 'world-map-zoom-controls__globe'
+            }
+            aria-label={
+              globeMode ? t('map.ariaToggleFlat') : t('map.ariaToggleGlobe')
+            }
+            title={globeMode ? t('map.titleFlatMode') : t('map.titleGlobeMode')}
+            aria-pressed={globeMode}
+            onClick={handleToggleGlobe}
+          >
+            <span className='world-map-zoom-controls__globe-icon' aria-hidden>
+              {globeMode ? (
+                <svg viewBox='0 0 20 20' width='16' height='16'>
+                  <rect
+                    x='2'
+                    y='4'
+                    width='16'
+                    height='12'
+                    rx='1.5'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='1.5'
+                  />
+                  <path
+                    d='M2 8h16M7 4v12M13 4v12'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='1.2'
+                  />
+                </svg>
+              ) : (
+                <svg viewBox='0 0 20 20' width='16' height='16'>
+                  <circle
+                    cx='10'
+                    cy='10'
+                    r='7.5'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='1.5'
+                  />
+                  <path
+                    d='M2.5 10h15M10 2.5c2 2.4 2 12.6 0 15M10 2.5c-2 2.4-2 12.6 0 15'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='1.2'
+                  />
+                </svg>
+              )}
+            </span>
+          </button>
+        </div>
+        <Map
+          ref={mapRef}
+          mapStyle={CARTO_VECTOR_STYLE}
+          initialViewState={{
+            longitude: MAP_DEFAULT_LONGITUDE,
+            latitude: MAP_DEFAULT_LATITUDE,
+            zoom: MAP_DEFAULT_ZOOM,
+          }}
+          minZoom={MAP_MIN_ZOOM}
+          maxZoom={MAP_MAX_ZOOM}
+          style={{ width: '100%', height: '100%' }}
+          reuseMaps
+          /** Иначе по умолчанию true — дубликаты мира у ±180° дают «полосу» на заливке (Россия и др.). */
+          renderWorldCopies={false}
+          onLoad={handleMapLoad}
+          onMove={handleMove}
+          onMoveEnd={handleMoveEnd}
+          dragRotate={globeMode}
+          pitchWithRotate={globeMode}
+          touchPitch={false}
+          cursor='grab'
+          attributionControl={false}
+        >
+          <AttributionControl compact position='bottom-right' />
+
+          <Source id='atlas-countries' type='geojson' data={countriesGeo}>
             <Layer
-              id={LAYER_CITY_BOUNDARIES_FILL}
+              id={LAYER_ATLAS_COUNTRIES_FILL}
               type='fill'
-              paint={{
-                'fill-color': 'rgba(255, 152, 0, 0.36)',
-              }}
-            />
-            <Layer
-              id={LAYER_CITY_BOUNDARIES_LINE}
-              type='line'
-              paint={{
-                'line-color': 'rgba(230, 81, 0, 0.92)',
-                'line-width': 2,
-              }}
+              maxzoom={COUNTRY_FILL_LAYER_MAX_ZOOM}
+              beforeId={fillBeforeId}
+              paint={countryFillPaint as never}
             />
           </Source>
-        ) : null}
 
-        {showCityLayer
-          ? citiesOnMap.map((city) => (
-              <Marker
-                key={city.id}
-                longitude={city.lng}
-                latitude={city.lat}
-                anchor='center'
-              >
-                <button
-                  type='button'
-                  className='world-map-city-marker'
-                  aria-label={t('map.ariaCityMarker', { name: city.name })}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleCityClick(city);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleCityClick(city);
-                    }
-                  }}
+          <UserRoutes
+            routes={userRoutes}
+            catalog={catalog}
+            mapThemeDark={mapThemeDark}
+          />
+
+          {showCityBoundaries ? (
+            <Source
+              id='city-boundaries'
+              type='geojson'
+              data={
+                cityBoundaryGeo as FeatureCollection<
+                  Geometry,
+                  GeoJsonProperties
                 >
-                  <span className='world-map-city-marker__hit' aria-hidden />
-                  <span className='world-map-city-marker__dot' />
-                  {zoom >= CITY_LABEL_MIN_ZOOM ? (
-                    <span
-                      className={
-                        zoom >= CITY_LABEL_COMPACT_ZOOM
-                          ? 'world-map-city-marker__label world-map-city-marker__label--compact'
-                          : 'world-map-city-marker__label'
-                      }
-                    >
-                      {city.name}
-                    </span>
-                  ) : null}
-                </button>
-              </Marker>
-            ))
-          : null}
+              }
+            >
+              <Layer
+                id={LAYER_CITY_BOUNDARIES_FILL}
+                type='fill'
+                paint={{
+                  'fill-color': 'rgba(255, 152, 0, 0.36)',
+                }}
+              />
+              <Layer
+                id={LAYER_CITY_BOUNDARIES_LINE}
+                type='line'
+                paint={{
+                  'line-color': 'rgba(230, 81, 0, 0.92)',
+                  'line-width': 2,
+                }}
+              />
+            </Source>
+          ) : null}
 
-        {showPlaceMarkers
-          ? places.map((place) => {
-              const [lng, lat] = placeCoordinates(catalog, place);
-              const dotClass = `world-map-place-marker__core place-dot ${markerColorClass(place)}`;
-              return (
+          {showCityLayer
+            ? citiesOnMap.map((city) => (
                 <Marker
-                  key={place.id}
-                  longitude={lng}
-                  latitude={lat}
+                  key={city.id}
+                  longitude={city.lng}
+                  latitude={city.lat}
                   anchor='center'
                 >
                   <button
                     type='button'
-                    className='world-map-place-marker'
-                    aria-label={place.name}
+                    className='world-map-city-marker'
+                    aria-label={t('map.ariaCityMarker', { name: city.name })}
                     onMouseDown={(e) => e.stopPropagation()}
                     onClick={(e) => {
                       e.stopPropagation();
-                      onPlaceClick(place);
+                      handleCityClick(city);
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        onPlaceClick(place);
+                        handleCityClick(city);
                       }
                     }}
                   >
-                    <span
-                      className='world-map-place-marker__halo'
-                      aria-hidden
-                    />
-                    <span className={dotClass} />
-                    <span
-                      className={
-                        placeLabelHigh
-                          ? 'world-map-place-marker__label world-map-place-marker__label--high'
-                          : 'world-map-place-marker__label'
-                      }
-                    >
-                      {place.name}
-                    </span>
+                    <span className='world-map-city-marker__hit' aria-hidden />
+                    <span className='world-map-city-marker__dot' />
+                    {zoom >= CITY_LABEL_MIN_ZOOM ? (
+                      <span
+                        className={
+                          zoom >= CITY_LABEL_COMPACT_ZOOM
+                            ? 'world-map-city-marker__label world-map-city-marker__label--compact'
+                            : 'world-map-city-marker__label'
+                        }
+                      >
+                        {city.name}
+                      </span>
+                    ) : null}
                   </button>
                 </Marker>
-              );
-            })
-          : null}
-      </Map>
-      {ownerUsername ? (
-        <div
-          className={`world-map-owner-badge${isOwnMap ? ' world-map-owner-badge--own' : ''}`}
-          role="status"
-        >
-          <span className="world-map-owner-badge__user">@{ownerUsername}</span>
-          {isOwnMap ? (
-            <span className="world-map-owner-badge__own">{t('auth.myMap')}</span>
-          ) : null}
-        </div>
-      ) : null}
+              ))
+            : null}
+
+          {showPlaceMarkers
+            ? places.map((place) => {
+                const [lng, lat] = placeCoordinates(catalog, place);
+                const dotClass = `world-map-place-marker__core place-dot ${markerColorClass(place)}`;
+                return (
+                  <Marker
+                    key={place.id}
+                    longitude={lng}
+                    latitude={lat}
+                    anchor='center'
+                  >
+                    <button
+                      type='button'
+                      className='world-map-place-marker'
+                      aria-label={place.name}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPlaceClick(place);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onPlaceClick(place);
+                        }
+                      }}
+                    >
+                      <span
+                        className='world-map-place-marker__halo'
+                        aria-hidden
+                      />
+                      <span className={dotClass} />
+                      <span
+                        className={
+                          placeLabelHigh
+                            ? 'world-map-place-marker__label world-map-place-marker__label--high'
+                            : 'world-map-place-marker__label'
+                        }
+                      >
+                        {place.name}
+                      </span>
+                    </button>
+                  </Marker>
+                );
+              })
+            : null}
+        </Map>
+        {ownerUsername ? (
+          <div
+            className={`world-map-owner-badge${isOwnMap ? ' world-map-owner-badge--own' : ''}`}
+            role='status'
+          >
+            <span className='world-map-owner-badge__user'>
+              @{ownerUsername}
+            </span>
+            {isOwnMap ? (
+              <span className='world-map-owner-badge__own'>
+                {t('auth.myMap')}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
       </div>
       <div className='world-map-hint-panel'>
         <div className='world-map-about'>
