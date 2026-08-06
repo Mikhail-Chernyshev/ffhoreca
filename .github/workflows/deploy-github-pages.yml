@@ -18,7 +18,8 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  # false — не рвать уже идущий deploy новым пушем (иначе «Deployment cancelled»)
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -57,7 +58,7 @@ jobs:
             echo "docs/todo.html not in repo — skip"
           fi
 
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
 
@@ -69,4 +70,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
