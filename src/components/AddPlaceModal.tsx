@@ -30,6 +30,14 @@ type Props = {
 
 const CATEGORY_VALUES: PlaceCategory[] = ['attraction', 'lodging', 'food', 'bar', 'airport'];
 
+/** Нормализует оценку Google в 0–5 с одним знаком после запятой; иначе null. */
+function parseGoogleRating(raw: string | number | null | undefined): number | null {
+  if (raw == null || raw === '') return null;
+  const n = typeof raw === 'number' ? raw : Number(String(raw).trim().replace(',', '.'));
+  if (Number.isNaN(n) || n < 0 || n > 5) return null;
+  return Math.round(n * 10) / 10;
+}
+
 function buildPlace(form: {
   name: string;
   cityId: string;
@@ -40,6 +48,8 @@ function buildPlace(form: {
   lng: string;
   lat: string;
   rating: string;
+  /** Рейтинг из выбранной подсказки Google — запасной источник, если поле очистили */
+  suggestionRating: number | null;
   photosRaw: string;
 }): Place | null {
   const name = form.name.trim();
@@ -56,11 +66,8 @@ function buildPlace(form: {
     .filter(Boolean);
   const photos: string[] | null = lines.length > 0 ? lines : null;
 
-  let googleRating: number | null = null;
-  if (form.rating.trim() !== '') {
-    const n = Number(form.rating.replace(',', '.'));
-    if (!Number.isNaN(n) && n >= 0 && n <= 5) googleRating = n;
-  }
+  const googleRating =
+    parseGoogleRating(form.rating) ?? parseGoogleRating(form.suggestionRating);
 
   let lng: number | undefined;
   let lat: number | undefined;
@@ -104,6 +111,8 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
   const [lng, setLng] = useState('');
   const [lat, setLat] = useState('');
   const [rating, setRating] = useState('');
+  /** Сохраняем рейтинг из Google-подсказки отдельно — он обязан попасть в place.googleRating */
+  const [suggestionRating, setSuggestionRating] = useState<number | null>(null);
   const photosRaw = '';
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [photoUploadBusy, setPhotoUploadBusy] = useState(false);
@@ -213,7 +222,9 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
     setAddress(s.label);
     setLng(String(Math.round(s.lng * 1e6) / 1e6));
     setLat(String(Math.round(s.lat * 1e6) / 1e6));
-    if (s.googleRating != null) setRating(String(s.googleRating));
+    const fromGoogle = parseGoogleRating(s.googleRating);
+    setSuggestionRating(fromGoogle);
+    setRating(fromGoogle != null ? String(fromGoogle) : '');
 
     let resolvedCityId = resolvePlaceCityId(catalog, localCities, {
       lat: s.lat,
@@ -328,13 +339,18 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
       lng,
       lat,
       rating,
+      suggestionRating,
       photosRaw: combinedPhotosRaw,
     });
     if (!draft) {
       setError(t('addPlace.errorOptionalFields'));
       return;
     }
-    const place: Place = { ...draft, countryCode: canonical.countryCode };
+    const place: Place = {
+      ...draft,
+      countryCode: canonical.countryCode,
+      googleRating: draft.googleRating,
+    };
     setBusy(true);
     try {
       const result = await onSaved(place, canonical);
@@ -454,7 +470,12 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
                           applyPlaceSuggestion(s);
                         }}
                       >
-                        <span className="add-place-form__suggestion-title">{s.placeName}</span>
+                        <span className="add-place-form__suggestion-title">
+                          {s.placeName}
+                          {s.googleRating != null
+                            ? ` · ★ ${parseGoogleRating(s.googleRating) ?? s.googleRating}`
+                            : ''}
+                        </span>
                         <span className="add-place-form__suggestion-sub">{s.label}</span>
                       </button>
                     </li>
