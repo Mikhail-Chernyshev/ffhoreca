@@ -1,9 +1,9 @@
 # Деплой Vite → GitHub Pages (ветка main).
-# Перед первым запуском: Settings → Secrets → Actions — добавь VITE_API_BASE_URL, VITE_ADMIN_EMAIL,
-# VITE_GOOGLE_PLACES_API_KEY (рейтинг мест из Google).
+# Secrets: VITE_API_BASE_URL, VITE_ADMIN_EMAIL, VITE_GOOGLE_PLACES_API_KEY
+# Settings → Pages → Source must be "GitHub Actions"
 #
-# Сайт проекта: https://<user>.github.io/<repo>/
-# Если репозиторий называется <user>.github.io (user site), задай в Variables репозитория VITE_BASE_PATH = /
+# Сайт: https://<user>.github.io/<repo>/
+# User site: Variables → VITE_BASE_PATH = /
 
 name: Deploy to GitHub Pages
 
@@ -27,6 +27,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Фиксирует Source=GitHub Actions; без этого deploy часто вечно сидит в deployment_queued
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
@@ -40,7 +46,6 @@ jobs:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
           VITE_GOOGLE_PLACES_API_KEY: ${{ secrets.VITE_GOOGLE_PLACES_API_KEY }}
-          # Подкаталог на Pages: /имя-репозитория/ (для user site задай Variables → VITE_BASE_PATH = /)
           VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || format('/{0}/', github.event.repository.name) }}
         run: npm run build
 
