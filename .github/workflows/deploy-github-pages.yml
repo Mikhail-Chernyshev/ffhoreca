@@ -1,5 +1,6 @@
 # Деплой Vite → GitHub Pages (ветка main).
-# Перед первым запуском: Settings → Secrets → Actions — добавь VITE_API_BASE_URL, VITE_ADMIN_EMAIL.
+# Перед первым запуском: Settings → Secrets → Actions — добавь VITE_API_BASE_URL, VITE_ADMIN_EMAIL,
+# VITE_GOOGLE_PLACES_API_KEY (рейтинг мест из Google).
 #
 # Сайт проекта: https://<user>.github.io/<repo>/
 # Если репозиторий называется <user>.github.io (user site), задай в Variables репозитория VITE_BASE_PATH = /
@@ -18,8 +19,7 @@ permissions:
 
 concurrency:
   group: pages
-  # false — не рвать уже идущий deploy новым пушем (иначе «Deployment cancelled»)
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -39,9 +39,6 @@ jobs:
         env:
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_ADMIN_EMAIL: ${{ secrets.VITE_ADMIN_EMAIL }}
-          # Нужен для автоподстановки Google rating в «Новое место». Без него — Photon без рейтинга.
-          # В Google Cloud → API key → Application restrictions → HTTP referrers добавь:
-          # https://mikhail-chernyshev.github.io/*
           VITE_GOOGLE_PLACES_API_KEY: ${{ secrets.VITE_GOOGLE_PLACES_API_KEY }}
           # Подкаталог на Pages: /имя-репозитория/ (для user site задай Variables → VITE_BASE_PATH = /)
           VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || format('/{0}/', github.event.repository.name) }}
@@ -58,19 +55,16 @@ jobs:
             echo "docs/todo.html not in repo — skip"
           fi
 
-      - uses: actions/upload-pages-artifact@v5
+      - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@v4
