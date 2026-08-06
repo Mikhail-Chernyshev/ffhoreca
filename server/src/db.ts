@@ -157,7 +157,58 @@ export function openDatabase(dbPath: string): Database.Database {
 
 // ---- Showcase (owner_id = '') ------------------------------------------------
 
+/** Подрайон (khwaeng и т.п.) — не самостоятельный город в UI/каталоге. */
+export function isFineGrainedCityId(id: string): boolean {
+  return id.toLowerCase().includes('khwaeng');
+}
+
+function cityIdsReferencedByOwner(db: Database.Database, ownerId: string): Set<string> {
+  const used = new Set<string>();
+  const placeRows = db.prepare(
+    `SELECT json FROM places WHERE owner_id = ?`,
+  ).all(ownerId) as { json: string }[];
+  for (const row of placeRows) {
+    const p = JSON.parse(row.json) as Place;
+    if (p.cityId) used.add(p.cityId);
+  }
+  const routeRows = db.prepare(
+    `SELECT json FROM routes WHERE owner_id = ?`,
+  ).all(ownerId) as { json: string }[];
+  for (const row of routeRows) {
+    const route = JSON.parse(row.json) as TravelRoute;
+    for (const wp of route.waypoints ?? []) {
+      if (wp.cityId) used.add(wp.cityId);
+    }
+  }
+  return used;
+}
+
+/**
+ * Удаляет подрайоны (khwaeng…), на которые больше не ссылаются места/маршруты.
+ * Иначе после удаления мест в каталоге остаются «призраки», скрытые в UI-списке.
+ */
+export function purgeOrphanFineGrainedCities(
+  db: Database.Database,
+  ownerId: string = SHOWCASE_OWNER_ID,
+): number {
+  const used = cityIdsReferencedByOwner(db, ownerId);
+  const cityRows = db.prepare(
+    `SELECT id FROM cities WHERE owner_id = ?`,
+  ).all(ownerId) as { id: string }[];
+  const del = db.prepare(`DELETE FROM cities WHERE id = ? AND owner_id = ?`);
+  let removed = 0;
+  const tx = db.transaction(() => {
+    for (const { id } of cityRows) {
+      if (!isFineGrainedCityId(id) || used.has(id)) continue;
+      removed += del.run(id, ownerId).changes;
+    }
+  });
+  tx();
+  return removed;
+}
+
 export function getCatalog(db: Database.Database): Catalog {
+  purgeOrphanFineGrainedCities(db, SHOWCASE_OWNER_ID);
   const cityRows = db.prepare(
     `SELECT json FROM cities WHERE owner_id = ? ORDER BY id`,
   ).all(SHOWCASE_OWNER_ID) as { json: string }[];
@@ -194,6 +245,7 @@ export function deletePlace(db: Database.Database, id: string): boolean {
   const r = db.prepare(
     `DELETE FROM places WHERE id = ? AND owner_id = ?`,
   ).run(id, SHOWCASE_OWNER_ID);
+  if (r.changes > 0) purgeOrphanFineGrainedCities(db, SHOWCASE_OWNER_ID);
   return r.changes > 0;
 }
 
@@ -321,6 +373,7 @@ export function listAllUsers(db: Database.Database, limit = 500): DbUser[] {
 // ---- User catalog ----------------------------------------------------------
 
 export function getUserCatalog(db: Database.Database, userId: string): Catalog {
+  purgeOrphanFineGrainedCities(db, userId);
   const cityRows = db.prepare(
     `SELECT json FROM cities WHERE owner_id = ? ORDER BY id`,
   ).all(userId) as { json: string }[];
@@ -377,6 +430,7 @@ export function deleteUserPlace(db: Database.Database, userId: string, placeId: 
   const r = db.prepare(
     `DELETE FROM places WHERE id = ? AND owner_id = ?`,
   ).run(placeId, userId);
+  if (r.changes > 0) purgeOrphanFineGrainedCities(db, userId);
   return r.changes > 0;
 }
 
