@@ -1,17 +1,21 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import type { Catalog, RouteWaypoint, TravelRoute, UserRouteMode } from '../data/types';
+import type { Catalog, City, Place, RouteWaypoint, TravelRoute, UserRouteMode } from '../data/types';
 import {
   airportsForRoutePicker,
   catalogCitiesListed,
 } from '../data/selectors';
 import { postRoute } from '../lib/apiRoutes';
+import {
+  buildAirportPlaceAndCity,
+  findExistingAirportPlace,
+} from '../lib/buildAirportPlace';
 import { RouteModeIcon } from './RouteModeIcon';
 import {
   CitySearchSelect,
   cityOptionMatchesQuery,
   cityOptionsFromCatalog,
-  type SearchSelectOption,
 } from './CitySearchSelect';
+import { AirportSearchSelect, type AirportPick } from './AirportSearchSelect';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { routeModeAria } from '../i18n/labels';
 
@@ -20,6 +24,8 @@ type Props = {
   onClose: () => void;
   onSaved: () => void;
   saveRoute?: (route: TravelRoute) => Promise<{ ok: boolean; message: string }>;
+  /** Сохранить город + аэропорт при выборе из поиска (plane) */
+  savePlace?: (place: Place, city: City) => Promise<{ ok: boolean; message?: string }>;
 };
 
 const MODES: UserRouteMode[] = ['plane', 'train', 'bus', 'boat', 'car'];
@@ -33,43 +39,76 @@ function cityToWaypoint(cityId: string, catalog: Catalog): RouteWaypoint | null 
 function airportToWaypoint(
   placeId: string,
   catalog: Catalog,
+  extras: Place[],
 ): RouteWaypoint | null {
-  const airport = airportsForRoutePicker(catalog).find((a) => a.placeId === placeId);
-  if (!airport) return null;
+  const place =
+    catalog.places.find((p) => p.id === placeId) ??
+    extras.find((p) => p.id === placeId);
+  if (!place?.categories.includes('airport')) {
+    const fromPicker = airportsForRoutePicker(catalog).find((a) => a.placeId === placeId);
+    if (!fromPicker) return null;
+    return {
+      cityId: fromPicker.cityId,
+      placeId: fromPicker.placeId,
+      name: fromPicker.name,
+      lat: fromPicker.lat,
+      lng: fromPicker.lng,
+    };
+  }
+  const lat = place.lat;
+  const lng = place.lng;
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
   return {
-    cityId: airport.cityId,
-    placeId: airport.placeId,
-    name: airport.name,
-    lat: airport.lat,
-    lng: airport.lng,
+    cityId: place.cityId,
+    placeId: place.id,
+    name: place.name,
+    lat,
+    lng,
   };
 }
 
-export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
+export function AddRouteModal({
+  catalog,
+  onClose,
+  onSaved,
+  saveRoute,
+  savePlace,
+}: Props) {
   const t = useT();
   const { locale } = useLocale();
   const [mode, setMode] = useState<UserRouteMode>('plane');
   const [waypointIds, setWaypointIds] = useState<string[]>(['', '']);
   const [busy, setBusy] = useState(false);
+  const [pickingIndex, setPickingIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Города/аэропорты, добавленные в этой сессии до обновления catalog prop */
+  const [sessionPlaces, setSessionPlaces] = useState<Place[]>([]);
+  const [sessionCities, setSessionCities] = useState<City[]>([]);
 
   const listedCities = useMemo(() => catalogCitiesListed(catalog), [catalog]);
-  const airports = useMemo(() => airportsForRoutePicker(catalog), [catalog]);
   const citiesById = useMemo(
     () => new Map(listedCities.map((c) => [c.id, c])),
     [listedCities],
   );
 
-  const pickerOptions: SearchSelectOption[] = useMemo(() => {
-    if (mode === 'plane') {
-      return airports.map((a) => ({
-        id: a.placeId,
-        name: a.name,
-        secondary: a.cityName,
-      }));
-    }
-    return cityOptionsFromCatalog(listedCities);
-  }, [mode, airports, listedCities]);
+  const catalogWithSession: Catalog = useMemo(
+    () => ({
+      cities: [
+        ...catalog.cities,
+        ...sessionCities.filter((c) => !catalog.cities.some((x) => x.id === c.id)),
+      ],
+      places: [
+        ...catalog.places,
+        ...sessionPlaces.filter((p) => !catalog.places.some((x) => x.id === p.id)),
+      ],
+    }),
+    [catalog, sessionPlaces, sessionCities],
+  );
+
+  const pickerOptions = useMemo(
+    () => cityOptionsFromCatalog(listedCities),
+    [listedCities],
+  );
 
   const waypointPlaceholder = (index: number, total: number): string => {
     if (mode === 'plane') {
@@ -101,14 +140,62 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
     setError(null);
   };
 
+  const handleAirportPick = async (index: number, pick: AirportPick) => {
+    setError(null);
+    if (pick.kind === 'catalog') {
+      setWaypointAt(index, pick.placeId);
+      return;
+    }
+
+    const existing = findExistingAirportPlace(catalogWithSession, pick.suggestion);
+    if (existing) {
+      setWaypointAt(index, existing.id);
+      return;
+    }
+
+    if (!savePlace) {
+      setError(t('addRoute.errorAirportSaveUnavailable'));
+      return;
+    }
+
+    const built = buildAirportPlaceAndCity(catalogWithSession, pick.suggestion, {
+      summary: t('addRoute.autoAirportSummary'),
+      story: t('addRoute.autoAirportStory'),
+    });
+
+    if ('error' in built) {
+      setError(
+        built.error === 'missingCountry'
+          ? t('addRoute.errorAirportCountry')
+          : t('addRoute.errorAirportCity'),
+      );
+      return;
+    }
+
+    setPickingIndex(index);
+    try {
+      const r = await savePlace(built.place, built.city);
+      if (!r.ok) {
+        setError(r.message || t('addRoute.errorAirportSaveFailed'));
+        return;
+      }
+      setSessionPlaces((prev) =>
+        prev.some((p) => p.id === built.place.id) ? prev : [...prev, built.place],
+      );
+      if (!built.cityExisted) {
+        setSessionCities((prev) =>
+          prev.some((c) => c.id === built.city.id) ? prev : [...prev, built.city],
+        );
+      }
+      setWaypointAt(index, built.place.id);
+    } finally {
+      setPickingIndex(null);
+    }
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    if (mode === 'plane' && airports.length === 0) {
-      setError(t('addRoute.errorNoAirports'));
-      return;
-    }
 
     const waypoints: RouteWaypoint[] = [];
     for (let i = 0; i < waypointIds.length; i++) {
@@ -118,7 +205,9 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
         return;
       }
       const wp =
-        mode === 'plane' ? airportToWaypoint(id, catalog) : cityToWaypoint(id, catalog);
+        mode === 'plane'
+          ? airportToWaypoint(id, catalogWithSession, sessionPlaces)
+          : cityToWaypoint(id, catalog);
       if (!wp) {
         setError(
           mode === 'plane'
@@ -218,18 +307,27 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
                 <span className="add-route-waypoints__letter">
                   {String.fromCharCode(65 + i)}
                 </span>
-                <CitySearchSelect
-                  options={pickerOptions}
-                  value={selectedId}
-                  onChange={(id) => setWaypointAt(i, id)}
-                  placeholder={waypointPlaceholder(i, waypointIds.length)}
-                  required
-                  matchesQuery={
-                    mode === 'plane'
-                      ? undefined
-                      : (option, q) => cityOptionMatchesQuery(option, q, citiesById)
-                  }
-                />
+                {mode === 'plane' ? (
+                  <AirportSearchSelect
+                    catalog={catalogWithSession}
+                    value={selectedId}
+                    onPick={(pick) => handleAirportPick(i, pick)}
+                    placeholder={waypointPlaceholder(i, waypointIds.length)}
+                    required
+                    busy={busy || pickingIndex === i}
+                  />
+                ) : (
+                  <CitySearchSelect
+                    options={pickerOptions}
+                    value={selectedId}
+                    onChange={(id) => setWaypointAt(i, id)}
+                    placeholder={waypointPlaceholder(i, waypointIds.length)}
+                    required
+                    matchesQuery={(option, q) =>
+                      cityOptionMatchesQuery(option, q, citiesById)
+                    }
+                  />
+                )}
                 {waypointIds.length > 2 && (
                   <button
                     type="button"
@@ -258,7 +356,7 @@ export function AddRouteModal({ catalog, onClose, onSaved, saveRoute }: Props) {
             <button type="button" className="add-place-form__btn add-place-form__btn--ghost" onClick={onClose}>
               {t('common.cancel')}
             </button>
-            <button type="submit" className="add-place-form__btn" disabled={busy}>
+            <button type="submit" className="add-place-form__btn" disabled={busy || pickingIndex != null}>
               {busy ? t('common.saving') : t('addRoute.save')}
             </button>
           </div>

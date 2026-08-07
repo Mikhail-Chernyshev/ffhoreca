@@ -403,6 +403,17 @@ export function UserMapPage() {
         <AddRouteModal
           catalog={catalog}
           onClose={() => setAddRouteOpen(false)}
+          savePlace={async (place, city) => {
+            const r = await userPostPlace(place, city);
+            if (!r.ok) {
+              handleUserApiError(r);
+              return { ok: false, message: r.message };
+            }
+            await loadCatalog();
+            await refreshUsage();
+            onboardingNotify('placeAdded');
+            return { ok: true };
+          }}
           saveRoute={async (route) => {
             const r = await userPostRoute(route);
             if (!r.ok) handleUserApiError(r);

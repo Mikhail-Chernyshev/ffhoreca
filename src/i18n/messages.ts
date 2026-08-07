@@ -129,9 +129,9 @@ const ru = {
     intro:
       'В списке точек доступны только города из раздела «Города». Если нужного города нет — сначала добавьте его там.',
     introPlane:
-      'Для авиа выбирайте аэропорт. Если у города несколько — все будут в списке (название аэропорта и город).',
+      'Введите город или название аэропорта — в списке появятся аэропорты. При выборе город и аэропорт добавятся в каталог автоматически.',
     transitHint:
-      'Нет нужного аэропорта? Добавьте его через «+ Место» с категорией «Аэропорты».',
+      'Можно искать любой город, не только из посещённых. Уже добавленные аэропорты тоже есть в списке.',
     transportMode: 'Вид транспорта',
     waypoints: 'Точки маршрута',
     addVia: '+ Добавить промежуточную точку',
@@ -140,14 +140,24 @@ const ru = {
     placeholderOrigin: 'Выберите город отправления…',
     placeholderDestination: 'Выберите город назначения…',
     placeholderVia: 'Промежуточный город…',
-    placeholderOriginAirport: 'Аэропорт отправления…',
-    placeholderDestinationAirport: 'Аэропорт назначения…',
-    placeholderViaAirport: 'Промежуточный аэропорт…',
+    placeholderOriginAirport: 'Город или аэропорт отправления…',
+    placeholderDestinationAirport: 'Город или аэропорт назначения…',
+    placeholderViaAirport: 'Промежуточный город или аэропорт…',
+    airportSearchHint: 'Введите минимум 2 символа для поиска аэропортов…',
+    autoAirportSummary: 'Аэропорт',
+    autoAirportStory: 'Добавлено автоматически для авиамаршрута.',
     errorAllWaypoints: 'Заполните все точки маршрута.',
     errorCityNotFound: 'Город не найден в каталоге: {{id}}',
     errorAirportNotFound: 'Аэропорт не найден в каталоге: {{id}}',
     errorNoAirports:
       'В каталоге нет аэропортов. Добавьте аэропорт через «+ Место», затем создайте маршрут.',
+    errorAirportSaveUnavailable:
+      'Нельзя сохранить аэропорт в каталог в этом режиме. Войдите в свой профиль или включите админ-режим.',
+    errorAirportSaveFailed: 'Не удалось сохранить аэропорт в каталог.',
+    errorAirportCountry:
+      'Не удалось определить страну аэропорта. Попробуйте другой результат поиска.',
+    errorAirportCity:
+      'Не удалось определить город аэропорта. Попробуйте другой результат поиска.',
     errorAdjacentDuplicate: 'Соседние точки не должны совпадать.',
   },
   manager: {
@@ -628,9 +638,9 @@ const en = {
     intro:
       'Only cities from your Cities list are available as waypoints. Add a city there first if it is missing.',
     introPlane:
-      'For flights, pick an airport. If a city has several, each appears in the list (airport name and city).',
+      'Type a city or airport name — matching airports appear in the list. Choosing one adds the city and airport to your catalog automatically.',
     transitHint:
-      'Missing an airport? Add it via “+ Place” with the Airports category.',
+      'You can search any city, not only visited ones. Airports already in your catalog also appear.',
     transportMode: 'Transport mode',
     waypoints: 'Route waypoints',
     addVia: '+ Add via point',
@@ -639,14 +649,24 @@ const en = {
     placeholderOrigin: 'Select origin city…',
     placeholderDestination: 'Select destination city…',
     placeholderVia: 'Via city…',
-    placeholderOriginAirport: 'Origin airport…',
-    placeholderDestinationAirport: 'Destination airport…',
-    placeholderViaAirport: 'Via airport…',
+    placeholderOriginAirport: 'Origin city or airport…',
+    placeholderDestinationAirport: 'Destination city or airport…',
+    placeholderViaAirport: 'Via city or airport…',
+    airportSearchHint: 'Type at least 2 characters to search airports…',
+    autoAirportSummary: 'Airport',
+    autoAirportStory: 'Added automatically for a flight route.',
     errorAllWaypoints: 'Fill in all route waypoints.',
     errorCityNotFound: 'City not found in catalog: {{id}}',
     errorAirportNotFound: 'Airport not found in catalog: {{id}}',
     errorNoAirports:
       'No airports in the catalog yet. Add an airport via “+ Place”, then create the route.',
+    errorAirportSaveUnavailable:
+      'Cannot save the airport to the catalog in this mode. Sign in to your profile or enable admin mode.',
+    errorAirportSaveFailed: 'Could not save the airport to the catalog.',
+    errorAirportCountry:
+      'Could not determine the airport country. Try another search result.',
+    errorAirportCity:
+      'Could not determine the airport city. Try another search result.',
     errorAdjacentDuplicate: 'Adjacent waypoints must not be the same.',
   },
   manager: {

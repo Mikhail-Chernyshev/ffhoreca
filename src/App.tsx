@@ -413,6 +413,12 @@ function App() {
         <AddRouteModal
           catalog={catalogMerged}
           onClose={() => setAddRouteOpen(false)}
+          savePlace={async (place, city) => {
+            const r = await persistPlaceToBackendOrStorage(place, city)
+            if (!r.ok) return { ok: false, message: r.message }
+            onboardingNotify('placeAdded')
+            return { ok: true }
+          }}
           onSaved={() => {
             void refreshShowcaseRoutes()
             onboardingNotify('routeAdded')
