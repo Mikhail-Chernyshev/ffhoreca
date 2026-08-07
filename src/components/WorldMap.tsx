@@ -387,6 +387,60 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
 
   const showPlaceMarkers = zoom >= PLACE_MARKERS_MIN_ZOOM;
   const placeLabelHigh = zoom >= PLACE_LABEL_HIGH_ZOOM;
+  /** Аэропорты — на том же обзоре, что и города; остальные места — после PLACE_MARKERS_MIN_ZOOM */
+  const { airportPlaces, otherPlaces } = useMemo(() => {
+    const airports: Place[] = [];
+    const rest: Place[] = [];
+    for (const place of places) {
+      if (place.categories.includes('airport')) airports.push(place);
+      else rest.push(place);
+    }
+    return { airportPlaces: airports, otherPlaces: rest };
+  }, [places]);
+
+  const renderPlaceMarker = (place: Place, opts: { showLabel: boolean; labelHigh: boolean }) => {
+    const [lng, lat] = placeCoordinates(catalog, place);
+    const dotClass = `world-map-place-marker__core place-dot ${markerColorClass(place)}`;
+    return (
+      <Marker
+        key={place.id}
+        longitude={lng}
+        latitude={lat}
+        anchor='center'
+      >
+        <button
+          type='button'
+          className='world-map-place-marker'
+          aria-label={place.name}
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPlaceClick(place);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onPlaceClick(place);
+            }
+          }}
+        >
+          <span className='world-map-place-marker__halo' aria-hidden />
+          <span className={dotClass} />
+          {opts.showLabel ? (
+            <span
+              className={
+                opts.labelHigh
+                  ? 'world-map-place-marker__label world-map-place-marker__label--high'
+                  : 'world-map-place-marker__label'
+              }
+            >
+              {place.name}
+            </span>
+          ) : null}
+        </button>
+      </Marker>
+    );
+  };
 
   useLayoutEffect(() => {
     if (!aboutExpanded) return;
@@ -634,51 +688,20 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
               ))
             : null}
 
+          {airportPlaces.map((place) =>
+            renderPlaceMarker(place, {
+              showLabel: zoom >= CITY_LABEL_MIN_ZOOM,
+              labelHigh: placeLabelHigh,
+            }),
+          )}
+
           {showPlaceMarkers
-            ? places.map((place) => {
-                const [lng, lat] = placeCoordinates(catalog, place);
-                const dotClass = `world-map-place-marker__core place-dot ${markerColorClass(place)}`;
-                return (
-                  <Marker
-                    key={place.id}
-                    longitude={lng}
-                    latitude={lat}
-                    anchor='center'
-                  >
-                    <button
-                      type='button'
-                      className='world-map-place-marker'
-                      aria-label={place.name}
-                      onMouseDown={(e) => e.stopPropagation()}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPlaceClick(place);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          onPlaceClick(place);
-                        }
-                      }}
-                    >
-                      <span
-                        className='world-map-place-marker__halo'
-                        aria-hidden
-                      />
-                      <span className={dotClass} />
-                      <span
-                        className={
-                          placeLabelHigh
-                            ? 'world-map-place-marker__label world-map-place-marker__label--high'
-                            : 'world-map-place-marker__label'
-                        }
-                      >
-                        {place.name}
-                      </span>
-                    </button>
-                  </Marker>
-                );
-              })
+            ? otherPlaces.map((place) =>
+                renderPlaceMarker(place, {
+                  showLabel: true,
+                  labelHigh: placeLabelHigh,
+                }),
+              )
             : null}
         </Map>
         {ownerUsername ? (
