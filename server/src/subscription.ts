@@ -3,7 +3,7 @@ import { FREEMIUM_LIMITS, FREEMIUM_LIMITS_ENFORCED, type MapVisibility, type Use
 import type { Database } from 'better-sqlite3';
 import type { DbUser, UserUsage } from './db';
 import {
-  countUserCountries,
+  countUserCities,
   countUserPlaces,
   countUserRoutes,
   getUserUsage,
@@ -24,18 +24,25 @@ export function canViewUserMap(viewer: DbUser | null, owner: DbUser): boolean {
   return viewer?.id === owner.id;
 }
 
+export type LimitCode = 'countries' | 'cities' | 'routes' | 'places';
+
 export type LimitCheckResult =
   | { ok: true }
-  | { ok: false; code: 'countries' | 'routes' | 'places'; limit: number };
+  | { ok: false; code: LimitCode; limit: number };
 
-export function checkFreemiumCityLimit(
+function isPremium(user: DbUser): boolean {
+  return normalizeSubscription(user.subscription) === 'premium';
+}
+
+/** Новый город в новой стране — лимит стран. */
+export function checkFreemiumCountryLimit(
   db: Database,
   user: DbUser,
   city: City,
   isUpdate: boolean,
 ): LimitCheckResult {
   if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
-  if (normalizeSubscription(user.subscription) === 'premium') return { ok: true };
+  if (isPremium(user)) return { ok: true };
   const codes = userCountryCodes(db, user.id);
   const cc = city.countryCode?.trim().toUpperCase();
   if (!cc || codes.has(cc) || isUpdate) return { ok: true };
@@ -45,13 +52,42 @@ export function checkFreemiumCityLimit(
   return { ok: true };
 }
 
+/** Новый город — лимит числа городов. */
+export function checkFreemiumCityCountLimit(
+  db: Database,
+  user: DbUser,
+  cityId: string,
+): LimitCheckResult {
+  if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
+  if (isPremium(user)) return { ok: true };
+  const exists = db.prepare('SELECT 1 FROM cities WHERE id = ? AND owner_id = ?').get(cityId, user.id);
+  if (exists) return { ok: true };
+  const count = countUserCities(db, user.id);
+  if (count < FREEMIUM_LIMITS.cities) return { ok: true };
+  return { ok: false, code: 'cities', limit: FREEMIUM_LIMITS.cities };
+}
+
+/** @deprecated use checkFreemiumCountryLimit — kept name for older call sites */
+export function checkFreemiumCityLimit(
+  db: Database,
+  user: DbUser,
+  city: City,
+  isUpdate: boolean,
+): LimitCheckResult {
+  if (!isUpdate) {
+    const cityCount = checkFreemiumCityCountLimit(db, user, city.id);
+    if (!cityCount.ok) return cityCount;
+  }
+  return checkFreemiumCountryLimit(db, user, city, isUpdate);
+}
+
 export function checkFreemiumRouteLimit(
   db: Database,
   user: DbUser,
   routeId: string,
 ): LimitCheckResult {
   if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
-  if (normalizeSubscription(user.subscription) === 'premium') return { ok: true };
+  if (isPremium(user)) return { ok: true };
   const count = countUserRoutes(db, user.id);
   const exists = db.prepare('SELECT 1 FROM routes WHERE id = ? AND owner_id = ?').get(routeId, user.id);
   if (exists || count < FREEMIUM_LIMITS.routes) return { ok: true };
@@ -64,7 +100,7 @@ export function checkFreemiumPlaceLimit(
   placeId: string,
 ): LimitCheckResult {
   if (!FREEMIUM_LIMITS_ENFORCED) return { ok: true };
-  if (normalizeSubscription(user.subscription) === 'premium') return { ok: true };
+  if (isPremium(user)) return { ok: true };
   const count = countUserPlaces(db, user.id);
   const exists = db.prepare('SELECT 1 FROM places WHERE id = ? AND owner_id = ?').get(placeId, user.id);
   if (exists || count < FREEMIUM_LIMITS.places) return { ok: true };

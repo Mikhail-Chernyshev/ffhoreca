@@ -151,7 +151,7 @@ const termsRu: LegalDocument = {
     {
       heading: 'Тарифы',
       paragraphs: [
-        'Freemium: лимиты на число стран, маршрутов и мест (см. аккаунт). Premium снимает лимиты; оплата будет доступна позже.',
+        'Freemium: лимиты на число стран, городов, маршрутов и мест (см. аккаунт). Premium снимает лимиты; оплата будет доступна позже.',
         'Мы можем менять лимиты и цены с уведомлением на сайте.',
       ],
     },
@@ -209,7 +209,7 @@ const termsEn: LegalDocument = {
     {
       heading: 'Plans',
       paragraphs: [
-        'Freemium has limits on countries, routes, and places (see Account). Premium removes limits; paid upgrade coming later.',
+        'Freemium has limits on countries, cities, routes, and places (see Account). Premium removes limits; paid upgrade coming later.',
         'We may change limits and pricing with notice on the site.',
       ],
     },

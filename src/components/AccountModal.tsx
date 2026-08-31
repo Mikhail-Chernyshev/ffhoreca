@@ -412,6 +412,7 @@ function PlanCard({
               <li>
                 {t('account.limitCountries', { n: FREEMIUM_LIMITS.countries })}
               </li>
+              <li>{t('account.limitCities', { n: FREEMIUM_LIMITS.cities })}</li>
               <li>{t('account.limitRoutes', { n: FREEMIUM_LIMITS.routes })}</li>
               <li>{t('account.limitPlaces', { n: FREEMIUM_LIMITS.places })}</li>
             </>
@@ -421,6 +422,7 @@ function PlanCard({
         ) : (
           <>
             <li>{t('account.premiumUnlimitedCountries')}</li>
+            <li>{t('account.premiumUnlimitedCities')}</li>
             <li>{t('account.premiumUnlimitedRoutes')}</li>
             <li>{t('account.premiumUnlimitedPlaces')}</li>
           </>
@@ -434,6 +436,12 @@ function PlanCard({
                 {t('account.usageCountries', {
                   used: usage.countries,
                   max: FREEMIUM_LIMITS.countries,
+                })}
+              </p>
+              <p>
+                {t('account.usageCities', {
+                  used: usage.cities,
+                  max: FREEMIUM_LIMITS.cities,
                 })}
               </p>
               <p>
@@ -454,6 +462,7 @@ function PlanCard({
               <p>
                 {t('account.usageCountriesOnly', { used: usage.countries })}
               </p>
+              <p>{t('account.usageCitiesOnly', { used: usage.cities })}</p>
               <p>{t('account.usageRoutesOnly', { used: usage.routes })}</p>
               <p>{t('account.usagePlacesOnly', { used: usage.places })}</p>
             </>

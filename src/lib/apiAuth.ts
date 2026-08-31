@@ -3,6 +3,7 @@ import type { MapVisibility, UserSubscription } from '../data/subscription';
 
 export interface UserUsage {
   countries: number;
+  cities: number;
   routes: number;
   places: number;
 }
@@ -65,6 +66,41 @@ function parseAuthUser(u: Partial<AuthUser>): AuthUser {
   };
 }
 
+/** Старый API мог не отдавать usage.cities — тогда считаем по каталогу пользователя. */
+async function resolveCitiesUsage(
+  usage: Partial<UserUsage> | undefined,
+  username: string | null,
+): Promise<number> {
+  if (typeof usage?.cities === 'number' && Number.isFinite(usage.cities)) {
+    return Math.max(0, Math.floor(usage.cities));
+  }
+  if (!username) return 0;
+  const base = apiBaseUrl();
+  if (!base) return 0;
+  try {
+    const res = await apiFetch(`${base}/api/users/${encodeURIComponent(username)}/catalog`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) return 0;
+    const data = (await res.json()) as { cities?: unknown };
+    return Array.isArray(data.cities) ? data.cities.length : 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function parseUsage(
+  usage: Partial<UserUsage> | undefined,
+  username: string | null,
+): Promise<UserUsage> {
+  return {
+    countries: usage?.countries ?? 0,
+    cities: await resolveCitiesUsage(usage, username),
+    routes: usage?.routes ?? 0,
+    places: usage?.places ?? 0,
+  };
+}
+
 export async function exchangeAuthCode(code: string): Promise<boolean> {
   const base = apiBaseUrl();
   if (!base) return false;
@@ -113,13 +149,10 @@ export async function fetchAuthAccount(): Promise<AuthAccount | null> {
       user: Partial<AuthUser>;
       usage?: Partial<UserUsage>;
     };
+    const user = parseAuthUser(data.user);
     return {
-      user: parseAuthUser(data.user),
-      usage: {
-        countries: data.usage?.countries ?? 0,
-        routes: data.usage?.routes ?? 0,
-        places: data.usage?.places ?? 0,
-      },
+      user,
+      usage: await parseUsage(data.usage, user.username),
     };
   } catch {
     return null;
@@ -140,14 +173,10 @@ export async function updateAccountSettings(
     error?: string;
   };
   if (!res.ok) throw new Error(data.error ?? 'Ошибка');
-  const u = data.user!;
+  const user = parseAuthUser(data.user!);
   return {
-    user: parseAuthUser(u),
-    usage: {
-      countries: data.usage?.countries ?? 0,
-      routes: data.usage?.routes ?? 0,
-      places: data.usage?.places ?? 0,
-    },
+    user,
+    usage: await parseUsage(data.usage, user.username),
   };
 }
 

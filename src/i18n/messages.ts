@@ -372,15 +372,19 @@ const ru = {
     planFreemiumPrice: 'Бесплатно',
     planPremiumPrice: 'Скоро',
     limitCountries: 'До {{n}} стран',
+    limitCities: 'До {{n}} городов',
     limitRoutes: 'До {{n}} маршрутов',
     limitPlaces: 'До {{n}} мест',
     premiumUnlimitedCountries: 'Без ограничений по странам',
+    premiumUnlimitedCities: 'Без ограничений по городам',
     premiumUnlimitedRoutes: 'Без ограничений по маршрутам',
     premiumUnlimitedPlaces: 'Без ограничений по местам',
     usageCountries: 'Страны: {{used}} / {{max}}',
+    usageCities: 'Города: {{used}} / {{max}}',
     usageRoutes: 'Маршруты: {{used}} / {{max}}',
     usagePlaces: 'Места: {{used}} / {{max}}',
     usageCountriesOnly: 'Страны: {{used}}',
+    usageCitiesOnly: 'Города: {{used}}',
     usageRoutesOnly: 'Маршруты: {{used}}',
     usagePlacesOnly: 'Места: {{used}}',
     limitsBetaNote:
@@ -413,15 +417,20 @@ const ru = {
   limits: {
     approachingCountries:
       'Вы добавили {{used}} из {{max}} стран. Скоро лимит Freemium.',
+    approachingCities:
+      'Вы добавили {{used}} из {{max}} городов. Скоро лимит Freemium.',
     approachingRoutes:
       'Вы добавили {{used}} из {{max}} маршрутов. Скоро лимит Freemium.',
     approachingPlaces:
       'Вы добавили {{used}} из {{max}} мест. Скоро лимит Freemium.',
     reachedCountries:
-      'Лимит Freemium: не более 10 стран. Перейдите на Premium.',
+      'Лимит Freemium: не более {{n}} стран. Перейдите на Premium.',
+    reachedCities:
+      'Лимит Freemium: не более {{n}} городов. Перейдите на Premium.',
     reachedRoutes:
-      'Лимит Freemium: не более 15 маршрутов. Перейдите на Premium.',
-    reachedPlaces: 'Лимит Freemium: не более 50 мест. Перейдите на Premium.',
+      'Лимит Freemium: не более {{n}} маршрутов. Перейдите на Premium.',
+    reachedPlaces:
+      'Лимит Freemium: не более {{n}} мест. Перейдите на Premium.',
   },
   mapRestricted: {
     title: 'Приватная карта',
@@ -879,15 +888,19 @@ const en = {
     planFreemiumPrice: 'Free',
     planPremiumPrice: 'Coming soon',
     limitCountries: 'Up to {{n}} countries',
+    limitCities: 'Up to {{n}} cities',
     limitRoutes: 'Up to {{n}} routes',
     limitPlaces: 'Up to {{n}} places',
     premiumUnlimitedCountries: 'Unlimited countries',
+    premiumUnlimitedCities: 'Unlimited cities',
     premiumUnlimitedRoutes: 'Unlimited routes',
     premiumUnlimitedPlaces: 'Unlimited places',
     usageCountries: 'Countries: {{used}} / {{max}}',
+    usageCities: 'Cities: {{used}} / {{max}}',
     usageRoutes: 'Routes: {{used}} / {{max}}',
     usagePlaces: 'Places: {{used}} / {{max}}',
     usageCountriesOnly: 'Countries: {{used}}',
+    usageCitiesOnly: 'Cities: {{used}}',
     usageRoutesOnly: 'Routes: {{used}}',
     usagePlacesOnly: 'Places: {{used}}',
     limitsBetaNote:
@@ -920,13 +933,16 @@ const en = {
   limits: {
     approachingCountries:
       'You have added {{used}} of {{max}} countries. Freemium limit is near.',
+    approachingCities:
+      'You have added {{used}} of {{max}} cities. Freemium limit is near.',
     approachingRoutes:
       'You have added {{used}} of {{max}} routes. Freemium limit is near.',
     approachingPlaces:
       'You have added {{used}} of {{max}} places. Freemium limit is near.',
-    reachedCountries: 'Freemium limit: up to 10 countries. Upgrade to Premium.',
-    reachedRoutes: 'Freemium limit: up to 15 routes. Upgrade to Premium.',
-    reachedPlaces: 'Freemium limit: up to 50 places. Upgrade to Premium.',
+    reachedCountries: 'Freemium limit: up to {{n}} countries. Upgrade to Premium.',
+    reachedCities: 'Freemium limit: up to {{n}} cities. Upgrade to Premium.',
+    reachedRoutes: 'Freemium limit: up to {{n}} routes. Upgrade to Premium.',
+    reachedPlaces: 'Freemium limit: up to {{n}} places. Upgrade to Premium.',
   },
   mapRestricted: {
     title: 'Private map',

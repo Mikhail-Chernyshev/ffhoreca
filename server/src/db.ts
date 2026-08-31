@@ -22,6 +22,7 @@ export interface DbUser {
 
 export interface UserUsage {
   countries: number;
+  cities: number;
   routes: number;
   places: number;
 }
@@ -485,6 +486,7 @@ export function countUserCountries(db: Database.Database, userId: string): numbe
 export function getUserUsage(db: Database.Database, userId: string): UserUsage {
   return {
     countries: countUserCountries(db, userId),
+    cities: countUserCities(db, userId),
     routes: countUserRoutes(db, userId),
     places: countUserPlaces(db, userId),
   };

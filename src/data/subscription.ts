@@ -2,13 +2,14 @@ export type UserSubscription = 'freemium' | 'premium';
 
 export type MapVisibility = 'public' | 'subscribers';
 
-/** Пока Premium не запущен — лимиты Freemium не проверяются ни на сервере, ни в UI. */
-export const FREEMIUM_LIMITS_ENFORCED = false;
+/** Лимиты Freemium проверяются на сервере и показываются в UI. */
+export const FREEMIUM_LIMITS_ENFORCED = true;
 
 export const FREEMIUM_LIMITS = {
   countries: 10,
-  routes: 15,
-  places: 50,
+  cities: 20,
+  routes: 20,
+  places: 40,
 } as const;
 
 export const SUBSCRIPTION_PLANS: readonly UserSubscription[] = ['freemium', 'premium'];

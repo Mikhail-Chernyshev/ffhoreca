@@ -12,7 +12,7 @@ function sessionKey(kind: string): string {
 }
 
 function maybeWarn(
-  kind: 'countries' | 'routes' | 'places',
+  kind: 'countries' | 'cities' | 'routes' | 'places',
   used: number,
   max: number,
   message: string,
@@ -44,6 +44,16 @@ export function useFreemiumWarnings(
       t('limits.approachingCountries', {
         used: usage.countries,
         max: FREEMIUM_LIMITS.countries,
+      }),
+      push,
+    );
+    maybeWarn(
+      'cities',
+      usage.cities,
+      FREEMIUM_LIMITS.cities,
+      t('limits.approachingCities', {
+        used: usage.cities,
+        max: FREEMIUM_LIMITS.cities,
       }),
       push,
     );

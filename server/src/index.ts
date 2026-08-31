@@ -33,6 +33,8 @@ import type { MapVisibility } from '../../src/data/subscription';
 import {
   canViewUserMap,
   checkFreemiumCityLimit,
+  checkFreemiumCountryLimit,
+  checkFreemiumCityCountLimit,
   checkFreemiumPlaceLimit,
   checkFreemiumRouteLimit,
   normalizeMapVisibility,
@@ -198,8 +200,12 @@ async function optionalAuthUser(c: Context): Promise<DbUser | null> {
   return findUserById(db, payload.sub);
 }
 
-function limitErrorMessage(code: 'countries' | 'routes' | 'places', limit: number): string {
+function limitErrorMessage(
+  code: 'countries' | 'cities' | 'routes' | 'places',
+  limit: number,
+): string {
   if (code === 'countries') return `Лимит Freemium: не более ${limit} стран. Перейдите на Premium.`;
+  if (code === 'cities') return `Лимит Freemium: не более ${limit} городов. Перейдите на Premium.`;
   if (code === 'routes') return `Лимит Freemium: не более ${limit} маршрутов. Перейдите на Premium.`;
   return `Лимит Freemium: не более ${limit} мест. Перейдите на Premium.`;
 }
@@ -651,8 +657,22 @@ app.post('/api/user/places', requireAuth, async (c) => {
   if (rec instanceof Response) return rec;
   if (!isValidPlace(rec.place)) return c.json({ error: 'Некорректное место' }, 400);
   const place = rec.place as { id: string };
-  const limit = checkFreemiumPlaceLimit(db, user, place.id);
-  if (!limit.ok) return c.json({ error: limitErrorMessage(limit.code, limit.limit), code: limit.code }, 403);
+  const placeLimit = checkFreemiumPlaceLimit(db, user, place.id);
+  if (!placeLimit.ok) {
+    return c.json({ error: limitErrorMessage(placeLimit.code, placeLimit.limit), code: placeLimit.code }, 403);
+  }
+  if (isValidCity(rec.city)) {
+    const cityObj = rec.city as City;
+    const cityExists = db.prepare('SELECT 1 FROM cities WHERE id = ? AND owner_id = ?').get(cityObj.id, user.id);
+    const cityCountLimit = checkFreemiumCityCountLimit(db, user, cityObj.id);
+    if (!cityCountLimit.ok) {
+      return c.json({ error: limitErrorMessage(cityCountLimit.code, cityCountLimit.limit), code: cityCountLimit.code }, 403);
+    }
+    const countryLimit = checkFreemiumCountryLimit(db, user, cityObj, Boolean(cityExists));
+    if (!countryLimit.ok) {
+      return c.json({ error: limitErrorMessage(countryLimit.code, countryLimit.limit), code: countryLimit.code }, 403);
+    }
+  }
   try {
     if (isValidCity(rec.city)) upsertUserCity(db, user.id, rec.city);
     upsertUserPlace(db, user.id, rec.place);

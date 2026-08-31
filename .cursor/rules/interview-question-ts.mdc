@@ -1,0 +1,13 @@
+---
+description: Do not edit interview practice file docs/question.ts
+globs: docs/question.ts
+alwaysApply: true
+---
+
+# Interview practice file — hands off
+
+`docs/question.ts` is where the user writes solutions to interview exercises by hand.
+
+- **Never** create, overwrite, autofill, or "helpfully complete" code in `docs/question.ts`.
+- **Never** apply Tab/agent edits to that file unless the user **explicitly** asks you to check, fix, or write the solution there.
+- Put exercise stubs and explanations only in `docs/собеседование-примеры-и-задачи.md` (or chat), not by filling `question.ts` for the user.

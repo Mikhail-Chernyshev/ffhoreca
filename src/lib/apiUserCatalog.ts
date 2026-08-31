@@ -30,7 +30,12 @@ async function userPost(path: string, body: unknown): Promise<UserApiResult> {
     try {
       const parsed = JSON.parse(text) as { error?: string; code?: LimitCode };
       msg = parsed.error ?? text;
-      if (parsed.code === 'countries' || parsed.code === 'routes' || parsed.code === 'places') {
+      if (
+        parsed.code === 'countries' ||
+        parsed.code === 'cities' ||
+        parsed.code === 'routes' ||
+        parsed.code === 'places'
+      ) {
         code = parsed.code;
       }
     } catch {
