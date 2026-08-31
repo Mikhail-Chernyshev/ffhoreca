@@ -287,6 +287,7 @@ export function PlaceModal({
           ×
         </button>
 
+        <div className='modal-dialog__scroll'>
         <h2 id='place-modal-title' className='modal-title'>
           {place.name}
         </h2>
@@ -464,6 +465,7 @@ export function PlaceModal({
             ) : null}
           </div>
         ) : null}
+        </div>
       </div>
 
       {reportOpen && reportOwnerUsername ? (

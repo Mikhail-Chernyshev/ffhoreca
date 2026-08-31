@@ -1285,31 +1285,51 @@
   justify-content: center;
   padding: 1rem;
   overflow: hidden;
-  /* Вокруг карточки — только лёгкий прозрачный блюр, без тёмной заливки */
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(10px) saturate(1.05);
-  -webkit-backdrop-filter: blur(10px) saturate(1.05);
+  background: transparent;
+}
+
+/* Блюр/затемнение вокруг карточки — отдельный слой, не на .modal-dialog */
+.modal-root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: rgba(8, 6, 13, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .modal-dialog {
   position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
   width: min(560px, 100%);
   /* Иначе flex-ребёнок не сжимается ниже высоты контента — скролл не появляется */
   min-height: 0;
   max-height: calc(100vh - 6rem);
   max-height: calc(100dvh - 6rem);
   margin-block: auto;
-  padding: 1.5rem 1.5rem 1.75rem;
+  padding: 0;
   border-radius: 14px;
   border: 1px solid var(--border);
-  /* Непрозрачная белая подложка поверх блюра */
+  /* Белая оболочка: overflow hidden — при overscroll виден белый, не блюр */
   background: #fff;
   box-shadow: var(--shadow-lg);
   color: var(--text);
+  overflow: hidden;
+}
+
+/* Скролл внутри белой оболочки */
+.modal-dialog__scroll {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
+  padding: 1.5rem 1.5rem 1.75rem;
 }
 
 .modal-dialog.modal-dialog--wide {
@@ -1537,18 +1557,6 @@
   line-height: 1.45;
 }
 
-.account-plan__usage {
-  margin-top: 0.35rem;
-  padding-top: 0.55rem;
-  border-top: 1px dashed var(--border);
-  font-size: 0.78rem;
-  color: var(--text-muted, #888);
-}
-
-.account-plan__usage p {
-  margin: 0.15rem 0;
-}
-
 .account-plan__cta {
   margin-top: auto;
   font: inherit;
@@ -1763,6 +1771,7 @@
   position: absolute;
   top: 0.65rem;
   right: 0.65rem;
+  z-index: 2;
   width: 2.25rem;
   height: 2.25rem;
   border: none;

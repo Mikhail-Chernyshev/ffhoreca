@@ -265,6 +265,7 @@ export function AddRouteModal({
       >
         <button type="button" className="modal-close" onClick={onClose} aria-label={t('common.close')}>×</button>
 
+        <div className="modal-dialog__scroll">
         <h2 id="add-route-modal-title" className="modal-title">{t('addRoute.title')}</h2>
         <p className="modal-summary modal-summary--muted">
           {mode === 'plane' ? t('addRoute.introPlane') : t('addRoute.intro')}
@@ -361,6 +362,7 @@ export function AddRouteModal({
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

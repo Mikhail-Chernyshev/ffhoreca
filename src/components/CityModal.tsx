@@ -67,29 +67,31 @@ export function CityModal({ city, onClose }: Props) {
           ×
         </button>
 
-        <h2 id="city-modal-title" className="modal-title">
-          {city.name}
-        </h2>
-        <p className="modal-address">
-          {country} · {coords}
-        </p>
-
-        {hasSummary ? (
-          <p className="modal-summary">{city.summary}</p>
-        ) : (
-          <p className="modal-summary modal-summary--muted">
-            {t('cityModal.emptySummaryHint')}
+        <div className="modal-dialog__scroll">
+          <h2 id="city-modal-title" className="modal-title">
+            {city.name}
+          </h2>
+          <p className="modal-address">
+            {country} · {coords}
           </p>
-        )}
 
-        {hasPhotos && <ModalPhotoCarousel key={city.id} photos={photos} />}
+          {hasSummary ? (
+            <p className="modal-summary">{city.summary}</p>
+          ) : (
+            <p className="modal-summary modal-summary--muted">
+              {t('cityModal.emptySummaryHint')}
+            </p>
+          )}
 
-        {hasStory ? (
-          <>
-            <h3 className="modal-section-title">{t('cityModal.notesHeading')}</h3>
-            <p className="modal-story">{city.story}</p>
-          </>
-        ) : null}
+          {hasPhotos && <ModalPhotoCarousel key={city.id} photos={photos} />}
+
+          {hasStory ? (
+            <>
+              <h3 className="modal-section-title">{t('cityModal.notesHeading')}</h3>
+              <p className="modal-story">{city.story}</p>
+            </>
+          ) : null}
+        </div>
       </div>
     </div>
   )

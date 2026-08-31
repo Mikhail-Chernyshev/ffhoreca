@@ -381,6 +381,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
           ×
         </button>
 
+        <div className="modal-dialog__scroll">
         <h2 id="add-place-modal-title" className="modal-title">
           {t('addPlace.title')}
         </h2>
@@ -612,6 +613,7 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

@@ -196,6 +196,7 @@ export function AddCityModal({ catalog, onClose, onSaved, saveCity }: Props) {
           ×
         </button>
 
+        <div className='modal-dialog__scroll'>
         <h2 id='add-city-modal-title' className='modal-title'>
           {t('addCity.title')}
         </h2>
@@ -377,6 +378,7 @@ export function AddCityModal({ catalog, onClose, onSaved, saveCity }: Props) {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
