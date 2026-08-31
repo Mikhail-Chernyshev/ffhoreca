@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { Catalog, TravelRoute } from '../data/types';
 import { useT } from '../i18n/LocaleContext';
 import { isHintSeen } from '../lib/onboardingStore';
@@ -43,6 +43,7 @@ export function MapOnboarding({
     dismissChecklist,
     skipAll,
     calloutMessageKey,
+    hintsVersion,
   } = onboarding;
 
   const enabled = mode !== 'sharedMap';
@@ -70,15 +71,13 @@ export function MapOnboarding({
     !checklistCollapsed &&
     !isHintSeen('checklistDismissed');
 
-  const checklist = useMemo(
-    () => ({
-      city: catalog.cities.length > 0,
-      place: catalog.places.length > 0,
-      openPlace: isHintSeen('firstPlaceOpen'),
-      share: !!username,
-    }),
-    [catalog.cities.length, catalog.places.length, username],
-  );
+  const checklist = {
+    city: catalog.cities.length > 0,
+    place: catalog.places.length > 0,
+    // hintsVersion: re-read localStorage after notify('placeOpened')
+    openPlace: hintsVersion >= 0 && isHintSeen('firstPlaceOpen'),
+    share: !!username,
+  };
 
   const checklistDone =
     checklist.city && checklist.place && checklist.openPlace && checklist.share;

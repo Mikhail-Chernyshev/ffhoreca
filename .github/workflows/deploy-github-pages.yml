@@ -47,6 +47,7 @@ jobs:
           set -e
           cp docs/budget-2030.html dist/budget-2030.html
           cp "docs/budget-2030 copy.html" dist/budget-2030-copy.html
+          cp docs/budget-2030-russia.html dist/budget-2030-russia.html
           if [ -f docs/todo.html ]; then
             cp docs/todo.html dist/todo.html
           else

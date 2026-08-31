@@ -36,6 +36,8 @@ export function useMapOnboarding(enabled: boolean) {
   const [bannerDismissed, setBannerDismissed] = useState(() =>
     isHintSeen('showcaseBanner'),
   );
+  /** Bumps when a hint is marked — checklist reads localStorage and needs a re-render. */
+  const [hintsVersion, setHintsVersion] = useState(0);
 
   const notify = useCallback(
     (event: OnboardingEvent) => {
@@ -43,6 +45,7 @@ export function useMapOnboarding(enabled: boolean) {
       const hint = EVENT_TO_HINT[event];
       if (isHintSeen(hint)) return;
       markHintSeen(hint);
+      setHintsVersion((v) => v + 1);
       if (HINT_MESSAGE_KEY[hint]) setActiveCallout(hint);
     },
     [enabled, skipped],
@@ -76,6 +79,7 @@ export function useMapOnboarding(enabled: boolean) {
     setTourOpen,
     checklistCollapsed,
     bannerDismissed,
+    hintsVersion,
     notify,
     dismissCallout,
     dismissBanner,
