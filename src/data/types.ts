@@ -12,8 +12,7 @@ export type CategoryFilter =
 export type PlaceCategory = 'lodging' | 'food' | 'bar' | 'airport' | 'attraction';
 
 /**
- * Город в каталоге. Граница на карте: опциональный файл `public/geo/cities/{id}.json`
- * (FeatureCollection, GeometryCollection или один Polygon/MultiPolygon).
+ * Город в каталоге. Граница на карте подгружается из OSM (Nominatim).
  */
 export interface City {
   id: string;

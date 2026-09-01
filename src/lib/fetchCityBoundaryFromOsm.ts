@@ -201,7 +201,7 @@ function geojsonFromResult(r: NominatimResult | null): unknown | null {
 }
 
 /**
- * Граница города из OpenStreetMap (Nominatim), если нет файла public/geo/cities/{id}.json.
+ * Граница города из OpenStreetMap (Nominatim).
  */
 export async function fetchCityBoundaryFromOsm(
   city: City,

@@ -1,7 +1,7 @@
 import type { City } from '../data/types';
 import { cyrillicToLatin, latinSearchHint } from './transliterate';
 
-/** Варианты id для public/geo/cities/{id}.json (кириллица в id → латинский slug) */
+/** Варианты id города (кириллица в id → латинский slug) для поисковых запросов Nominatim */
 export function localGeoBoundaryIds(city: City): string[] {
   const out = new Set<string>([city.id]);
   const parts = city.id.split('-');

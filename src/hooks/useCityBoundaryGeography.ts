@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rewindGeoJson } from '../lib/geojsonRewind';
-import { localGeoBoundaryIds } from '../lib/cityBoundaryLookup';
 import {
   fetchCityBoundaryFromOsm,
   NOMINATIM_MIN_INTERVAL_MS,
@@ -98,24 +97,7 @@ function normalizeCityBoundaryJson(raw: unknown): FeatureCollection | null {
   return null;
 }
 
-async function fetchLocalCityBoundary(
-  city: City,
-): Promise<FeatureCollection | null> {
-  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-  for (const id of localGeoBoundaryIds(city)) {
-    try {
-      const res = await fetch(`${base}/geo/cities/${encodeURIComponent(id)}.json`);
-      if (!res.ok) continue;
-      const gj = normalizeCityBoundaryJson(await res.json());
-      if (gj?.features?.length) return gj;
-    } catch {
-      /* try next id */
-    }
-  }
-  return null;
-}
-
-/** Загружает GeoJSON границ из public/geo/cities/{id}.json или OSM (Nominatim). */
+/** Загружает GeoJSON границ городов из OSM (Nominatim). */
 export function useCityBoundaryGeography(cities: City[]): {
   geography: FeatureCollection | null;
   boundaryCityIds: Set<string>;
@@ -149,40 +131,22 @@ export function useCityBoundaryGeography(cities: City[]): {
     void (async () => {
       const loadedIds = new Set<string>();
       const allFeatures: FeatureCollection['features'] = [];
-      const needsOsm: City[] = [];
-
-      await Promise.all(
-        cities.map(async (c) => {
-          try {
-            const gj = await fetchLocalCityBoundary(c);
-            if (!gj?.features?.length) {
-              needsOsm.push(c);
-              return;
-            }
-            addBoundary(c.id, gj, loadedIds, allFeatures);
-          } catch {
-            needsOsm.push(c);
-          }
-        }),
-      );
-
-      if (cancelled) return;
 
       const publish = () => {
         setBoundaryCityIds(new Set(loadedIds));
         if (allFeatures.length > 0) {
           setGeography({ type: 'FeatureCollection', features: [...allFeatures] });
+        } else {
+          setGeography(null);
         }
       };
 
-      if (allFeatures.length > 0) publish();
-
-      for (let i = 0; i < needsOsm.length; i++) {
+      for (let i = 0; i < cities.length; i++) {
         if (cancelled) return;
         if (i > 0) {
           await new Promise((resolve) => setTimeout(resolve, NOMINATIM_MIN_INTERVAL_MS));
         }
-        const c = needsOsm[i]!;
+        const c = cities[i]!;
         try {
           const raw = await fetchCityBoundaryFromOsm(c);
           if (cancelled || raw == null) continue;
@@ -196,9 +160,7 @@ export function useCityBoundaryGeography(cities: City[]): {
       }
 
       if (cancelled) return;
-
       publish();
-      if (allFeatures.length === 0) setGeography(null);
     })();
 
     return () => {

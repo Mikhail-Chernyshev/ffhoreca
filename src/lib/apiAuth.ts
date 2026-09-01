@@ -40,11 +40,6 @@ export function clearSessionToken(): void {
   localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 
-/** Удаляет устаревший токен localStorage (миграция на sessionStorage). */
-export function clearLegacyToken(): void {
-  localStorage.removeItem(LEGACY_TOKEN_KEY);
-}
-
 export function authHeaders(): Record<string, string> {
   const token = getSessionToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -62,7 +57,8 @@ function parseAuthUser(u: Partial<AuthUser>): AuthUser {
     avatar: u.avatar ?? null,
     email: u.email ?? null,
     subscription: u.subscription === 'premium' ? 'premium' : 'freemium',
-    map_visibility: u.map_visibility === 'subscribers' ? 'subscribers' : 'public',
+    map_visibility:
+      u.map_visibility === 'subscribers' ? 'subscribers' : 'public',
   };
 }
 
@@ -78,9 +74,12 @@ async function resolveCitiesUsage(
   const base = apiBaseUrl();
   if (!base) return 0;
   try {
-    const res = await apiFetch(`${base}/api/users/${encodeURIComponent(username)}/catalog`, {
-      headers: authHeaders(),
-    });
+    const res = await apiFetch(
+      `${base}/api/users/${encodeURIComponent(username)}/catalog`,
+      {
+        headers: authHeaders(),
+      },
+    );
     if (!res.ok) return 0;
     const data = (await res.json()) as { cities?: unknown };
     return Array.isArray(data.cities) ? data.cities.length : 0;
@@ -124,7 +123,9 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
   const base = apiBaseUrl();
   if (!base) return null;
   try {
-    const res = await apiFetch(`${base}/api/auth/me`, { headers: authHeaders() });
+    const res = await apiFetch(`${base}/api/auth/me`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) {
       if (res.status === 401) clearSessionToken();
       return null;
@@ -140,7 +141,9 @@ export async function fetchAuthAccount(): Promise<AuthAccount | null> {
   const base = apiBaseUrl();
   if (!base) return null;
   try {
-    const res = await apiFetch(`${base}/api/auth/me`, { headers: authHeaders() });
+    const res = await apiFetch(`${base}/api/auth/me`, {
+      headers: authHeaders(),
+    });
     if (!res.ok) {
       if (res.status === 401) clearSessionToken();
       return null;
