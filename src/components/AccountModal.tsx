@@ -11,11 +11,14 @@ import {
   acceptFollowRequest,
   rejectFollowRequest,
   unfollowUser,
+  revokeFollower,
   type FollowPerson,
+  type FollowRequest,
   type FollowingRow,
 } from '../lib/apiFollow';
 import { useFollowRequests } from '../hooks/useFollowRequests';
 import { useFollowing } from '../hooks/useFollowing';
+import { useFollowers } from '../hooks/useFollowers';
 import {
   FREEMIUM_LIMITS,
   FREEMIUM_LIMITS_ENFORCED,
@@ -64,8 +67,9 @@ export function AccountModal({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
-  const [followTab, setFollowTab] = useState<'requests' | 'following'>('requests');
+  const [followTab, setFollowTab] = useState<'requests' | 'followers' | 'following'>('requests');
   const [unfollowTarget, setUnfollowTarget] = useState<FollowingRow | null>(null);
+  const [revokeTarget, setRevokeTarget] = useState<FollowRequest | null>(null);
   const {
     requests: followRequests,
     refresh: refreshFollowRequests,
@@ -76,6 +80,12 @@ export function AccountModal({
     refresh: refreshFollowing,
     removeFollowing,
   } = useFollowing(true);
+  const {
+    followers,
+    refresh: refreshFollowers,
+    addFollower,
+    removeFollower,
+  } = useFollowers(true);
 
   useEffect(() => {
     setUsernameDraft(user.username ?? '');
@@ -107,10 +117,11 @@ export function AccountModal({
       });
     void refreshFollowRequests();
     void refreshFollowing();
+    void refreshFollowers();
     return () => {
       cancelled = true;
     };
-  }, [t, refreshFollowRequests, refreshFollowing]);
+  }, [t, refreshFollowRequests, refreshFollowing, refreshFollowers]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -224,9 +235,15 @@ export function AccountModal({
     setFollowActionId(followerId);
     setError(null);
     try {
-      if (action === 'accept') await acceptFollowRequest(followerId);
-      else await rejectFollowRequest(followerId);
-      removeRequest(followerId);
+      if (action === 'accept') {
+        const row = followRequests.find((item) => item.follower.id === followerId);
+        await acceptFollowRequest(followerId);
+        removeRequest(followerId);
+        if (row) addFollower(row);
+      } else {
+        await rejectFollowRequest(followerId);
+        removeRequest(followerId);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : t('account.followRequestError'));
     } finally {
@@ -241,6 +258,20 @@ export function AccountModal({
       await unfollowUser(ownerId);
       removeFollowing(ownerId);
       setUnfollowTarget(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('account.followingError'));
+    } finally {
+      setFollowActionId(null);
+    }
+  };
+
+  const handleRevoke = async (followerId: string) => {
+    setFollowActionId(followerId);
+    setError(null);
+    try {
+      await revokeFollower(followerId);
+      removeFollower(followerId);
+      setRevokeTarget(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('account.followingError'));
     } finally {
@@ -490,6 +521,24 @@ export function AccountModal({
               <button
                 type='button'
                 role='tab'
+                aria-selected={followTab === 'followers'}
+                className={
+                  followTab === 'followers'
+                    ? 'account-follow-tabs__btn account-follow-tabs__btn--active'
+                    : 'account-follow-tabs__btn'
+                }
+                onClick={() => setFollowTab('followers')}
+              >
+                {t('account.followTabFollowers')}
+                {followers.length > 0 ? (
+                  <span className='account-follow-tabs__count account-follow-tabs__count--muted'>
+                    {followers.length}
+                  </span>
+                ) : null}
+              </button>
+              <button
+                type='button'
+                role='tab'
                 aria-selected={followTab === 'following'}
                 className={
                   followTab === 'following'
@@ -535,6 +584,34 @@ export function AccountModal({
                               onClick={() => void handleFollowRequest(row.follower.id, 'reject')}
                             >
                               {t('account.followReject')}
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
+            ) : followTab === 'followers' ? (
+              <>
+                <p className='account-modal__hint'>{t('account.followersHint')}</p>
+                {followers.length === 0 ? (
+                  <p className='account-modal__hint'>{t('account.followersEmpty')}</p>
+                ) : (
+                  <ul className='account-follow-requests'>
+                    {followers.map((row) => {
+                      const busy = followActionId === row.follower.id;
+                      return (
+                        <li key={row.follower.id} className='account-follow-requests__row'>
+                          <FollowPersonCard person={row.follower} onNavigate={onClose} />
+                          <div className='account-follow-requests__actions'>
+                            <button
+                              type='button'
+                              className='account-follow-requests__reject'
+                              disabled={busy || settingsBusy}
+                              onClick={() => setRevokeTarget(row)}
+                            >
+                              {t('account.followersRevoke')}
                             </button>
                           </div>
                         </li>
@@ -625,6 +702,24 @@ export function AccountModal({
           ) : null}
         </div>
       </div>
+
+      {revokeTarget ? (
+        <ConfirmModal
+          title={t('account.followersRevokeConfirmTitle')}
+          message={t('account.followersRevokeConfirmMessage', {
+            name: revokeTarget.follower.username
+              ? `@${revokeTarget.follower.username}`
+              : revokeTarget.follower.name,
+          })}
+          confirmLabel={t('account.followersRevoke')}
+          danger={false}
+          busy={followActionId === revokeTarget.follower.id}
+          onConfirm={() => void handleRevoke(revokeTarget.follower.id)}
+          onCancel={() => {
+            if (followActionId !== revokeTarget.follower.id) setRevokeTarget(null);
+          }}
+        />
+      ) : null}
 
       {unfollowTarget ? (
         <ConfirmModal

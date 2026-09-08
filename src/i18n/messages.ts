@@ -441,6 +441,14 @@ const ru = {
     followTabsAria: 'Подписки',
     followTabRequests: 'Заявки',
     followTabFollowing: 'Мои подписки',
+    followTabFollowers: 'Подписчики',
+    followersHint:
+      'У этих людей есть доступ к вашей приватной карте. Отзыв сразу его закрывает.',
+    followersEmpty: 'Пока никто не подписан.',
+    followersRevoke: 'Отозвать',
+    followersRevokeConfirmTitle: 'Отозвать доступ?',
+    followersRevokeConfirmMessage:
+      '{{name}} больше не сможет открыть вашу приватную карту.',
     followingHint:
       'Карты, к которым вы отправили заявку. Отписка сразу закрывает доступ.',
     followingEmpty: 'Вы ни на кого не подписаны.',
@@ -997,6 +1005,14 @@ const en = {
     followTabsAria: 'Follows',
     followTabRequests: 'Requests',
     followTabFollowing: 'Following',
+    followTabFollowers: 'Followers',
+    followersHint:
+      'These people can open your private map. Revoking access closes it immediately.',
+    followersEmpty: 'No one is following you yet.',
+    followersRevoke: 'Revoke',
+    followersRevokeConfirmTitle: 'Revoke access?',
+    followersRevokeConfirmMessage:
+      '{{name}} will no longer be able to open your private map.',
     followingHint:
       'Maps you asked to see. Unfollowing removes access immediately.',
     followingEmpty: 'You are not following anyone.',

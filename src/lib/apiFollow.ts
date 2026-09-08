@@ -78,3 +78,20 @@ export async function unfollowUser(ownerId: string): Promise<void> {
   );
   if (!res.ok) throw new Error(await readError(res));
 }
+
+export async function fetchFollowers(): Promise<FollowRequest[]> {
+  const res = await apiFetch(`${apiBaseUrl()}/api/user/followers`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  const data = (await res.json()) as { followers?: FollowRequest[] };
+  return Array.isArray(data.followers) ? data.followers : [];
+}
+
+export async function revokeFollower(followerId: string): Promise<void> {
+  const res = await apiFetch(
+    `${apiBaseUrl()}/api/user/followers/${encodeURIComponent(followerId)}`,
+    { method: 'DELETE', headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error(await readError(res));
+}

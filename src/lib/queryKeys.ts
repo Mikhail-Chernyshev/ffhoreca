@@ -6,6 +6,7 @@ export const queryKeys = {
   userSearch: (q: string) => ['users', 'search', q] as const,
   followRequests: ['follow', 'requests'] as const,
   following: ['follow', 'following'] as const,
+  followers: ['follow', 'followers'] as const,
   showcaseCatalog: ['showcase', 'catalog'] as const,
   showcaseRoutes: ['showcase', 'routes'] as const,
 };

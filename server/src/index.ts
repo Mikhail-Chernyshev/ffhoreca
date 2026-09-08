@@ -23,7 +23,7 @@ import {
   upsertUserRoute, deleteUserRoute,
   addFavorite, removeFavorite, getFavorites, isFavorite,
   requestMapFollow, acceptMapFollow, rejectMapFollow,
-  listIncomingFollowRequests, listOutgoingFollows, unfollowMap, getMapFollow,
+  listIncomingFollowRequests, listAcceptedFollowers, listOutgoingFollows, unfollowMap, getMapFollow,
   getUserUsage,
   countUserCities,
   collectUserUploadFilenames,
@@ -703,6 +703,25 @@ app.delete('/api/user/following/:ownerId', requireAuth, (c) => {
   const ownerId = c.req.param('ownerId');
   const ok = unfollowMap(db, user.id, ownerId);
   if (!ok) return c.json({ error: 'Подписка не найдена' }, 404);
+  return c.json({ ok: true });
+});
+
+app.get('/api/user/followers', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const followers = listAcceptedFollowers(db, user.id).map((row) => ({
+    follower: serializePublicUser(row.follower),
+    created_at: row.created_at,
+  }));
+  return c.json({ followers });
+});
+
+app.delete('/api/user/followers/:followerId', requireAuth, (c) => {
+  const limited = rateLimitOrResponse(c, 'map-follow', 30, 60_000);
+  if (limited) return limited;
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const followerId = c.req.param('followerId');
+  const ok = unfollowMap(db, followerId, user.id);
+  if (!ok) return c.json({ error: 'Подписчик не найден' }, 404);
   return c.json({ ok: true });
 });
 

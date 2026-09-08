@@ -29,6 +29,7 @@ export function useCurrentUser(): AuthState {
       void qc.invalidateQueries({ queryKey: queryKeys.favorites });
       qc.removeQueries({ queryKey: queryKeys.followRequests });
       qc.removeQueries({ queryKey: queryKeys.following });
+      qc.removeQueries({ queryKey: queryKeys.followers });
     },
   });
 

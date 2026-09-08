@@ -619,6 +619,23 @@ export function listIncomingFollowRequests(
   });
 }
 
+export function listAcceptedFollowers(
+  db: Database.Database,
+  ownerId: string,
+): IncomingFollowRequest[] {
+  const rows = db.prepare(
+    `SELECT u.*, f.created_at AS follow_created_at
+     FROM map_follows f
+     JOIN users u ON u.id = f.follower_id
+     WHERE f.owner_id = ? AND f.status = 'accepted'
+     ORDER BY f.created_at DESC`,
+  ).all(ownerId) as Array<DbUser & { follow_created_at: number }>;
+  return rows.map((row) => {
+    const { follow_created_at, ...follower } = row;
+    return { follower, created_at: follow_created_at };
+  });
+}
+
 export type OutgoingFollow = {
   owner: DbUser;
   status: MapFollowStatus;
