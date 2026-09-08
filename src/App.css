@@ -3716,6 +3716,11 @@
   margin-bottom: 0.75rem;
 }
 
+.modal__field:focus-within {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}
+
 .username-modal__prefix {
   padding: 0.5rem 0.35rem 0.5rem 0.75rem;
   background: none;
@@ -3730,6 +3735,13 @@
   flex: 1;
   min-width: 0;
   padding: 0.5rem 0.75rem;
+  outline: none;
+}
+
+.username-modal__input:focus,
+.username-modal__input:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 .modal__hint {
