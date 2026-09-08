@@ -1383,10 +1383,6 @@
   color: var(--text-muted, #888);
 }
 
-.account-modal__name-field .username-modal__input {
-  padding: 0 0.65rem;
-}
-
 .account-modal__section {
   margin-top: 1.35rem;
 }
@@ -1417,17 +1413,23 @@
 }
 
 .account-modal__username-field .username-modal__prefix {
-  padding: 0 0.45rem 0 0.6rem;
+  padding: 0 0.35rem 0 0.75rem;
   font-size: 0.85rem;
   line-height: 1;
+  background: none;
+  border-right: none;
 }
 
 .account-modal__username-field .username-modal__input {
   font-size: 0.85rem;
-  padding: 0 0.6rem 0 0;
+  padding: 0.35rem 0.75rem 0.35rem 0.35rem;
   height: 100%;
   min-height: 0;
   line-height: 1.2;
+}
+
+.account-modal__name-field .username-modal__input {
+  padding: 0.35rem 0.75rem;
 }
 
 .account-modal__save-btn {
@@ -3715,10 +3717,9 @@
 }
 
 .username-modal__prefix {
-  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
-  background: var(--surface-alt, #f4f7f5);
+  padding: 0.5rem 0.35rem 0.5rem 0.75rem;
+  background: none;
   color: var(--text-muted, #888);
-  border-right: 1px solid var(--border, #ccc);
   font-size: 1rem;
   user-select: none;
 }
@@ -3727,6 +3728,8 @@
   border: none !important;
   border-radius: 0 !important;
   flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
 }
 
 .modal__hint {
