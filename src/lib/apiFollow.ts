@@ -3,8 +3,16 @@ import { authHeaders, type AuthUser } from './apiAuth';
 
 export type FollowStatus = 'none' | 'pending' | 'accepted' | 'self';
 
+export type FollowPerson = Pick<AuthUser, 'id' | 'username' | 'name' | 'avatar'>;
+
 export type FollowRequest = {
-  follower: Pick<AuthUser, 'id' | 'username' | 'name' | 'avatar'>;
+  follower: FollowPerson;
+  created_at: number;
+};
+
+export type FollowingRow = {
+  owner: FollowPerson;
+  status: 'pending' | 'accepted';
   created_at: number;
 };
 
@@ -50,6 +58,23 @@ export async function rejectFollowRequest(followerId: string): Promise<void> {
   const res = await apiFetch(
     `${apiBaseUrl()}/api/user/follow-requests/${encodeURIComponent(followerId)}/reject`,
     { method: 'POST', headers: authHeaders() },
+  );
+  if (!res.ok) throw new Error(await readError(res));
+}
+
+export async function fetchFollowing(): Promise<FollowingRow[]> {
+  const res = await apiFetch(`${apiBaseUrl()}/api/user/following`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  const data = (await res.json()) as { following?: FollowingRow[] };
+  return Array.isArray(data.following) ? data.following : [];
+}
+
+export async function unfollowUser(ownerId: string): Promise<void> {
+  const res = await apiFetch(
+    `${apiBaseUrl()}/api/user/following/${encodeURIComponent(ownerId)}`,
+    { method: 'DELETE', headers: authHeaders() },
   );
   if (!res.ok) throw new Error(await readError(res));
 }

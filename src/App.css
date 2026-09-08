@@ -1383,6 +1383,10 @@
   color: var(--text-muted, #888);
 }
 
+.account-modal__name-field .username-modal__input {
+  padding: 0 0.65rem;
+}
+
 .account-modal__section {
   margin-top: 1.35rem;
 }
@@ -1608,6 +1612,55 @@
   font-weight: 400;
 }
 
+.account-follow-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+}
+
+.account-follow-tabs__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.account-follow-tabs__btn--active {
+  background: var(--accent-bg, #f0f7f2);
+  border-color: color-mix(in srgb, var(--accent, #5fa573) 35%, var(--border));
+  color: var(--accent, #5fa573);
+}
+
+.account-follow-tabs__count {
+  min-width: 1.1rem;
+  height: 1.1rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: #d94a38;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.1rem;
+  text-align: center;
+}
+
+.account-follow-tabs__count--muted {
+  background: var(--text-muted, #888);
+}
+
+.account-follow-tabs__btn:not(.account-follow-tabs__btn--active) .account-follow-tabs__count:not(.account-follow-tabs__count--muted) {
+  background: color-mix(in srgb, #d94a38 75%, #888);
+}
+
 .account-follow-requests {
   list-style: none;
   margin: 0.5rem 0 0;
@@ -1633,6 +1686,15 @@
   align-items: center;
   gap: 0.55rem;
   min-width: 0;
+}
+
+.account-follow-requests__who--link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.account-follow-requests__who--link:hover strong {
+  color: var(--accent, #5fa573);
 }
 
 .account-follow-requests__who strong {
@@ -1665,7 +1727,13 @@
 
 .account-follow-requests__actions {
   display: flex;
+  align-items: center;
   gap: 0.4rem;
+}
+
+.account-follow-requests__status {
+  font-size: 0.78rem;
+  color: var(--text-muted);
 }
 
 .account-follow-requests__accept,
@@ -3603,7 +3671,26 @@
 }
 
 .auth-user__account {
+  position: relative;
   flex-shrink: 0;
+}
+
+.auth-user__account-badge {
+  position: absolute;
+  top: -0.35rem;
+  right: -0.35rem;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  padding: 0 0.28rem;
+  border-radius: 999px;
+  background: #d94a38;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  text-align: center;
+  pointer-events: none;
+  box-shadow: 0 0 0 2px var(--surface, #fff);
 }
 
 .auth-user__logout:hover {

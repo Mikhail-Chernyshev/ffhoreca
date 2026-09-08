@@ -468,7 +468,12 @@ function App() {
           onClose={() => setAccountOpen(false)}
           onUserUpdated={(updated) => {
             void refetchUser()
-            if (updated.username) navigate(`/${updated.username}`)
+            if (
+              updated.username &&
+              updated.username.toLowerCase() !== (currentUser.username ?? '').toLowerCase()
+            ) {
+              navigate(`/${updated.username}`)
+            }
           }}
           onAccountDeleted={() => {
             setAccountOpen(false)

@@ -516,7 +516,12 @@ export function UserMapPage() {
           onUserUpdated={(updated) => {
             void refetchUser();
             void refreshUsage();
-            if (updated.username) navigate(`/${updated.username}`);
+            if (
+              updated.username &&
+              updated.username.toLowerCase() !== (currentUser.username ?? '').toLowerCase()
+            ) {
+              navigate(`/${updated.username}`);
+            }
           }}
           onAccountDeleted={() => {
             setAccountOpen(false);

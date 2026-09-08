@@ -23,7 +23,7 @@ import {
   upsertUserRoute, deleteUserRoute,
   addFavorite, removeFavorite, getFavorites, isFavorite,
   requestMapFollow, acceptMapFollow, rejectMapFollow,
-  listIncomingFollowRequests, getMapFollow,
+  listIncomingFollowRequests, listOutgoingFollows, unfollowMap, getMapFollow,
   getUserUsage,
   countUserCities,
   collectUserUploadFilenames,
@@ -411,8 +411,8 @@ app.get('/api/auth/google/callback', async (c) => {
         map_visibility: 'public',
       });
     } else {
-      // Обновляем аватар/имя если изменились
-      user = updateUser(db, user.id, { name: gUser.name, avatar: gUser.picture ?? null }) ?? user;
+      // Имя из Google берём только при создании. Дальше его можно сменить в аккаунте.
+      user = updateUser(db, user.id, { avatar: gUser.picture ?? null }) ?? user;
     }
 
     const jwt = await signJWT(user.id);
@@ -454,17 +454,36 @@ app.get('/api/auth/me', requireAuth, (c) => {
   });
 });
 
+const DISPLAY_NAME_MAX = 80;
+
+function normalizeDisplayName(raw: string): string {
+  return raw.replace(/\s+/g, ' ').trim();
+}
+
 app.patch('/api/auth/settings', requireAuth, async (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
   const rec = await parseJsonObject(c);
   if (rec instanceof Response) return rec;
-  const updates: Partial<Pick<DbUser, 'map_visibility'>> = {};
+  const updates: Partial<Pick<DbUser, 'map_visibility' | 'name'>> = {};
   if (rec.map_visibility !== undefined) {
     const v = rec.map_visibility;
     if (v !== 'public' && v !== 'subscribers') {
       return c.json({ error: 'map_visibility: public или subscribers' }, 400);
     }
     updates.map_visibility = v as MapVisibility;
+  }
+  if (rec.name !== undefined) {
+    if (typeof rec.name !== 'string') {
+      return c.json({ error: 'name: строка' }, 400);
+    }
+    const name = normalizeDisplayName(rec.name);
+    if (!name) {
+      return c.json({ error: 'Введите отображаемое имя' }, 400);
+    }
+    if (name.length > DISPLAY_NAME_MAX) {
+      return c.json({ error: `Имя не длиннее ${DISPLAY_NAME_MAX} символов` }, 400);
+    }
+    updates.name = name;
   }
   if (Object.keys(updates).length === 0) {
     return c.json({ error: 'Нет полей для обновления' }, 400);
@@ -664,6 +683,26 @@ app.post('/api/user/follow-requests/:followerId/reject', requireAuth, (c) => {
   const followerId = c.req.param('followerId');
   const ok = rejectMapFollow(db, user.id, followerId);
   if (!ok) return c.json({ error: 'Запрос не найден' }, 404);
+  return c.json({ ok: true });
+});
+
+app.get('/api/user/following', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const following = listOutgoingFollows(db, user.id).map((row) => ({
+    owner: serializePublicUser(row.owner),
+    status: row.status,
+    created_at: row.created_at,
+  }));
+  return c.json({ following });
+});
+
+app.delete('/api/user/following/:ownerId', requireAuth, (c) => {
+  const limited = rateLimitOrResponse(c, 'map-follow', 30, 60_000);
+  if (limited) return limited;
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const ownerId = c.req.param('ownerId');
+  const ok = unfollowMap(db, user.id, ownerId);
+  if (!ok) return c.json({ error: 'Подписка не найдена' }, 404);
   return c.json({ ok: true });
 });
 

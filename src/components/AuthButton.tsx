@@ -5,6 +5,7 @@ import { getLoginUrl } from '../lib/apiAuth';
 import { rememberLoginReturnPath } from '../lib/bootstrapAuth';
 import { useT } from '../i18n/LocaleContext';
 import { apiBaseUrl } from '../lib/apiBase';
+import { useFollowRequests } from '../hooks/useFollowRequests';
 import { OverflowMarqueeText } from './OverflowMarqueeText';
 import { ConfirmModal } from './ConfirmModal';
 
@@ -51,6 +52,7 @@ export function AuthButton({
 }: Props) {
   const t = useT();
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const { pendingCount } = useFollowRequests(Boolean(user));
 
   if (!apiBaseUrl()) return null;
 
@@ -79,7 +81,10 @@ export function AuthButton({
     );
   }
 
-  const displayName = user.username ? `@${user.username}` : user.name;
+  const displayName = user.name;
+  const displayTitle = user.username
+    ? `@${user.username}`
+    : (user.email ?? user.name);
 
   const nameEl = (
     <>
@@ -87,7 +92,7 @@ export function AuthButton({
         ? <img src={user.avatar} alt={user.name} className="auth-user__avatar" referrerPolicy="no-referrer" />
         : <span className="auth-user__initials">{user.name.charAt(0).toUpperCase()}</span>
       }
-      <OverflowMarqueeText className="auth-user__name-label" title={displayName}>
+      <OverflowMarqueeText className="auth-user__name-label" title={displayTitle}>
         {displayName}
       </OverflowMarqueeText>
     </>
@@ -146,8 +151,23 @@ export function AuthButton({
         type="button"
         className="onboarding-help-btn auth-user__account"
         onClick={onOpenAccount}
+        aria-label={
+          pendingCount > 0
+            ? t('auth.accountPendingAria', { count: pendingCount })
+            : t('auth.account')
+        }
+        title={
+          pendingCount > 0
+            ? t('auth.accountPendingAria', { count: pendingCount })
+            : t('auth.account')
+        }
       >
         {t('auth.account')}
+        {pendingCount > 0 ? (
+          <span className="auth-user__account-badge" aria-hidden>
+            {pendingCount > 9 ? '9+' : pendingCount}
+          </span>
+        ) : null}
       </button>
 
       {logoutConfirmOpen ? (

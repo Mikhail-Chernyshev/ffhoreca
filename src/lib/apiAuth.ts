@@ -162,13 +162,14 @@ export async function fetchAuthAccount(): Promise<AuthAccount | null> {
   }
 }
 
-export async function updateAccountSettings(
-  map_visibility: MapVisibility,
-): Promise<AuthAccount> {
+export async function updateAccountSettings(patch: {
+  map_visibility?: MapVisibility;
+  name?: string;
+}): Promise<AuthAccount> {
   const res = await apiFetch(`${apiBaseUrl()}/api/auth/settings`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json', ...authHeaders() },
-    body: JSON.stringify({ map_visibility }),
+    body: JSON.stringify(patch),
   });
   const data = (await res.json()) as {
     user?: Partial<AuthUser>;

@@ -8,11 +8,14 @@ import {
   deleteAccount,
 } from '../lib/apiAuth';
 import {
-  fetchFollowRequests,
   acceptFollowRequest,
   rejectFollowRequest,
-  type FollowRequest,
+  unfollowUser,
+  type FollowPerson,
+  type FollowingRow,
 } from '../lib/apiFollow';
+import { useFollowRequests } from '../hooks/useFollowRequests';
+import { useFollowing } from '../hooks/useFollowing';
 import {
   FREEMIUM_LIMITS,
   FREEMIUM_LIMITS_ENFORCED,
@@ -23,6 +26,12 @@ import { useT } from '../i18n/LocaleContext';
 import { mapShareUrl } from '../lib/shareUrl';
 import { isReservedUsername } from '../lib/reservedUsernames';
 import { ConfirmModal } from './ConfirmModal';
+
+const DISPLAY_NAME_MAX = 80;
+
+function normalizeDisplayName(raw: string): string {
+  return raw.replace(/\s+/g, ' ').trim();
+}
 
 type Props = {
   user: AuthUser;
@@ -45,18 +54,36 @@ export function AccountModal({
   const [usernameDraft, setUsernameDraft] = useState(user.username ?? '');
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [usernameSaving, setUsernameSaving] = useState(false);
+  const [nameDraft, setNameDraft] = useState(user.name);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [nameSaving, setNameSaving] = useState(false);
   const [settingsBusy, setSettingsBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
-  const [followRequests, setFollowRequests] = useState<FollowRequest[]>([]);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
+  const [followTab, setFollowTab] = useState<'requests' | 'following'>('requests');
+  const [unfollowTarget, setUnfollowTarget] = useState<FollowingRow | null>(null);
+  const {
+    requests: followRequests,
+    refresh: refreshFollowRequests,
+    removeRequest,
+  } = useFollowRequests(true);
+  const {
+    following,
+    refresh: refreshFollowing,
+    removeFollowing,
+  } = useFollowing(true);
 
   useEffect(() => {
     setUsernameDraft(user.username ?? '');
   }, [user.username]);
+
+  useEffect(() => {
+    setNameDraft(user.name);
+  }, [user.name]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,17 +105,12 @@ export function AccountModal({
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    void fetchFollowRequests()
-      .then((list) => {
-        if (!cancelled) setFollowRequests(list);
-      })
-      .catch(() => {
-        /* список заявок не блокирует аккаунт */
-      });
+    void refreshFollowRequests();
+    void refreshFollowing();
     return () => {
       cancelled = true;
     };
-  }, [t]);
+  }, [t, refreshFollowRequests, refreshFollowing]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -108,7 +130,7 @@ export function AccountModal({
     setSettingsBusy(true);
     setError(null);
     try {
-      const data = await updateAccountSettings(next);
+      const data = await updateAccountSettings({ map_visibility: next });
       setUsage(data.usage);
       onUserUpdated(data.user);
     } catch (e) {
@@ -116,6 +138,33 @@ export function AccountModal({
       setError(e instanceof Error ? e.message : t('account.saveError'));
     } finally {
       setSettingsBusy(false);
+    }
+  };
+
+  const saveDisplayName = async () => {
+    const trimmed = normalizeDisplayName(nameDraft);
+    if (!trimmed) {
+      setNameError(t('account.displayNameRequired'));
+      return;
+    }
+    if (trimmed.length > DISPLAY_NAME_MAX) {
+      setNameError(t('account.displayNameTooLong'));
+      return;
+    }
+    if (trimmed === user.name) return;
+
+    setNameSaving(true);
+    setNameError(null);
+    setError(null);
+    try {
+      const data = await updateAccountSettings({ name: trimmed });
+      setNameDraft(data.user.name);
+      setUsage(data.usage);
+      onUserUpdated(data.user);
+    } catch (e) {
+      setNameError(e instanceof Error ? e.message : t('account.saveError'));
+    } finally {
+      setNameSaving(false);
     }
   };
 
@@ -147,8 +196,10 @@ export function AccountModal({
     }
   };
 
+  const nameChanged = normalizeDisplayName(nameDraft) !== user.name;
   const usernameChanged =
     usernameDraft.trim().toLowerCase() !== (user.username ?? '').toLowerCase();
+  const formBusy = usernameSaving || settingsBusy || nameSaving;
   const subscription = user.subscription;
 
   const handleDeleteAccount = async () => {
@@ -175,9 +226,23 @@ export function AccountModal({
     try {
       if (action === 'accept') await acceptFollowRequest(followerId);
       else await rejectFollowRequest(followerId);
-      setFollowRequests((prev) => prev.filter((r) => r.follower.id !== followerId));
+      removeRequest(followerId);
     } catch (e) {
       setError(e instanceof Error ? e.message : t('account.followRequestError'));
+    } finally {
+      setFollowActionId(null);
+    }
+  };
+
+  const handleUnfollow = async (ownerId: string) => {
+    setFollowActionId(ownerId);
+    setError(null);
+    try {
+      await unfollowUser(ownerId);
+      removeFollowing(ownerId);
+      setUnfollowTarget(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('account.followingError'));
     } finally {
       setFollowActionId(null);
     }
@@ -234,6 +299,48 @@ export function AccountModal({
 
           <section className='account-modal__section'>
             <h3 className='account-modal__section-title'>
+              {t('account.displayNameTitle')}
+            </h3>
+            <p className='account-modal__hint'>{t('account.displayNameHint')}</p>
+            <div className='account-modal__username-row'>
+              <div className='modal__field account-modal__username-field account-modal__name-field'>
+                <input
+                  className='modal__input username-modal__input'
+                  type='text'
+                  value={nameDraft}
+                  onChange={(e) => {
+                    setNameDraft(e.target.value);
+                    setNameError(null);
+                  }}
+                  placeholder={t('account.displayNamePlaceholder')}
+                  maxLength={DISPLAY_NAME_MAX}
+                  disabled={formBusy}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') void saveDisplayName();
+                  }}
+                />
+              </div>
+              <button
+                type='button'
+                className='account-modal__save-btn'
+                disabled={!nameChanged || formBusy}
+                onClick={() => void saveDisplayName()}
+              >
+                {nameSaving ? t('auth.saving') : t('auth.save')}
+              </button>
+            </div>
+            {nameError ? (
+              <p
+                className='account-modal__error account-modal__error--field'
+                role='alert'
+              >
+                {nameError}
+              </p>
+            ) : null}
+          </section>
+
+          <section className='account-modal__section'>
+            <h3 className='account-modal__section-title'>
               {t('account.usernameTitle')} ({t('auth.usernameHint')})
             </h3>
             <div className='account-modal__username-row'>
@@ -250,7 +357,7 @@ export function AccountModal({
                   placeholder={t('auth.usernamePlaceholder')}
                   maxLength={30}
                   autoFocus={!user.username}
-                  disabled={usernameSaving || settingsBusy}
+                  disabled={formBusy}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') void saveUsername();
                   }}
@@ -259,7 +366,7 @@ export function AccountModal({
               <button
                 type='button'
                 className='account-modal__save-btn'
-                disabled={!usernameChanged || usernameSaving || settingsBusy}
+                disabled={!usernameChanged || formBusy}
                 onClick={() => void saveUsername()}
               >
                 {usernameSaving ? t('auth.saving') : t('auth.save')}
@@ -267,7 +374,7 @@ export function AccountModal({
               <button
                 type='button'
                 className='account-modal__share-btn'
-                disabled={settingsBusy || usernameSaving || !user.username}
+                disabled={formBusy || !user.username}
                 onClick={() => {
                   if (!user.username) return;
                   void navigator.clipboard
@@ -331,7 +438,7 @@ export function AccountModal({
                   type='radio'
                   name='map_visibility'
                   checked={mapVisibility === 'public'}
-                  disabled={settingsBusy || usernameSaving}
+                  disabled={formBusy}
                   onChange={() => void saveVisibility('public')}
                 />
                 <span>
@@ -344,7 +451,7 @@ export function AccountModal({
                   type='radio'
                   name='map_visibility'
                   checked={mapVisibility === 'subscribers'}
-                  disabled={settingsBusy || usernameSaving}
+                  disabled={formBusy}
                   onChange={() => void saveVisibility('subscribers')}
                 />
                 <span>
@@ -357,62 +464,129 @@ export function AccountModal({
 
           <section className='account-modal__section'>
             <h3 className='account-modal__section-title'>
-              {t('account.followRequestsTitle')}
-              {followRequests.length > 0 ? ` (${followRequests.length})` : ''}
+              {t('account.followTabsAria')}
             </h3>
-            <p className='account-modal__hint'>{t('account.followRequestsHint')}</p>
-            {followRequests.length === 0 ? (
-              <p className='account-modal__hint'>{t('account.followRequestsEmpty')}</p>
+            <div
+              className='account-follow-tabs'
+              role='tablist'
+              aria-label={t('account.followTabsAria')}
+            >
+              <button
+                type='button'
+                role='tab'
+                aria-selected={followTab === 'requests'}
+                className={
+                  followTab === 'requests'
+                    ? 'account-follow-tabs__btn account-follow-tabs__btn--active'
+                    : 'account-follow-tabs__btn'
+                }
+                onClick={() => setFollowTab('requests')}
+              >
+                {t('account.followTabRequests')}
+                {followRequests.length > 0 ? (
+                  <span className='account-follow-tabs__count'>{followRequests.length}</span>
+                ) : null}
+              </button>
+              <button
+                type='button'
+                role='tab'
+                aria-selected={followTab === 'following'}
+                className={
+                  followTab === 'following'
+                    ? 'account-follow-tabs__btn account-follow-tabs__btn--active'
+                    : 'account-follow-tabs__btn'
+                }
+                onClick={() => setFollowTab('following')}
+              >
+                {t('account.followTabFollowing')}
+                {following.length > 0 ? (
+                  <span className='account-follow-tabs__count account-follow-tabs__count--muted'>
+                    {following.length}
+                  </span>
+                ) : null}
+              </button>
+            </div>
+
+            {followTab === 'requests' ? (
+              <>
+                <p className='account-modal__hint'>{t('account.followRequestsHint')}</p>
+                {followRequests.length === 0 ? (
+                  <p className='account-modal__hint'>{t('account.followRequestsEmpty')}</p>
+                ) : (
+                  <ul className='account-follow-requests'>
+                    {followRequests.map((row) => {
+                      const busy = followActionId === row.follower.id;
+                      return (
+                        <li key={row.follower.id} className='account-follow-requests__row'>
+                          <FollowPersonCard person={row.follower} onNavigate={onClose} />
+                          <div className='account-follow-requests__actions'>
+                            <button
+                              type='button'
+                              className='account-follow-requests__accept'
+                              disabled={busy || settingsBusy}
+                              onClick={() => void handleFollowRequest(row.follower.id, 'accept')}
+                            >
+                              {t('account.followAccept')}
+                            </button>
+                            <button
+                              type='button'
+                              className='account-follow-requests__reject'
+                              disabled={busy || settingsBusy}
+                              onClick={() => void handleFollowRequest(row.follower.id, 'reject')}
+                            >
+                              {t('account.followReject')}
+                            </button>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
             ) : (
-              <ul className='account-follow-requests'>
-                {followRequests.map((row) => {
-                  const busy = followActionId === row.follower.id;
-                  const label = row.follower.username
-                    ? `@${row.follower.username}`
-                    : row.follower.name;
-                  return (
-                    <li key={row.follower.id} className='account-follow-requests__row'>
-                      <div className='account-follow-requests__who'>
-                        {row.follower.avatar ? (
-                          <img
-                            className='account-follow-requests__avatar'
-                            src={row.follower.avatar}
-                            alt=''
-                          />
-                        ) : (
-                          <span className='account-follow-requests__avatar account-follow-requests__avatar--fallback' aria-hidden>
-                            {(row.follower.name || '?').slice(0, 1)}
-                          </span>
-                        )}
-                        <div>
-                          <strong>{label}</strong>
-                          {row.follower.username ? (
-                            <span className='account-follow-requests__name'>{row.follower.name}</span>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className='account-follow-requests__actions'>
-                        <button
-                          type='button'
-                          className='account-follow-requests__accept'
-                          disabled={busy || settingsBusy}
-                          onClick={() => void handleFollowRequest(row.follower.id, 'accept')}
-                        >
-                          {t('account.followAccept')}
-                        </button>
-                        <button
-                          type='button'
-                          className='account-follow-requests__reject'
-                          disabled={busy || settingsBusy}
-                          onClick={() => void handleFollowRequest(row.follower.id, 'reject')}
-                        >
-                          {t('account.followReject')}
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+              <>
+                <p className='account-modal__hint'>{t('account.followingHint')}</p>
+                {following.length === 0 ? (
+                  <p className='account-modal__hint'>{t('account.followingEmpty')}</p>
+                ) : (
+                  <ul className='account-follow-requests'>
+                    {following.map((row) => {
+                      const busy = followActionId === row.owner.id;
+                      return (
+                        <li key={row.owner.id} className='account-follow-requests__row'>
+                          <FollowPersonCard person={row.owner} onNavigate={onClose} />
+                          <div className='account-follow-requests__actions'>
+                            {row.status === 'pending' ? (
+                              <>
+                                <span className='account-follow-requests__status'>
+                                  {t('account.followingPending')}
+                                </span>
+                                <button
+                                  type='button'
+                                  className='account-follow-requests__reject'
+                                  disabled={busy || settingsBusy}
+                                  onClick={() => void handleUnfollow(row.owner.id)}
+                                >
+                                  {t('account.followingCancel')}
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                type='button'
+                                className='account-follow-requests__reject'
+                                disabled={busy || settingsBusy}
+                                onClick={() => setUnfollowTarget(row)}
+                              >
+                                {t('account.followingUnfollow')}
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </>
             )}
           </section>
 
@@ -424,7 +598,7 @@ export function AccountModal({
             <button
               type='button'
               className='account-modal__delete-btn'
-              disabled={settingsBusy || usernameSaving || deleteBusy}
+              disabled={formBusy || deleteBusy}
               onClick={() => setDeleteConfirmOpen(true)}
             >
               {t('account.deleteButton')}
@@ -452,6 +626,24 @@ export function AccountModal({
         </div>
       </div>
 
+      {unfollowTarget ? (
+        <ConfirmModal
+          title={t('account.followingUnfollowConfirmTitle')}
+          message={t('account.followingUnfollowConfirmMessage', {
+            name: unfollowTarget.owner.username
+              ? `@${unfollowTarget.owner.username}`
+              : unfollowTarget.owner.name,
+          })}
+          confirmLabel={t('account.followingUnfollow')}
+          danger={false}
+          busy={followActionId === unfollowTarget.owner.id}
+          onConfirm={() => void handleUnfollow(unfollowTarget.owner.id)}
+          onCancel={() => {
+            if (followActionId !== unfollowTarget.owner.id) setUnfollowTarget(null);
+          }}
+        />
+      ) : null}
+
       {deleteConfirmOpen ? (
         <ConfirmModal
           title={t('account.deleteConfirmTitle')}
@@ -466,6 +658,51 @@ export function AccountModal({
       ) : null}
     </div>
   );
+}
+
+function FollowPersonCard({
+  person,
+  onNavigate,
+}: {
+  person: FollowPerson;
+  onNavigate: () => void;
+}) {
+  const label = person.username ? `@${person.username}` : person.name;
+  const inner = (
+    <>
+      {person.avatar ? (
+        <img
+          className='account-follow-requests__avatar'
+          src={person.avatar}
+          alt=''
+        />
+      ) : (
+        <span className='account-follow-requests__avatar account-follow-requests__avatar--fallback' aria-hidden>
+          {(person.name || '?').slice(0, 1)}
+        </span>
+      )}
+      <div>
+        <strong>{label}</strong>
+        {person.username ? (
+          <span className='account-follow-requests__name'>{person.name}</span>
+        ) : null}
+      </div>
+    </>
+  );
+
+  if (person.username) {
+    return (
+      <Link
+        to={`/${person.username}`}
+        className='account-follow-requests__who account-follow-requests__who--link'
+        onClick={onNavigate}
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return <div className='account-follow-requests__who'>{inner}</div>;
 }
 
 function PlanCard({

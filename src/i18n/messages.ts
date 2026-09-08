@@ -352,6 +352,7 @@ const ru = {
     save: 'Сохранить',
     myMap: 'Моя карта',
     account: 'Аккаунт',
+    accountPendingAria: 'Аккаунт, заявок на подписку: {{count}}',
     logoutConfirmTitle: 'Выйти из аккаунта?',
     logoutConfirmMessage:
       'Вы выйдете из текущей сессии. Чтобы снова редактировать карту, потребуется войти заново.',
@@ -375,6 +376,12 @@ const ru = {
   },
   account: {
     title: 'Аккаунт',
+    displayNameTitle: 'Отображаемое имя',
+    displayNameHint:
+      'Так вас видят на карте и в избранном. Имя из Google больше не подставляется само.',
+    displayNamePlaceholder: 'Как к вам обращаться',
+    displayNameRequired: 'Введите имя',
+    displayNameTooLong: 'Слишком длинное имя',
     usernameTitle: 'Юзернейм',
     subscriptionTitle: 'Подписка',
     currentPlan: 'Текущий план',
@@ -431,6 +438,19 @@ const ru = {
     followAccept: 'Принять',
     followReject: 'Отклонить',
     followRequestError: 'Не удалось обработать заявку',
+    followTabsAria: 'Подписки',
+    followTabRequests: 'Заявки',
+    followTabFollowing: 'Мои подписки',
+    followingHint:
+      'Карты, к которым вы отправили заявку. Отписка сразу закрывает доступ.',
+    followingEmpty: 'Вы ни на кого не подписаны.',
+    followingPending: 'Ожидает',
+    followingUnfollow: 'Отписаться',
+    followingCancel: 'Отменить',
+    followingUnfollowConfirmTitle: 'Отписаться?',
+    followingUnfollowConfirmMessage:
+      'Вы потеряете доступ к карте {{name}}. Заявку можно будет отправить снова.',
+    followingError: 'Не удалось обновить подписку',
   },
   limits: {
     approachingCountries:
@@ -888,6 +908,7 @@ const en = {
     save: 'Save',
     myMap: 'My map',
     account: 'Account',
+    accountPendingAria: 'Account, pending follow requests: {{count}}',
     logoutConfirmTitle: 'Sign out?',
     logoutConfirmMessage:
       'You will be signed out of your current session. Sign in again to edit your map.',
@@ -911,6 +932,12 @@ const en = {
   },
   account: {
     title: 'Account',
+    displayNameTitle: 'Display name',
+    displayNameHint:
+      'Shown on your map and in favorites. Google’s name is not applied automatically after you set this.',
+    displayNamePlaceholder: 'What should people call you',
+    displayNameRequired: 'Enter a name',
+    displayNameTooLong: 'Name is too long',
     usernameTitle: 'Username',
     subscriptionTitle: 'Subscription',
     currentPlan: 'Current plan',
@@ -967,6 +994,19 @@ const en = {
     followAccept: 'Accept',
     followReject: 'Decline',
     followRequestError: 'Could not process the request',
+    followTabsAria: 'Follows',
+    followTabRequests: 'Requests',
+    followTabFollowing: 'Following',
+    followingHint:
+      'Maps you asked to see. Unfollowing removes access immediately.',
+    followingEmpty: 'You are not following anyone.',
+    followingPending: 'Pending',
+    followingUnfollow: 'Unfollow',
+    followingCancel: 'Cancel',
+    followingUnfollowConfirmTitle: 'Unfollow?',
+    followingUnfollowConfirmMessage:
+      'You will lose access to {{name}}’s map. You can send a new request later.',
+    followingError: 'Could not update the follow',
   },
   limits: {
     approachingCountries:

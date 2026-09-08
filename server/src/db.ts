@@ -123,6 +123,8 @@ export function openDatabase(dbPath: string): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_map_follows_owner_status
       ON map_follows (owner_id, status);
+    CREATE INDEX IF NOT EXISTS idx_map_follows_follower_status
+      ON map_follows (follower_id, status);
   `);
   for (const col of [
     "subscription TEXT NOT NULL DEFAULT 'freemium'",
@@ -615,6 +617,44 @@ export function listIncomingFollowRequests(
     const { follow_created_at, ...follower } = row;
     return { follower, created_at: follow_created_at };
   });
+}
+
+export type OutgoingFollow = {
+  owner: DbUser;
+  status: MapFollowStatus;
+  created_at: number;
+};
+
+export function listOutgoingFollows(
+  db: Database.Database,
+  followerId: string,
+): OutgoingFollow[] {
+  const rows = db.prepare(
+    `SELECT u.*, f.status AS follow_status, f.created_at AS follow_created_at
+     FROM map_follows f
+     JOIN users u ON u.id = f.owner_id
+     WHERE f.follower_id = ?
+     ORDER BY f.created_at DESC`,
+  ).all(followerId) as Array<DbUser & { follow_status: string; follow_created_at: number }>;
+  return rows.map((row) => {
+    const { follow_status, follow_created_at, ...owner } = row;
+    return {
+      owner,
+      status: follow_status === 'accepted' ? 'accepted' as const : 'pending' as const,
+      created_at: follow_created_at,
+    };
+  });
+}
+
+export function unfollowMap(
+  db: Database.Database,
+  followerId: string,
+  ownerId: string,
+): boolean {
+  const r = db.prepare(
+    'DELETE FROM map_follows WHERE follower_id = ? AND owner_id = ?',
+  ).run(followerId, ownerId);
+  return r.changes > 0;
 }
 
 /** Имена файлов в uploads/, привязанные к фото мест пользователя. */
