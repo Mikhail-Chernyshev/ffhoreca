@@ -123,6 +123,10 @@ const ru = {
       'Проверьте корректность опциональных полей (оценка 0–5, координаты).',
     errorPhotoUpload: 'Не удалось загрузить фото на сервер.',
     errorPhotoUploadDetail: 'Ошибка загрузки фото: {{message}}',
+    duplicateTitle: 'Похожее место уже есть',
+    duplicateMessage:
+      '«{{name}}» уже на карте. Всё равно добавить ещё одно?',
+    duplicateConfirm: 'Добавить',
   },
   addRoute: {
     title: 'Добавить маршрут',
@@ -169,6 +173,9 @@ const ru = {
     emptyRoutes: 'Маршрутов пока нет.',
     emptyPlaces: 'Мест пока нет.',
     emptyCities: 'Городов пока нет.',
+    searchPlaceholder: 'Поиск по названию…',
+    searchAria: 'Поиск в списке',
+    emptySearch: 'Ничего не найдено.',
     cityPlacesCount: '· {{count}} мест',
     ariaDeleteCity: 'Удалить город {{name}}',
     ariaDeleteRoute: 'Удалить маршрут',
@@ -222,9 +229,10 @@ const ru = {
     alertGenericError: 'Ошибка: {{message}}',
   },
   cityModal: {
-    emptySummaryHint:
-      'Описание можно добавить в каталоге: поля summary и story у города.',
+    emptySummaryHint: 'Пока нет краткого описания.',
+    emptySummaryHintEdit: 'Нажмите «Редактировать», чтобы добавить описание и фото.',
     notesHeading: 'Описание',
+    summary: 'Кратко',
   },
   map: {
     ariaZoomIn: 'Приблизить',
@@ -484,8 +492,6 @@ const ru = {
     checklistAddCity: 'Добавить город',
     checklistAddPlace: 'Добавить место',
     checklistOpenPlace: 'Открыть карточку места',
-    checklistShare:
-      'Поделиться ссылкой на карту (для соцсетей — через «Ссылка для соцсетей» в аккаунте)',
     hintFirstCity:
       'Город на карте! Полный список городов и мест — в кнопке «☰ Список».',
     hintFirstPlace:
@@ -644,6 +650,10 @@ const en = {
     errorOptionalFields: 'Check optional fields (rating 0–5, coordinates).',
     errorPhotoUpload: 'Could not upload photos to the server.',
     errorPhotoUploadDetail: 'Photo upload error: {{message}}',
+    duplicateTitle: 'This place may already exist',
+    duplicateMessage:
+      '«{{name}}» is already on the map. Add another one anyway?',
+    duplicateConfirm: 'Add',
   },
   addRoute: {
     title: 'Add route',
@@ -690,6 +700,9 @@ const en = {
     emptyRoutes: 'No routes yet.',
     emptyPlaces: 'No places yet.',
     emptyCities: 'No cities yet.',
+    searchPlaceholder: 'Search by name…',
+    searchAria: 'Search the list',
+    emptySearch: 'Nothing found.',
     cityPlacesCount: '· {{count}} places',
     ariaDeleteCity: 'Delete city {{name}}',
     ariaDeleteRoute: 'Delete route',
@@ -741,9 +754,10 @@ const en = {
     alertGenericError: 'Error: {{message}}',
   },
   cityModal: {
-    emptySummaryHint:
-      'Add description in catalog: summary and story fields for the city.',
+    emptySummaryHint: 'No short description yet.',
+    emptySummaryHintEdit: 'Tap Edit to add a description and photos.',
     notesHeading: 'Description',
+    summary: 'Summary',
   },
   map: {
     ariaZoomIn: 'Zoom in',
@@ -999,8 +1013,6 @@ const en = {
     checklistAddCity: 'Add a city',
     checklistAddPlace: 'Add a place',
     checklistOpenPlace: 'Open a place card',
-    checklistShare:
-      'Share your map link (for social apps — “Social share link” in account)',
     hintFirstCity:
       'City on the map! Full list of cities and places — in the «☰ List» button.',
     hintFirstPlace:

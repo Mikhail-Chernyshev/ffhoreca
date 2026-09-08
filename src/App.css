@@ -1706,6 +1706,16 @@
   background: rgba(198, 40, 40, 0.2);
 }
 
+.confirm-modal__btn--primary {
+  border: 1px solid var(--accent-border, #5fa573);
+  background: var(--accent-bg, rgba(95, 165, 115, 0.15));
+  color: var(--text-h);
+}
+
+.confirm-modal__btn--primary:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
 .confirm-modal__btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
@@ -2671,6 +2681,12 @@
   padding-right: 0.15rem;
 }
 
+.manager-boarding-pass .manager-search {
+  border-color: var(--bp-line);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--bp-ink);
+}
+
 .manager-boarding-pass .manager-empty {
   color: var(--bp-ink-muted);
 }
@@ -2820,6 +2836,24 @@
 .manager-content {
   overflow-y: auto;
   flex: 1;
+}
+
+.manager-search {
+  display: block;
+  width: 100%;
+  margin: 0 0 0.75rem;
+  padding: 0.45rem 0.7rem;
+  font: inherit;
+  font-size: 0.88rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--text-h);
+}
+
+.manager-search:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent, #5fa573) 40%, transparent);
+  outline-offset: 1px;
 }
 
 .manager-empty {

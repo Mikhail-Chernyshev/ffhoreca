@@ -249,6 +249,17 @@ export function UserMapPage() {
     setSelectedPlace(place);
   }, [persistPlace, catalog.cities]);
 
+  const handleCityUpdated = useCallback(async (city: City) => {
+    const r = await userPostCity(city);
+    if (!r.ok) {
+      handleUserApiError(r);
+      showAlert(r.message);
+      throw new Error(r.message || 'Save failed');
+    }
+    await loadCatalog();
+    setSelectedCity(city);
+  }, [loadCatalog, handleUserApiError, showAlert]);
+
   if (!base) {
     return (
       <div className="user-map-page user-map-page--error">
@@ -370,7 +381,13 @@ export function UserMapPage() {
         reportOwnerUsername={!canEditMap && username ? username : undefined}
         uploadPhotos={canEditMap ? userUploadPhotos : undefined}
       />
-      <CityModal city={selectedCity} onClose={() => setSelectedCity(null)} />
+      <CityModal
+        city={selectedCity}
+        onClose={() => setSelectedCity(null)}
+        canEdit={canEditMap}
+        onCityUpdated={canEditMap ? handleCityUpdated : undefined}
+        uploadPhotos={canEditMap ? userUploadPhotos : undefined}
+      />
 
       {addCityOpen && (
         <AddCityModal

@@ -76,11 +76,10 @@ export function MapOnboarding({
     place: catalog.places.length > 0,
     // hintsVersion: re-read localStorage after notify('placeOpened')
     openPlace: hintsVersion >= 0 && isHintSeen('firstPlaceOpen'),
-    share: !!username,
   };
 
   const checklistDone =
-    checklist.city && checklist.place && checklist.openPlace && checklist.share;
+    checklist.city && checklist.place && checklist.openPlace;
 
   return (
     <>
@@ -147,7 +146,6 @@ export function MapOnboarding({
             <ChecklistItem done={checklist.city} label={t('onboarding.checklistAddCity')} />
             <ChecklistItem done={checklist.place} label={t('onboarding.checklistAddPlace')} />
             <ChecklistItem done={checklist.openPlace} label={t('onboarding.checklistOpenPlace')} />
-            <ChecklistItem done={checklist.share} label={t('onboarding.checklistShare')} />
           </ul>
         </div>
       ) : null}

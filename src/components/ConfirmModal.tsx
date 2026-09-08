@@ -6,6 +6,8 @@ type Props = {
   confirmLabel?: string;
   cancelLabel?: string;
   busy?: boolean;
+  /** Красная кнопка (удаление). false — обычное подтверждение. */
+  danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -16,6 +18,7 @@ export function ConfirmModal({
   confirmLabel,
   cancelLabel,
   busy = false,
+  danger = true,
   onConfirm,
   onCancel,
 }: Props) {
@@ -47,7 +50,11 @@ export function ConfirmModal({
           </button>
           <button
             type="button"
-            className="confirm-modal__btn confirm-modal__btn--danger"
+            className={
+              danger
+                ? 'confirm-modal__btn confirm-modal__btn--danger'
+                : 'confirm-modal__btn confirm-modal__btn--primary'
+            }
             disabled={busy}
             onClick={onConfirm}
           >

@@ -19,6 +19,8 @@ import { apiBaseUrl, apiFetch } from '../lib/apiBase';
 import { authHeaders } from '../lib/apiAuth';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel } from '../i18n/labels';
+import { ConfirmModal } from './ConfirmModal';
+import { findDuplicatePlace } from '../lib/findDuplicatePlace';
 
 type Props = {
   onClose: () => void;
@@ -123,12 +125,18 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
   const [placeSearchLoading, setPlaceSearchLoading] = useState(false);
   const [placeSearchDebouncing, setPlaceSearchDebouncing] = useState(false);
   const [placeNoResults, setPlaceNoResults] = useState(false);
+  const [duplicateHit, setDuplicateHit] = useState<Place | null>(null);
 
   const onKey = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (duplicateHit) {
+        setDuplicateHit(null);
+        return;
+      }
+      onClose();
     },
-    [onClose],
+    [onClose, duplicateHit],
   );
 
   useEffect(() => {
@@ -256,6 +264,10 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    await commitPlace(false);
+  };
+
+  const commitPlace = async (ignoreDuplicate: boolean) => {
     setError(null);
     const city = allCities.find((c) => c.id === cityId);
     const err = validateNewPlaceRequired({
@@ -287,13 +299,38 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
     const canonicalId = canonicalCityId(mergedCatalog, cityId, placeCoords);
     const canonical = canonicalCity(mergedCatalog, cityId, placeCoords) ?? city;
 
-    // Загрузка файлов на сервер (если есть)
+    const precheck = buildPlace({
+      name,
+      cityId: canonicalId,
+      categories: [category],
+      address,
+      summary,
+      story,
+      lng,
+      lat,
+      rating,
+      suggestionRating,
+      photosRaw: '',
+    });
+    if (!precheck) {
+      setError(t('addPlace.errorOptionalFields'));
+      return;
+    }
+
+    if (!ignoreDuplicate) {
+      const dup = findDuplicatePlace(catalog.places, precheck);
+      if (dup) {
+        setDuplicateHit(dup);
+        return;
+      }
+    }
+    setDuplicateHit(null);
+
     let uploadedUrls: string[] = [];
     if (photoFiles.length > 0) {
       setPhotoUploadBusy(true);
       try {
         if (uploadPhotos) {
-          // Пользовательский режим: JWT-авторизация
           uploadedUrls = await uploadPhotos(photoFiles);
         } else {
           const base = apiBaseUrl();
@@ -364,10 +401,12 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
   };
 
   return (
+    <>
     <div
       className="modal-root"
       role="presentation"
       onMouseDown={(e) => {
+        if (duplicateHit) return;
         if (e.target === e.currentTarget) onClose();
       }}
     >
@@ -616,5 +655,17 @@ export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props
         </div>
       </div>
     </div>
+    {duplicateHit ? (
+      <ConfirmModal
+        title={t('addPlace.duplicateTitle')}
+        message={t('addPlace.duplicateMessage', { name: duplicateHit.name })}
+        confirmLabel={t('addPlace.duplicateConfirm')}
+        danger={false}
+        busy={busy || photoUploadBusy}
+        onConfirm={() => void commitPlace(true)}
+        onCancel={() => setDuplicateHit(null)}
+      />
+    ) : null}
+    </>
   );
 }

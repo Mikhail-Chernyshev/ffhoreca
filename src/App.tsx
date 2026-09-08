@@ -16,6 +16,7 @@ import {
   placesForFilter,
 } from './data/selectors'
 import type { Catalog, CategoryFilter, City, Place } from './data/types'
+import { postCity } from './lib/apiCities'
 import { fetchRoutes } from './lib/apiRoutes'
 import { useAdminMode } from './hooks/useAdminMode'
 import { useAppSplash } from './hooks/useAppSplash'
@@ -282,6 +283,20 @@ function App() {
     [persistPlaceToBackendOrStorage, showAlert],
   );
 
+  const handleCityUpdatedFromModal = useCallback(
+    async (city: City) => {
+      const r = await postCity(city)
+      if (r.ok) {
+        await refreshShowcaseCatalog()
+        setSelectedCity(city)
+      } else {
+        if (r.message) showAlert(r.message)
+        throw new Error(r.message || 'Save failed')
+      }
+    },
+    [refreshShowcaseCatalog, showAlert],
+  );
+
   return (
     <div className={`app${splashVisible ? ' app--splash' : ''}`}>
       {splashVisible ? (
@@ -371,7 +386,12 @@ function App() {
         onPlaceUpdated={adminMode ? handlePlaceUpdatedFromModal : undefined}
         onPlaceDeleted={adminMode ? handlePlaceDeleted : undefined}
       />
-      <CityModal city={selectedCity} onClose={() => setSelectedCity(null)} />
+      <CityModal
+        city={selectedCity}
+        onClose={() => setSelectedCity(null)}
+        canEdit={adminMode}
+        onCityUpdated={adminMode ? handleCityUpdatedFromModal : undefined}
+      />
       {addCityOpen ? (
         <AddCityModal
           catalog={catalogMerged}

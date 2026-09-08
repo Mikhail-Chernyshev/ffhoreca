@@ -6,6 +6,7 @@ import { useAlert } from './AlertProvider';
 import { deleteRouteById } from '../lib/apiRoutes';
 import { deleteCityById } from '../lib/apiCities';
 import { catalogCitiesListed, cityLabelForPlace, placesCountForCity, placeCoordinates } from '../data/selectors';
+import { cityMatchesQuery, fieldMatchesQuery, searchQueryVariants } from '../lib/transliterate';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel, routeModeLabel } from '../i18n/labels';
 
@@ -253,6 +254,7 @@ export function ManagerModal({
   const { showAlert } = useAlert();
   const { locale } = useLocale();
   const [tab, setTab] = useState<Tab>('routes');
+  const [listQuery, setListQuery] = useState('');
   const [localRoutes, setLocalRoutes] = useState(routes);
   const [confirm, setConfirm] = useState<ConfirmState>(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
@@ -343,13 +345,25 @@ export function ManagerModal({
   };
 
   const placesByCountry = useMemo(
-    () =>
-      catalog.places.reduce<Record<string, Place[]>>((acc, p) => {
+    () => {
+      const variants = searchQueryVariants(listQuery);
+      const filtered = catalog.places.filter((p) => {
+        if (variants.length === 0) return true;
+        const cityName = cityLabelForPlace(catalog, p);
+        return (
+          fieldMatchesQuery(p.name, variants) ||
+          fieldMatchesQuery(p.address, variants) ||
+          fieldMatchesQuery(p.countryCode, variants) ||
+          fieldMatchesQuery(cityName, variants)
+        );
+      });
+      return filtered.reduce<Record<string, Place[]>>((acc, p) => {
         const key = p.countryCode || '??';
         (acc[key] ??= []).push(p);
         return acc;
-      }, {}),
-    [catalog.places],
+      }, {});
+    },
+    [catalog, listQuery],
   );
 
   const sortedCountries = useMemo(
@@ -359,9 +373,21 @@ export function ManagerModal({
 
   const listedCities = useMemo(() => catalogCitiesListed(catalog), [catalog]);
 
-  const sortedCities = useMemo(
-    () => [...listedCities].sort((a, b) => a.name.localeCompare(b.name, locale)),
-    [listedCities, locale],
+  const citiesByCountry = useMemo(
+    () => {
+      const filtered = listedCities.filter((city) => cityMatchesQuery(city, listQuery));
+      return filtered.reduce<Record<string, City[]>>((acc, city) => {
+        const key = city.countryCode || '??';
+        (acc[key] ??= []).push(city);
+        return acc;
+      }, {});
+    },
+    [listedCities, listQuery],
+  );
+
+  const sortedCityCountries = useMemo(
+    () => Object.keys(citiesByCountry).sort((a, b) => a.localeCompare(b, locale)),
+    [citiesByCountry, locale],
   );
 
   return (
@@ -422,6 +448,17 @@ export function ManagerModal({
                 </button>
               </div>
 
+              {tab === 'places' || tab === 'cities' ? (
+                <input
+                  type="search"
+                  className="manager-search"
+                  value={listQuery}
+                  onChange={(e) => setListQuery(e.target.value)}
+                  placeholder={t('manager.searchPlaceholder')}
+                  aria-label={t('manager.searchAria')}
+                />
+              ) : null}
+
               <div className="manager-content">
                 {tab === 'routes' && (
                   localRoutes.length === 0
@@ -439,6 +476,8 @@ export function ManagerModal({
                 {tab === 'places' && (
                   catalog.places.length === 0
                     ? <p className="manager-empty">{t('manager.emptyPlaces')}</p>
+                    : sortedCountries.length === 0
+                      ? <p className="manager-empty">{t('manager.emptySearch')}</p>
                     : sortedCountries.map((cc) => (
                         <div key={cc} className="manager-group">
                           <h3 className="manager-group__heading">{cc}</h3>
@@ -463,15 +502,24 @@ export function ManagerModal({
                 {tab === 'cities' && (
                   listedCities.length === 0
                     ? <p className="manager-empty">{t('manager.emptyCities')}</p>
-                    : sortedCities.map((city) => (
-                        <CityRow
-                          key={city.id}
-                          city={city}
-                          placesCount={placesCountForCity(catalog, city.id)}
-                          readOnly={readOnly}
-                          onShowOnMap={() => showOnMap(city.lng, city.lat)}
-                          onDeleteRequest={requestDeleteCity}
-                        />
+                    : sortedCityCountries.length === 0
+                      ? <p className="manager-empty">{t('manager.emptySearch')}</p>
+                    : sortedCityCountries.map((cc) => (
+                        <div key={cc} className="manager-group">
+                          <h3 className="manager-group__heading">{cc}</h3>
+                          {[...citiesByCountry[cc]!]
+                            .sort((a, b) => a.name.localeCompare(b.name, locale))
+                            .map((city) => (
+                            <CityRow
+                              key={city.id}
+                              city={city}
+                              placesCount={placesCountForCity(catalog, city.id)}
+                              readOnly={readOnly}
+                              onShowOnMap={() => showOnMap(city.lng, city.lat)}
+                              onDeleteRequest={requestDeleteCity}
+                            />
+                          ))}
+                        </div>
                       ))
                 )}
               </div>
