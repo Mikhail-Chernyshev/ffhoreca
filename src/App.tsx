@@ -407,6 +407,10 @@ function App() {
           }}
           onDeletePlace={handlePlaceDeleted}
           onEditPlace={(place) => { setSelectedPlace(place); }}
+          onShowOnMap={(lng, lat) => {
+            setFilter('all')
+            flyToOnMap(lng, lat)
+          }}
         />
       ) : null}
       {addRouteOpen ? (

@@ -2704,6 +2704,16 @@
   background: rgba(185, 28, 28, 0.04);
 }
 
+.manager-boarding-pass .manager-row__map {
+  border-color: var(--bp-navy);
+  color: var(--bp-navy);
+  background: rgba(30, 58, 95, 0.05);
+}
+
+.manager-boarding-pass .manager-row__map:hover {
+  background: rgba(30, 58, 95, 0.1);
+}
+
 @media (max-width: 520px) {
   .modal-dialog--manager.manager-boarding-pass {
     border-radius: var(--radius-surface);
@@ -2886,6 +2896,31 @@
 
 .manager-row__delete-wrap {
   flex-shrink: 0;
+}
+
+.manager-row__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.manager-row__map {
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--accent-border, #5fa573);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--accent, #5fa573);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.manager-row__map:hover {
+  background: var(--accent-bg, rgba(95, 165, 115, 0.12));
 }
 
 .manager-tooltip {

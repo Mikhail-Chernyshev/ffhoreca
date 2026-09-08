@@ -5,7 +5,7 @@ import { ConfirmModal } from './ConfirmModal';
 import { useAlert } from './AlertProvider';
 import { deleteRouteById } from '../lib/apiRoutes';
 import { deleteCityById } from '../lib/apiCities';
-import { catalogCitiesListed, cityLabelForPlace, placesCountForCity } from '../data/selectors';
+import { catalogCitiesListed, cityLabelForPlace, placesCountForCity, placeCoordinates } from '../data/selectors';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel, routeModeLabel } from '../i18n/labels';
 
@@ -21,6 +21,8 @@ type Props = {
   onCitiesChanged?: () => void;
   onDeletePlace?: (id: string) => Promise<boolean>;
   onEditPlace?: (place: Place) => void;
+  /** Закрыть список и показать точку на карте */
+  onShowOnMap?: (lng: number, lat: number) => void;
   /** Если заданы — используются вместо дефолтных admin-API (для карт пользователей) */
   deleteRouteApi?: (id: string) => Promise<{ ok: boolean; message: string }>;
   deleteCityApi?: (id: string) => Promise<{ ok: boolean; message: string }>;
@@ -36,11 +38,13 @@ function CityRow({
   city,
   placesCount,
   readOnly,
+  onShowOnMap,
   onDeleteRequest,
 }: {
   city: City;
   placesCount: number;
   readOnly?: boolean;
+  onShowOnMap: () => void;
   onDeleteRequest: (city: City) => void;
 }) {
   const t = useT();
@@ -91,31 +95,41 @@ function CityRow({
           {placesCount > 0 ? ` ${t('manager.cityPlacesCount', { count: placesCount })}` : ''}
         </span>
       </div>
-      {!readOnly ? (
-        <div
-          ref={wrapRef}
-          className="manager-row__delete-wrap"
-          onMouseEnter={deleteBlocked ? showTip : undefined}
-          onMouseLeave={deleteBlocked ? hideTip : undefined}
-          onFocus={deleteBlocked ? showTip : undefined}
-          onBlur={deleteBlocked ? hideTip : undefined}
+      <div className="manager-row__actions">
+        <button
+          type="button"
+          className="manager-row__map"
+          onClick={onShowOnMap}
+          aria-label={t('manager.ariaShowOnMap', { name: city.name })}
         >
-          <button
-            type="button"
-            className="manager-row__delete"
-            onClick={() => onDeleteRequest(city)}
-            disabled={deleteBlocked}
-            aria-label={
-              deleteBlocked
-                ? t('manager.ariaDeleteCityBlocked', { name: city.name })
-                : t('manager.ariaDeleteCity', { name: city.name })
-            }
-            aria-describedby={deleteBlocked ? tooltipId : undefined}
+          {t('manager.showOnMap')}
+        </button>
+        {!readOnly ? (
+          <div
+            ref={wrapRef}
+            className="manager-row__delete-wrap"
+            onMouseEnter={deleteBlocked ? showTip : undefined}
+            onMouseLeave={deleteBlocked ? hideTip : undefined}
+            onFocus={deleteBlocked ? showTip : undefined}
+            onBlur={deleteBlocked ? hideTip : undefined}
           >
-            ✕
-          </button>
-        </div>
-      ) : null}
+            <button
+              type="button"
+              className="manager-row__delete"
+              onClick={() => onDeleteRequest(city)}
+              disabled={deleteBlocked}
+              aria-label={
+                deleteBlocked
+                  ? t('manager.ariaDeleteCityBlocked', { name: city.name })
+                  : t('manager.ariaDeleteCity', { name: city.name })
+              }
+              aria-describedby={deleteBlocked ? tooltipId : undefined}
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
+      </div>
       {!readOnly && deleteBlocked && tipVisible && blockedReason
         ? createPortal(
             <span
@@ -171,12 +185,14 @@ function PlaceRow({
   cityName,
   readOnly,
   onEdit,
+  onShowOnMap,
   onDeleteRequest,
 }: {
   place: Place;
   cityName: string;
   readOnly?: boolean;
   onEdit: () => void;
+  onShowOnMap: () => void;
   onDeleteRequest: (place: Place) => void;
 }) {
   const t = useT();
@@ -196,16 +212,26 @@ function PlaceRow({
           {place.googleRating != null ? ` · ★ ${place.googleRating.toFixed(1)}` : ''}
         </span>
       </div>
-      {!readOnly ? (
+      <div className="manager-row__actions">
         <button
           type="button"
-          className="manager-row__delete"
-          onClick={() => onDeleteRequest(place)}
-          aria-label={t('manager.ariaDeletePlace')}
+          className="manager-row__map"
+          onClick={onShowOnMap}
+          aria-label={t('manager.ariaShowOnMap', { name: place.name })}
         >
-          ✕
+          {t('manager.showOnMap')}
         </button>
-      ) : null}
+        {!readOnly ? (
+          <button
+            type="button"
+            className="manager-row__delete"
+            onClick={() => onDeleteRequest(place)}
+            aria-label={t('manager.ariaDeletePlace')}
+          >
+            ✕
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -219,6 +245,7 @@ export function ManagerModal({
   onCitiesChanged,
   onDeletePlace,
   onEditPlace,
+  onShowOnMap,
   deleteRouteApi,
   deleteCityApi,
 }: Props) {
@@ -307,6 +334,11 @@ export function ManagerModal({
 
   const openPlace = (place: Place) => {
     onEditPlace?.(place);
+    onClose();
+  };
+
+  const showOnMap = (lng: number, lat: number) => {
+    onShowOnMap?.(lng, lat);
     onClose();
   };
 
@@ -417,6 +449,10 @@ export function ManagerModal({
                                 cityName={cityLabelForPlace(catalog, place)}
                                 readOnly={readOnly}
                                 onEdit={() => openPlace(place)}
+                                onShowOnMap={() => {
+                                  const [lng, lat] = placeCoordinates(catalog, place);
+                                  showOnMap(lng, lat);
+                                }}
                                 onDeleteRequest={requestDeletePlace}
                               />
                           ))}
@@ -433,6 +469,7 @@ export function ManagerModal({
                           city={city}
                           placesCount={placesCountForCity(catalog, city.id)}
                           readOnly={readOnly}
+                          onShowOnMap={() => showOnMap(city.lng, city.lat)}
                           onDeleteRequest={requestDeleteCity}
                         />
                       ))

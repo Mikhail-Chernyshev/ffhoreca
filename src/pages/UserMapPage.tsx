@@ -435,6 +435,10 @@ export function UserMapPage() {
           catalog={catalog}
           onClose={() => setManagerOpen(false)}
           onEditPlace={(place) => setSelectedPlace(place)}
+          onShowOnMap={(lng, lat) => {
+            setFilter('all');
+            flyToOnMap(lng, lat);
+          }}
           onRoutesChanged={canEditMap ? () => void loadCatalog() : undefined}
           onCitiesChanged={canEditMap ? () => void loadCatalog() : undefined}
           onDeletePlace={canEditMap ? handlePlaceDeleted : undefined}
