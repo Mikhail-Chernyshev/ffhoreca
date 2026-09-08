@@ -7,6 +7,14 @@ import { categoryLabel } from '../i18n/labels';
 import { PlaceReportDialog } from './PlaceReportDialog';
 import { useAlert } from './AlertProvider';
 
+function googleMapsSearchUrl(place: Place): string {
+  const query =
+    place.lat != null && place.lng != null
+      ? `${place.name} ${place.lat},${place.lng}`
+      : [place.name, place.address].filter(Boolean).join(', ');
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+}
+
 const CATEGORY_ORDER: PlaceCategory[] = [
   'attraction',
   'lodging',
@@ -419,6 +427,14 @@ export function PlaceModal({
               <span className="modal-rating__label">{t('placeModal.ratingLabel')}</span>
               <strong className="modal-rating__value">{ratingLabel}</strong>
             </div>
+            <a
+              className="modal-maps-btn"
+              href={googleMapsSearchUrl(place)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {t('placeModal.openInGoogleMaps')}
+            </a>
 
             {hasPhotos && photoUrls ? (
               <ModalPhotoCarousel key={`${place.id}:${photoUrls.join('|')}`} photos={photoUrls} />

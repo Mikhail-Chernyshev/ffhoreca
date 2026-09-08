@@ -2,12 +2,10 @@ import {
   forwardRef,
   useCallback,
   useEffect,
-  useLayoutEffect,
   useImperativeHandle,
   useMemo,
   useRef,
   useState,
-  type MouseEvent,
 } from 'react';
 import Map, {
   AttributionControl,
@@ -20,7 +18,6 @@ import type { Map as MapLibreMap, ProjectionSpecification } from 'maplibre-gl';
 import type { FeatureCollection, GeoJsonProperties, Geometry } from 'geojson';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { feature } from 'topojson-client';
-import { FeedbackPanel } from './FeedbackPanel';
 import { useCityBoundaryGeography } from '../hooks/useCityBoundaryGeography';
 import type {
   Catalog,
@@ -213,7 +210,6 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const zoomRef = useRef(zoom);
   zoomRef.current = zoom;
   const [globeMode, setGlobeMode] = useState(false);
-  const [aboutExpanded, setAboutExpanded] = useState(false);
   const [fillBeforeId, setFillBeforeId] = useState<string | undefined>();
   const mapThemeDark = false;
 
@@ -441,40 +437,6 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
       </Marker>
     );
   };
-
-  useLayoutEffect(() => {
-    if (!aboutExpanded) return;
-    const id = window.setTimeout(() => {
-      window.scrollTo({
-        top: document.documentElement.scrollHeight,
-        left: 0,
-        behavior: 'smooth',
-      });
-    }, 420);
-    return () => window.clearTimeout(id);
-  }, [aboutExpanded]);
-
-  const handleAboutChevronClick = useCallback(() => {
-    setAboutExpanded((v) => !v);
-  }, []);
-
-  const handleAboutLinkClick = useCallback(
-    (e: MouseEvent<HTMLAnchorElement>) => {
-      e.preventDefault();
-      setAboutExpanded(true);
-    },
-    [],
-  );
-
-  const aboutParagraphs = useMemo(
-    () => [
-      t('map.aboutIntro'),
-      t('map.aboutLorem1'),
-      t('map.aboutLorem2'),
-      t('map.aboutLorem3'),
-    ],
-    [t],
-  );
 
   // const filterHint = useMemo(() => {
   //   if (filter === 'places') return t('map.hintFilterPlaces');
@@ -719,60 +681,6 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             ) : null}
           </div>
         ) : null}
-      </div>
-      <div className='world-map-hint-panel'>
-        <div className='world-map-about'>
-          <a
-            href='#project-about-details'
-            className='world-map-about__link'
-            onClick={handleAboutLinkClick}
-          >
-            {t('map.aboutLink')}
-          </a>
-          <button
-            type='button'
-            className={
-              aboutExpanded
-                ? 'world-map-about__chevron world-map-about__chevron--open'
-                : 'world-map-about__chevron'
-            }
-            aria-expanded={aboutExpanded}
-            aria-controls='project-about-details'
-            id='project-about-summary'
-            aria-label={
-              aboutExpanded ? t('map.aboutCollapse') : t('map.aboutExpand')
-            }
-            onClick={handleAboutChevronClick}
-          >
-            <span className='world-map-about__chevron-icon' aria-hidden>
-              ▼
-            </span>
-          </button>
-        </div>
-        <div
-          id='project-about-details'
-          className={
-            aboutExpanded
-              ? 'world-map-about-details world-map-about-details--open'
-              : 'world-map-about-details'
-          }
-          role='region'
-          aria-labelledby='project-about-summary'
-          {...(!aboutExpanded ? { 'aria-hidden': true as const } : {})}
-        >
-          <div className='world-map-about-details__inner'>
-            {aboutParagraphs.map((chunk, i) => (
-              <p key={i} className='world-map-about-details__p'>
-                {chunk}
-              </p>
-            ))}
-          </div>
-        </div>
-        <FeedbackPanel />
-        <p className='world-map-hint' aria-live='polite'>
-          {/* <span className='world-map-hint__zoom'>{t('map.hintBasemap')} </span>{' '} */}
-          {/* {t('map.hintPlaceDot')} {filterHint} */}
-        </p>
       </div>
     </div>
   );

@@ -1311,7 +1311,8 @@
   max-height: calc(100vh - 6rem);
   max-height: calc(100dvh - 6rem);
   margin-block: auto;
-  padding: 0;
+  /* Место под крестик: иначе скролл заезжает под .modal-close */
+  padding: 3rem 0 0;
   border-radius: 14px;
   border: 1px solid var(--border);
   /* Белая оболочка: overflow hidden — при overscroll виден белый, не блюр */
@@ -1329,7 +1330,7 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
-  padding: 1.5rem 1.5rem 1.75rem;
+  padding: 0.15rem 1.5rem 1.75rem;
 }
 
 .modal-dialog.modal-dialog--wide {
@@ -1769,14 +1770,14 @@
 
 .modal-close {
   position: absolute;
-  top: 0.65rem;
-  right: 0.65rem;
+  top: 0.4rem;
+  right: 0.55rem;
   z-index: 2;
   width: 2.25rem;
   height: 2.25rem;
   border: none;
   border-radius: var(--radius-control);
-  background: transparent;
+  background: #fff;
   color: var(--text-muted);
   font-size: 1.5rem;
   line-height: 1;
@@ -1789,7 +1790,7 @@
 }
 
 .modal-title {
-  margin: 0 2rem 0.35rem 0;
+  margin: 0 0 0.35rem;
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--text-h);
@@ -1895,6 +1896,27 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.modal-maps-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 1rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.modal-maps-btn:hover {
+  filter: brightness(0.97);
 }
 
 .modal-rating__label {
@@ -4247,6 +4269,20 @@
   color: var(--accent, #5fa573);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+.app-footer__toggle {
+  appearance: none;
+  font: inherit;
+  font-size: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.app-footer__toggle[aria-expanded='true'] {
+  font-weight: 600;
 }
 
 .app-footer__sep {
