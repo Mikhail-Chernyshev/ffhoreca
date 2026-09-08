@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { AuthUser } from '../lib/apiAuth';
 import { getLoginUrl } from '../lib/apiAuth';
+import { rememberLoginReturnPath } from '../lib/bootstrapAuth';
 import { useT } from '../i18n/LocaleContext';
 import { apiBaseUrl } from '../lib/apiBase';
 import { OverflowMarqueeText } from './OverflowMarqueeText';
@@ -61,7 +62,10 @@ export function AuthButton({
     return (
       <button
         className="auth-btn auth-btn--login"
-        onClick={() => { window.location.href = getLoginUrl(); }}
+        onClick={() => {
+          rememberLoginReturnPath();
+          window.location.href = getLoginUrl();
+        }}
         title={t('auth.loginWithGoogle')}
       >
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden>

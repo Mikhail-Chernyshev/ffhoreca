@@ -8,6 +8,12 @@ import {
   deleteAccount,
 } from '../lib/apiAuth';
 import {
+  fetchFollowRequests,
+  acceptFollowRequest,
+  rejectFollowRequest,
+  type FollowRequest,
+} from '../lib/apiFollow';
+import {
   FREEMIUM_LIMITS,
   FREEMIUM_LIMITS_ENFORCED,
   type MapVisibility,
@@ -45,6 +51,8 @@ export function AccountModal({
   const [shareCopied, setShareCopied] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [followRequests, setFollowRequests] = useState<FollowRequest[]>([]);
+  const [followActionId, setFollowActionId] = useState<string | null>(null);
 
   useEffect(() => {
     setUsernameDraft(user.username ?? '');
@@ -69,6 +77,13 @@ export function AccountModal({
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
+      });
+    void fetchFollowRequests()
+      .then((list) => {
+        if (!cancelled) setFollowRequests(list);
+      })
+      .catch(() => {
+        /* список заявок не блокирует аккаунт */
       });
     return () => {
       cancelled = true;
@@ -148,6 +163,23 @@ export function AccountModal({
       setDeleteConfirmOpen(false);
     } finally {
       setDeleteBusy(false);
+    }
+  };
+
+  const handleFollowRequest = async (
+    followerId: string,
+    action: 'accept' | 'reject',
+  ) => {
+    setFollowActionId(followerId);
+    setError(null);
+    try {
+      if (action === 'accept') await acceptFollowRequest(followerId);
+      else await rejectFollowRequest(followerId);
+      setFollowRequests((prev) => prev.filter((r) => r.follower.id !== followerId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : t('account.followRequestError'));
+    } finally {
+      setFollowActionId(null);
     }
   };
 
@@ -321,6 +353,67 @@ export function AccountModal({
                 </span>
               </label>
             </div>
+          </section>
+
+          <section className='account-modal__section'>
+            <h3 className='account-modal__section-title'>
+              {t('account.followRequestsTitle')}
+              {followRequests.length > 0 ? ` (${followRequests.length})` : ''}
+            </h3>
+            <p className='account-modal__hint'>{t('account.followRequestsHint')}</p>
+            {followRequests.length === 0 ? (
+              <p className='account-modal__hint'>{t('account.followRequestsEmpty')}</p>
+            ) : (
+              <ul className='account-follow-requests'>
+                {followRequests.map((row) => {
+                  const busy = followActionId === row.follower.id;
+                  const label = row.follower.username
+                    ? `@${row.follower.username}`
+                    : row.follower.name;
+                  return (
+                    <li key={row.follower.id} className='account-follow-requests__row'>
+                      <div className='account-follow-requests__who'>
+                        {row.follower.avatar ? (
+                          <img
+                            className='account-follow-requests__avatar'
+                            src={row.follower.avatar}
+                            alt=''
+                          />
+                        ) : (
+                          <span className='account-follow-requests__avatar account-follow-requests__avatar--fallback' aria-hidden>
+                            {(row.follower.name || '?').slice(0, 1)}
+                          </span>
+                        )}
+                        <div>
+                          <strong>{label}</strong>
+                          {row.follower.username ? (
+                            <span className='account-follow-requests__name'>{row.follower.name}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className='account-follow-requests__actions'>
+                        <button
+                          type='button'
+                          className='account-follow-requests__accept'
+                          disabled={busy || settingsBusy}
+                          onClick={() => void handleFollowRequest(row.follower.id, 'accept')}
+                        >
+                          {t('account.followAccept')}
+                        </button>
+                        <button
+                          type='button'
+                          className='account-follow-requests__reject'
+                          disabled={busy || settingsBusy}
+                          onClick={() => void handleFollowRequest(row.follower.id, 'reject')}
+                        >
+                          {t('account.followReject')}
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
 
           <section className='account-modal__section account-modal__section--danger'>

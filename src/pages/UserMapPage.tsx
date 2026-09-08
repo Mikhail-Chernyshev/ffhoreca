@@ -19,6 +19,7 @@ import {
   userUploadPhotos,
 } from '../lib/apiUserCatalog';
 import { useT } from '../i18n/LocaleContext';
+import { useAdminMode } from '../hooks/useAdminMode';
 import { useCanEditMap } from '../hooks/useCanEditMap';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { MapEditorActions } from '../components/MapEditorActions';
@@ -41,7 +42,7 @@ import { authHeaders, type AuthUser } from '../lib/apiAuth';
 import type { UserApiResult } from '../lib/apiUserCatalog';
 import { usePageMeta } from '../lib/pageMeta';
 import { mapPageUrl } from '../lib/shareUrl';
-import { useAdminMode } from '../hooks/useAdminMode';
+import { requestMapFollow, type FollowStatus } from '../lib/apiFollow';
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] };
 
@@ -58,6 +59,9 @@ export function UserMapPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [mapRestricted, setMapRestricted] = useState(false);
+  const [followStatus, setFollowStatus] = useState<FollowStatus>('none');
+  const [followBusy, setFollowBusy] = useState(false);
+  const [followError, setFollowError] = useState<string | null>(null);
   const [profileUser, setProfileUser] = useState<AuthUser | null>(null);
 
   const [filter, setFilter] = useState<CategoryFilter>('all');
@@ -144,6 +148,8 @@ export function UserMapPage() {
     setLoading(true);
     setNotFound(false);
     setMapRestricted(false);
+    setFollowStatus('none');
+    setFollowError(null);
     setProfileUser(null);
 
     apiFetch(`${base}/api/users/${username}`, { headers: authHeaders() })
@@ -156,6 +162,7 @@ export function UserMapPage() {
         const data = await r.json() as {
           user?: AuthUser;
           map_access?: 'full' | 'restricted';
+          follow_status?: FollowStatus;
           error?: string;
         };
         if (signal.cancelled) return;
@@ -164,6 +171,7 @@ export function UserMapPage() {
           return;
         }
         setProfileUser(data.user);
+        setFollowStatus(data.follow_status ?? 'none');
         const restricted = data.map_access === 'restricted';
         setMapRestricted(restricted);
         if (!restricted) {
@@ -188,6 +196,24 @@ export function UserMapPage() {
   const flyToOnMap = useCallback((lng: number, lat: number) => {
     mapRef.current?.flyToLngLat(lng, lat);
   }, []);
+
+  const handleRequestAccess = useCallback(async () => {
+    if (!username) return;
+    setFollowBusy(true);
+    setFollowError(null);
+    try {
+      const status = await requestMapFollow(username);
+      setFollowStatus(status);
+      if (status === 'accepted') {
+        setMapRestricted(false);
+        await loadCatalog();
+      }
+    } catch (e) {
+      setFollowError(e instanceof Error ? e.message : t('mapRestricted.requestError'));
+    } finally {
+      setFollowBusy(false);
+    }
+  }, [username, loadCatalog, t]);
 
   const handlePlaceClick = useCallback((place: Place) => {
     setSelectedPlace(place);
@@ -367,6 +393,10 @@ export function UserMapPage() {
           <MapRestrictedOverlay
             ownerName={profileUser.name}
             isLoggedIn={!!currentUser}
+            followStatus={followStatus}
+            requestBusy={followBusy}
+            requestError={followError}
+            onRequestAccess={() => void handleRequestAccess()}
           />
         ) : null}
       </div>

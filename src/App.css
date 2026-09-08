@@ -1608,6 +1608,94 @@
   font-weight: 400;
 }
 
+.account-follow-requests {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.account-follow-requests__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+
+.account-follow-requests__who {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.account-follow-requests__who strong {
+  display: block;
+  font-size: 0.9rem;
+}
+
+.account-follow-requests__name {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.account-follow-requests__avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.account-follow-requests__avatar--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent, #5fa573);
+  color: #fff;
+  font-weight: 600;
+}
+
+.account-follow-requests__actions {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.account-follow-requests__accept,
+.account-follow-requests__reject {
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.3rem 0.65rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.account-follow-requests__accept {
+  border: 1px solid var(--accent-border, #5fa573);
+  background: var(--accent-bg, rgba(95, 165, 115, 0.14));
+  color: var(--text-h);
+}
+
+.account-follow-requests__reject {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.account-follow-requests__accept:disabled,
+.account-follow-requests__reject:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .account-modal__error {
   margin: 0.85rem 0 0;
   font-size: 0.85rem;
@@ -4298,6 +4386,17 @@
   color: #fff;
   cursor: pointer;
   margin-bottom: 0.75rem;
+}
+
+.map-restricted-overlay__cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.map-restricted-overlay__error {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: #c0392b;
 }
 
 .map-restricted-overlay__hint {

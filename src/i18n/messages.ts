@@ -408,12 +408,12 @@ const ru = {
     comingSoon: 'Скоро',
     visibilityTitle: 'Видимость карты',
     visibilityHint:
-      'При «Публичной» карту по ссылке видят все. При «Приватной» — только вы; избранное доступ не открывает.',
+      'Публичную карту по ссылке видят все. Приватную — вы и те, чью заявку на подписку вы приняли. Избранное доступ не открывает.',
     visibilityPublic: 'Публичная',
     visibilityPublicHint: 'Любой, у кого есть ссылка, может открыть карту.',
     visibilitySubscribers: 'Приватная',
     visibilitySubscribersHint:
-      'Карту видите только вы. Другие пользователи, в том числе из избранного, по ссылке не откроют.',
+      'Карту видите вы и принятые подписчики. Чтобы смотреть, нужно отправить заявку и дождаться одобрения.',
     loadError: 'Не удалось загрузить данные аккаунта',
     saveError: 'Не удалось сохранить настройки',
     deleteTitle: 'Удаление аккаунта',
@@ -424,6 +424,13 @@ const ru = {
     deleteConfirmMessage:
       'Это действие необратимо: будут удалены все ваши данные на сервере. Продолжить?',
     deleteError: 'Не удалось удалить аккаунт',
+    followRequestsTitle: 'Заявки на подписку',
+    followRequestsHint:
+      'Люди просят доступ к приватной карте. После принятия они смогут её открыть.',
+    followRequestsEmpty: 'Новых заявок нет.',
+    followAccept: 'Принять',
+    followReject: 'Отклонить',
+    followRequestError: 'Не удалось обработать заявку',
   },
   limits: {
     approachingCountries:
@@ -445,9 +452,13 @@ const ru = {
   },
   mapRestricted: {
     title: 'Приватная карта',
-    body: 'Карта {{name}} доступна только владельцу.',
-    ownerLoginHint: 'Если это ваша карта — войдите под своим аккаунтом.',
+    body: 'Карта {{name}} доступна владельцу и принятым подписчикам.',
+    loginHint: 'Войдите, чтобы отправить заявку на доступ — или если это ваша карта.',
     login: 'Войти',
+    requestHint: 'Отправьте заявку. Владелец карты примет или отклонит её в аккаунте.',
+    requestAccess: 'Запросить доступ',
+    requestPending: 'Заявка отправлена. Когда владелец примет её, обновите страницу.',
+    requestError: 'Не удалось отправить заявку.',
   },
   favorites: {
     title: 'Избранное',
@@ -933,12 +944,12 @@ const en = {
     comingSoon: 'Coming soon',
     visibilityTitle: 'Map visibility',
     visibilityHint:
-      'Public maps are open to anyone with the link. Private maps are visible only to you; favorites do not grant access.',
+      'Public maps are open to anyone with the link. Private maps are visible to you and people whose follow request you accepted. Favorites do not grant access.',
     visibilityPublic: 'Public',
     visibilityPublicHint: 'Anyone with the link can open your map.',
     visibilitySubscribers: 'Private',
     visibilitySubscribersHint:
-      'Only you can view your map. Other users, including favorites, cannot open it via link.',
+      'You and accepted subscribers can view the map. Others must send a request and wait for approval.',
     loadError: 'Failed to load account data',
     saveError: 'Failed to save settings',
     deleteTitle: 'Delete account',
@@ -949,6 +960,13 @@ const en = {
     deleteConfirmMessage:
       'This cannot be undone. All your data on the server will be removed. Continue?',
     deleteError: 'Could not delete account',
+    followRequestsTitle: 'Follow requests',
+    followRequestsHint:
+      'People asking to see your private map. After you accept, they can open it.',
+    followRequestsEmpty: 'No new requests.',
+    followAccept: 'Accept',
+    followReject: 'Decline',
+    followRequestError: 'Could not process the request',
   },
   limits: {
     approachingCountries:
@@ -966,9 +984,13 @@ const en = {
   },
   mapRestricted: {
     title: 'Private map',
-    body: "{{name}}'s map is only visible to the owner.",
-    ownerLoginHint: 'If this is your map, sign in with your account.',
+    body: "{{name}}'s map is visible to the owner and accepted subscribers.",
+    loginHint: 'Sign in to request access — or if this is your map.',
     login: 'Sign in',
+    requestHint: 'Send a request. The owner can accept or decline it in their account.',
+    requestAccess: 'Request access',
+    requestPending: 'Request sent. Refresh this page after the owner accepts.',
+    requestError: 'Could not send the request.',
   },
   favorites: {
     title: 'Favorites',

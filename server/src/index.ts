@@ -22,6 +22,8 @@ import {
   upsertUserPlace, deleteUserPlace,
   upsertUserRoute, deleteUserRoute,
   addFavorite, removeFavorite, getFavorites, isFavorite,
+  requestMapFollow, acceptMapFollow, rejectMapFollow,
+  listIncomingFollowRequests, getMapFollow,
   getUserUsage,
   countUserCities,
   collectUserUploadFilenames,
@@ -588,10 +590,18 @@ app.get('/api/users/:username', async (c) => {
   const user = findUserByUsername(db, username);
   if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
   const viewer = await optionalAuthUser(c);
-  const canView = canViewUserMap(viewer, user);
+  const canView = canViewUserMap(db, viewer, user);
+  let follow_status: 'none' | 'pending' | 'accepted' | 'self' = 'none';
+  if (viewer?.id === user.id) {
+    follow_status = 'self';
+  } else if (viewer) {
+    const follow = getMapFollow(db, viewer.id, user.id);
+    follow_status = follow?.status ?? 'none';
+  }
   return c.json({
     user: serializePublicUser(user),
     map_access: canView ? 'full' : 'restricted',
+    follow_status,
   });
 });
 
@@ -600,8 +610,8 @@ app.get('/api/users/:username/catalog', async (c) => {
   const user = findUserByUsername(db, username);
   if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
   const viewer = await optionalAuthUser(c);
-  if (!canViewUserMap(viewer, user)) {
-    return c.json({ error: 'Карта приватная — доступ только у владельца', restricted: true }, 403);
+  if (!canViewUserMap(db, viewer, user)) {
+    return c.json({ error: 'Карта приватная — доступ у владельца и принятых подписчиков', restricted: true }, 403);
   }
   return c.json(getUserCatalog(db, user.id));
 });
@@ -611,10 +621,50 @@ app.get('/api/users/:username/routes', async (c) => {
   const user = findUserByUsername(db, username);
   if (!user) return c.json({ error: 'Пользователь не найден' }, 404);
   const viewer = await optionalAuthUser(c);
-  if (!canViewUserMap(viewer, user)) {
-    return c.json({ error: 'Карта приватная — доступ только у владельца', restricted: true }, 403);
+  if (!canViewUserMap(db, viewer, user)) {
+    return c.json({ error: 'Карта приватная — доступ у владельца и принятых подписчиков', restricted: true }, 403);
   }
   return c.json(getUserRoutes(db, user.id));
+});
+
+app.post('/api/users/:username/follow', requireAuth, async (c) => {
+  const limited = rateLimitOrResponse(c, 'map-follow', 30, 60_000);
+  if (limited) return limited;
+  const actor = (c as unknown as Context<HonoEnv>).get('user');
+  const username = c.req.param('username');
+  const owner = findUserByUsername(db, username);
+  if (!owner) return c.json({ error: 'Пользователь не найден' }, 404);
+  if (owner.id === actor.id) return c.json({ error: 'Нельзя подписаться на себя' }, 400);
+  if (normalizeMapVisibility(owner.map_visibility) !== 'subscribers') {
+    return c.json({ error: 'Карта публичная — подписка не нужна' }, 400);
+  }
+  const status = requestMapFollow(db, actor.id, owner.id);
+  return c.json({ status });
+});
+
+app.get('/api/user/follow-requests', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const requests = listIncomingFollowRequests(db, user.id).map((row) => ({
+    follower: serializePublicUser(row.follower),
+    created_at: row.created_at,
+  }));
+  return c.json({ requests });
+});
+
+app.post('/api/user/follow-requests/:followerId/accept', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const followerId = c.req.param('followerId');
+  const ok = acceptMapFollow(db, user.id, followerId);
+  if (!ok) return c.json({ error: 'Запрос не найден' }, 404);
+  return c.json({ ok: true, status: 'accepted' });
+});
+
+app.post('/api/user/follow-requests/:followerId/reject', requireAuth, (c) => {
+  const user = (c as unknown as Context<HonoEnv>).get('user');
+  const followerId = c.req.param('followerId');
+  const ok = rejectMapFollow(db, user.id, followerId);
+  if (!ok) return c.json({ error: 'Запрос не найден' }, 404);
+  return c.json({ ok: true });
 });
 
 // ---- User CRUD (own map) ---------------------------------------------------

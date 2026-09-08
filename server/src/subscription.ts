@@ -7,6 +7,7 @@ import {
   countUserPlaces,
   countUserRoutes,
   getUserUsage,
+  hasAcceptedMapFollow,
   userCountryCodes,
 } from './db';
 
@@ -18,10 +19,22 @@ export function normalizeMapVisibility(value: unknown): MapVisibility {
   return value === 'subscribers' ? 'subscribers' : 'public';
 }
 
-export function canViewUserMap(viewer: DbUser | null, owner: DbUser): boolean {
+export function canViewUserMap(
+  db: Database.Database,
+  viewer: DbUser | null,
+  owner: DbUser,
+): boolean {
+  if (viewer?.id === owner.id) return true;
   const visibility = normalizeMapVisibility(owner.map_visibility);
   if (visibility === 'public') return true;
-  return viewer?.id === owner.id;
+  if (
+    visibility === 'subscribers' &&
+    viewer &&
+    hasAcceptedMapFollow(db, viewer.id, owner.id)
+  ) {
+    return true;
+  }
+  return false;
 }
 
 export type LimitCode = 'countries' | 'cities' | 'routes' | 'places';

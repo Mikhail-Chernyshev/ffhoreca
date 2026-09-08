@@ -114,6 +114,15 @@ export function openDatabase(dbPath: string): Database.Database {
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (owner_id, target_id)
     );
+    CREATE TABLE IF NOT EXISTS map_follows (
+      follower_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (follower_id, owner_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_map_follows_owner_status
+      ON map_follows (owner_id, status);
   `);
   for (const col of [
     "subscription TEXT NOT NULL DEFAULT 'freemium'",
@@ -524,6 +533,90 @@ export function isFavorite(db: Database.Database, ownerId: string, targetId: str
   return !!db.prepare('SELECT 1 FROM favorites WHERE owner_id = ? AND target_id = ?').get(ownerId, targetId);
 }
 
+export type MapFollowStatus = 'pending' | 'accepted';
+
+export function getMapFollow(
+  db: Database.Database,
+  followerId: string,
+  ownerId: string,
+): { status: MapFollowStatus; created_at: number } | null {
+  const row = db.prepare(
+    'SELECT status, created_at FROM map_follows WHERE follower_id = ? AND owner_id = ?',
+  ).get(followerId, ownerId) as { status: string; created_at: number } | undefined;
+  if (!row) return null;
+  const status: MapFollowStatus = row.status === 'accepted' ? 'accepted' : 'pending';
+  return { status, created_at: row.created_at };
+}
+
+export function hasAcceptedMapFollow(
+  db: Database.Database,
+  followerId: string,
+  ownerId: string,
+): boolean {
+  return !!db.prepare(
+    `SELECT 1 FROM map_follows WHERE follower_id = ? AND owner_id = ? AND status = 'accepted'`,
+  ).get(followerId, ownerId);
+}
+
+/** Создаёт pending, не понижает already accepted. */
+export function requestMapFollow(
+  db: Database.Database,
+  followerId: string,
+  ownerId: string,
+): MapFollowStatus {
+  const existing = getMapFollow(db, followerId, ownerId);
+  if (existing) return existing.status;
+  db.prepare(
+    `INSERT INTO map_follows (follower_id, owner_id, status) VALUES (?, ?, 'pending')`,
+  ).run(followerId, ownerId);
+  return 'pending';
+}
+
+export function acceptMapFollow(
+  db: Database.Database,
+  ownerId: string,
+  followerId: string,
+): boolean {
+  const r = db.prepare(
+    `UPDATE map_follows SET status = 'accepted'
+     WHERE owner_id = ? AND follower_id = ? AND status = 'pending'`,
+  ).run(ownerId, followerId);
+  return r.changes > 0;
+}
+
+export function rejectMapFollow(
+  db: Database.Database,
+  ownerId: string,
+  followerId: string,
+): boolean {
+  const r = db.prepare(
+    `DELETE FROM map_follows WHERE owner_id = ? AND follower_id = ? AND status = 'pending'`,
+  ).run(ownerId, followerId);
+  return r.changes > 0;
+}
+
+export type IncomingFollowRequest = {
+  follower: DbUser;
+  created_at: number;
+};
+
+export function listIncomingFollowRequests(
+  db: Database.Database,
+  ownerId: string,
+): IncomingFollowRequest[] {
+  const rows = db.prepare(
+    `SELECT u.*, f.created_at AS follow_created_at
+     FROM map_follows f
+     JOIN users u ON u.id = f.follower_id
+     WHERE f.owner_id = ? AND f.status = 'pending'
+     ORDER BY f.created_at ASC`,
+  ).all(ownerId) as Array<DbUser & { follow_created_at: number }>;
+  return rows.map((row) => {
+    const { follow_created_at, ...follower } = row;
+    return { follower, created_at: follow_created_at };
+  });
+}
+
 /** Имена файлов в uploads/, привязанные к фото мест пользователя. */
 export function collectUserUploadFilenames(db: Database.Database, userId: string): string[] {
   const filenames = new Set<string>();
@@ -545,6 +638,7 @@ export function collectUserUploadFilenames(db: Database.Database, userId: string
 
 export function deleteUserAccount(db: Database.Database, userId: string): void {
   const tx = db.transaction(() => {
+    db.prepare('DELETE FROM map_follows WHERE follower_id = ? OR owner_id = ?').run(userId, userId);
     db.prepare('DELETE FROM favorites WHERE owner_id = ? OR target_id = ?').run(userId, userId);
     db.prepare('DELETE FROM cities WHERE owner_id = ?').run(userId);
     db.prepare('DELETE FROM places WHERE owner_id = ?').run(userId);

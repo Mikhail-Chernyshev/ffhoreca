@@ -1,6 +1,7 @@
 import { exchangeAuthCode, fetchCurrentUser } from './apiAuth';
 
 const AUTH_BOOTSTRAP_ERROR_KEY = 'ffhoreca_auth_bootstrap_error';
+const LOGIN_RETURN_PATH_KEY = 'ffhoreca_login_return_path';
 
 let bootstrapDone = false;
 
@@ -20,6 +21,31 @@ function storeAuthBootstrapError(code: string): void {
   } catch {
     // ignore
   }
+}
+
+/** Remember current page so Google OAuth can return here (private map follow request). */
+export function rememberLoginReturnPath(): void {
+  try {
+    sessionStorage.setItem(LOGIN_RETURN_PATH_KEY, window.location.pathname + window.location.search);
+  } catch {
+    // ignore
+  }
+}
+
+function consumeLoginReturnPath(): string | null {
+  try {
+    const path = sessionStorage.getItem(LOGIN_RETURN_PATH_KEY);
+    if (path) sessionStorage.removeItem(LOGIN_RETURN_PATH_KEY);
+    return path;
+  } catch {
+    return null;
+  }
+}
+
+function isAppHomePath(pathWithSearch: string): boolean {
+  const path = (pathWithSearch.split('?')[0] || '/').replace(/\/$/, '') || '/';
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '') || '';
+  return path === '/' || path === '' || path === base;
 }
 
 function stripAuthParams(): string {
@@ -62,5 +88,10 @@ export async function bootstrapAuthFromUrl(): Promise<void> {
 
   if (!authCode && !authError) return;
 
-  window.history.replaceState(null, '', ownMapPath ?? stripAuthParams());
+  const savedPath = consumeLoginReturnPath();
+  const next =
+    authCode && savedPath && !isAppHomePath(savedPath)
+      ? savedPath
+      : (ownMapPath ?? stripAuthParams());
+  window.history.replaceState(null, '', next);
 }
