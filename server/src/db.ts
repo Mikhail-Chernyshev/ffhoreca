@@ -155,7 +155,8 @@ export function openDatabase(dbPath: string): Database.Database {
   db.exec(`
     CREATE TABLE IF NOT EXISTS oauth_states (
       state TEXT PRIMARY KEY NOT NULL,
-      exp INTEGER NOT NULL
+      exp INTEGER NOT NULL,
+      return_to TEXT
     );
     CREATE TABLE IF NOT EXISTS auth_exchange_codes (
       code TEXT PRIMARY KEY NOT NULL,
@@ -163,6 +164,9 @@ export function openDatabase(dbPath: string): Database.Database {
       exp INTEGER NOT NULL
     );
   `);
+  if (tableExists(db, 'oauth_states') && !tableHasColumn(db, 'oauth_states', 'return_to')) {
+    db.exec('ALTER TABLE oauth_states ADD COLUMN return_to TEXT');
+  }
 
   return db;
 }

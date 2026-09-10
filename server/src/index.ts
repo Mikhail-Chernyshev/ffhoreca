@@ -83,6 +83,37 @@ const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? '';
 const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? `http://localhost:${PORT}/api/auth/google/callback`;
 const FRONTEND_URL = process.env.FRONTEND_URL ?? 'http://localhost:5173';
+
+function isAllowedOAuthReturnTo(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    if (u.protocol === 'ffhoreca:') return true;
+    if (u.protocol === 'exp:') return true;
+    const front = new URL(FRONTEND_URL);
+    return u.origin === front.origin;
+  } catch {
+    return false;
+  }
+}
+
+function oauthRedirectBase(returnTo: string | null | undefined): string {
+  const candidate = (returnTo ?? '').trim();
+  if (candidate && isAllowedOAuthReturnTo(candidate)) {
+    return candidate.split('#')[0];
+  }
+  return FRONTEND_URL.replace(/\/+$/, '');
+}
+
+function redirectWithAuthParams(
+  base: string,
+  params: Record<string, string>,
+): string {
+  const url = new URL(base);
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, v);
+  }
+  return url.toString();
+}
 const OG_IMAGE_PATH = path.resolve(process.cwd(), 'public/og-share.png');
 const OG_IMAGE_VERSION = fs.existsSync(OG_IMAGE_PATH)
   ? String(Math.floor(fs.statSync(OG_IMAGE_PATH).mtimeMs / 1000))
@@ -376,7 +407,9 @@ app.delete('/api/routes/:id', async (c) => {
 
 app.get('/api/auth/google', (c) => {
   if (!GOOGLE_CLIENT_ID) return c.json({ error: 'Google OAuth не настроен' }, 503);
-  const state = createOAuthState(db);
+  const returnToRaw = (c.req.query('return_to') ?? '').trim();
+  const returnTo = returnToRaw && isAllowedOAuthReturnTo(returnToRaw) ? returnToRaw : null;
+  const state = createOAuthState(db, returnTo);
   return c.redirect(getGoogleAuthUrl(GOOGLE_CLIENT_ID, GOOGLE_REDIRECT_URI, state));
 });
 
@@ -384,19 +417,21 @@ app.get('/api/auth/google/callback', async (c) => {
   const code = c.req.query('code') ?? '';
   const state = c.req.query('state') ?? '';
   const error = c.req.query('error');
+  const consumed = state ? consumeOAuthState(db, state) : { ok: false as const };
+  const dest = oauthRedirectBase(consumed.ok ? consumed.returnTo : null);
   if (error || !code) {
-    return c.redirect(`${FRONTEND_URL}?auth_error=${encodeURIComponent(error ?? 'no_code')}`);
+    return c.redirect(redirectWithAuthParams(dest, { auth_error: error ?? 'no_code' }));
   }
-  if (!state || !consumeOAuthState(db, state)) {
-    return c.redirect(`${FRONTEND_URL}?auth_error=invalid_state`);
+  if (!consumed.ok) {
+    return c.redirect(redirectWithAuthParams(dest, { auth_error: 'invalid_state' }));
   }
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    return c.redirect(`${FRONTEND_URL}?auth_error=not_configured`);
+    return c.redirect(redirectWithAuthParams(dest, { auth_error: 'not_configured' }));
   }
 
   try {
     const gUser = await exchangeGoogleCode(code, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI);
-    if (!gUser) return c.redirect(`${FRONTEND_URL}?auth_error=exchange_failed`);
+    if (!gUser) return c.redirect(redirectWithAuthParams(dest, { auth_error: 'exchange_failed' }));
 
     let user = findUserByGoogleId(db, gUser.sub);
     if (!user) {
@@ -411,17 +446,16 @@ app.get('/api/auth/google/callback', async (c) => {
         map_visibility: 'public',
       });
     } else {
-      // Имя из Google берём только при создании. Дальше его можно сменить в аккаунте.
       user = updateUser(db, user.id, { avatar: gUser.picture ?? null }) ?? user;
     }
 
     const jwt = await signJWT(user.id);
     const exchangeCode = createAuthExchangeCode(db, jwt);
     c.header('Set-Cookie', sessionCookieHeader(jwt));
-    return c.redirect(`${FRONTEND_URL}?auth_code=${encodeURIComponent(exchangeCode)}`);
+    return c.redirect(redirectWithAuthParams(dest, { auth_code: exchangeCode }));
   } catch (e) {
     console.error('OAuth callback error:', e);
-    return c.redirect(`${FRONTEND_URL}?auth_error=server_error`);
+    return c.redirect(redirectWithAuthParams(dest, { auth_error: 'server_error' }));
   }
 });
 

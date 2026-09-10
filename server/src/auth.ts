@@ -91,26 +91,31 @@ export function readSessionTokenFromCookie(cookieHeader: string | undefined): st
   }
 }
 
-export function createOAuthState(db: Database.Database): string {
+export function createOAuthState(db: Database.Database, returnTo: string | null = null): string {
   const now = Date.now();
   db.prepare('DELETE FROM oauth_states WHERE exp < ?').run(now);
   const state = crypto.randomBytes(24).toString('hex');
-  db.prepare('INSERT INTO oauth_states (state, exp) VALUES (?, ?)').run(
+  db.prepare('INSERT INTO oauth_states (state, exp, return_to) VALUES (?, ?, ?)').run(
     state,
     now + 10 * 60 * 1000,
+    returnTo,
   );
   return state;
 }
 
-export function consumeOAuthState(db: Database.Database, state: string): boolean {
+export function consumeOAuthState(
+  db: Database.Database,
+  state: string,
+): { ok: true; returnTo: string | null } | { ok: false } {
   const now = Date.now();
   db.prepare('DELETE FROM oauth_states WHERE exp < ?').run(now);
-  const row = db.prepare('SELECT exp FROM oauth_states WHERE state = ?').get(state) as
-    | { exp: number }
+  const row = db.prepare('SELECT exp, return_to FROM oauth_states WHERE state = ?').get(state) as
+    | { exp: number; return_to: string | null }
     | undefined;
-  if (!row) return false;
+  if (!row) return { ok: false };
   db.prepare('DELETE FROM oauth_states WHERE state = ?').run(state);
-  return row.exp >= now;
+  if (row.exp < now) return { ok: false };
+  return { ok: true, returnTo: row.return_to ?? null };
 }
 
 /** Одноразовый код для обмена на JWT после OAuth (cookie не работает github.io → fly.dev). */
