@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Дела — недельный план</title>
+    <style>
+      :root {
+        --bg: #0f1419;
+        --card: #1a222c;
+        --border: #2a3544;
+        --text: #e8edf2;
+        --muted: #8b9aab;
+        --accent: #5fa573;
+        --accent2: #6eb5ff;
+        --warn: #e8a838;
+        --neg: #e05c5c;
+        --purple: #b88cff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        padding: 1.25rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.65rem;
+        margin: 0 0 0.25rem;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin-bottom: 1.25rem;
+      }
+      .sub a {
+        color: var(--accent2);
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.85rem 1rem;
+      }
+      .card__label {
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .card__value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        margin-top: 0.2rem;
+        color: var(--accent);
+      }
+      .card__note {
+        font-size: 0.76rem;
+        color: var(--muted);
+        margin-top: 0.25rem;
+      }
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+      }
+      .toolbar button {
+        font: inherit;
+        font-size: 0.8rem;
+        padding: 0.4rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        cursor: pointer;
+      }
+      .toolbar button:hover {
+        border-color: var(--accent);
+      }
+      .group {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1rem 1.15rem;
+        margin-bottom: 1rem;
+      }
+      .group--priority {
+        border-color: rgba(232, 168, 56, 0.45);
+        background: linear-gradient(
+          135deg,
+          rgba(232, 168, 56, 0.08) 0%,
+          var(--card) 55%
+        );
+      }
+      .group--later {
+        opacity: 0.92;
+      }
+      .group__head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+      .group__title {
+        font-size: 1rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .group__icon {
+        font-size: 1.1rem;
+        line-height: 1;
+      }
+      .group__meta {
+        font-size: 0.78rem;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .group__progress {
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        margin-bottom: 0.85rem;
+        overflow: hidden;
+      }
+      .group__progress-fill {
+        height: 100%;
+        background: var(--accent);
+        border-radius: 2px;
+        transition: width 0.25s ease;
+      }
+      .tasks {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .task {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.65rem;
+        padding: 0.55rem 0;
+        border-bottom: 1px solid rgba(42, 53, 68, 0.6);
+      }
+      .task:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .task:first-child {
+        padding-top: 0;
+      }
+      .task--done .task__text {
+        color: var(--muted);
+        text-decoration: line-through;
+      }
+      .task input[type='checkbox'] {
+        width: 1.15rem;
+        height: 1.15rem;
+        margin-top: 0.15rem;
+        flex-shrink: 0;
+        accent-color: var(--accent);
+        cursor: pointer;
+      }
+      .task__body {
+        flex: 1;
+        min-width: 0;
+      }
+      .task__text {
+        font-size: 0.92rem;
+      }
+      .task__sub {
+        margin: 0.35rem 0 0 1rem;
+        padding: 0;
+        list-style: disc;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .task__sub li {
+        margin-bottom: 0.2rem;
+      }
+      .badge {
+        display: inline-block;
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 0.15rem 0.45rem;
+        border-radius: 6px;
+        margin-top: 0.35rem;
+      }
+      .badge--week {
+        background: rgba(232, 168, 56, 0.15);
+        color: #f0c56a;
+        border: 1px solid rgba(232, 168, 56, 0.35);
+      }
+      .badge--day {
+        background: rgba(232, 92, 92, 0.12);
+        color: #f0a0a0;
+        border: 1px solid rgba(232, 92, 92, 0.3);
+      }
+      .badge--later {
+        background: rgba(139, 154, 171, 0.12);
+        color: var(--muted);
+        border: 1px solid var(--border);
+      }
+      .footer {
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 2rem;
+      }
+      @media (max-width: 480px) {
+        .group__head {
+          flex-direction: column;
+        }
+        .group__meta {
+          white-space: normal;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Дела</h1>
+      <p class="sub">
+        Недельный план · галочки сохраняются в браузере ·
+        <a href="budget-2030%20copy.html">бюджет</a>
+      </p>
+
+      <div class="cards" id="summary-cards"></div>
+
+      <div class="toolbar">
+        <button type="button" id="btn-show-open">Только открытые</button>
+        <button type="button" id="btn-show-all">Показать все</button>
+        <button type="button" id="btn-reset">Сбросить галочки</button>
+      </div>
+
+      <div id="board"></div>
+
+      <p class="footer">docs/todo.html · обнови дедлайны в чате с Cursor при необходимости</p>
+    </div>
+
+    <script>
+      const STORAGE_KEY = 'ffhoreca_todo_v1';
+
+      const groups = [
+        {
+          id: 'priority',
+          title: 'Личные проекты',
+          icon: '⚡',
+          priority: true,
+          tasks: [
+            { id: 'blyzo', text: 'Работа по Blyzo', due: 'week' },
+            { id: 'tft-work', text: 'Работа по TipsFromTrips', due: 'week' },
+            { id: 'tft-sprint', text: 'Создать спринт для TipsFromTrips', due: 'week' },
+          ],
+        },
+        {
+          id: 'work',
+          title: 'Поиск работы',
+          icon: '💼',
+          tasks: [
+            { id: 'linkedin-profile', text: 'Продолжить оформление LinkedIn', due: 'week' },
+            { id: 'linkedin-apply', text: 'Отклики на вакансии в LinkedIn', due: 'week' },
+            { id: 'content-prep', text: 'Подготовить пост / рилс', due: 'week' },
+            {
+              id: 'linkedin-qa-post',
+              text: 'Написать LinkedIn-пост про тестировщиков и сложности работы с ними',
+              due: 'week',
+            },
+          ],
+        },
+        {
+          id: 'europe',
+          title: 'Переезд и Европа',
+          icon: '✈️',
+          tasks: [
+            { id: 'dnv-info', text: 'Собрать всю информацию по Digital Nomad Visa в Испании' },
+            { id: 're-plan', text: 'Составить план по недвижимости и переезду' },
+            { id: 'nomad-budget', text: 'Рассчитать бюджет переезда и номадства' },
+            { id: 'eu-route', text: 'Составить маршрут по Европе' },
+            { id: 'train-tickets', text: 'Начать покупать билеты на поезд' },
+            { id: 'visa', text: 'Разобраться с визой' },
+            { id: 'eu-split', text: 'Посчитать расходы на Европу и разделить общие траты' },
+          ],
+        },
+        {
+          id: 'finance',
+          title: 'Финансы',
+          icon: '💶',
+          tasks: [
+            { id: 'budget-tidy', text: 'Навести порядок в бюджете', due: 'week' },
+            {
+              id: 'expenses-check',
+              text: 'Посчитать расходы',
+              sub: [
+                '$200 дополнительных расходов',
+                '€500 на сумку Саше',
+                '$100 на поездку / штраф',
+                'Проверить, куда исчезли $400 с карты',
+              ],
+            },
+            { id: 'eu-trip-cost', text: 'Посчитать стоимость поездки в Европу' },
+          ],
+        },
+        {
+          id: 'docs',
+          title: 'Документы и оформление',
+          icon: '📄',
+          tasks: [{ id: 'ip-gph', text: 'Спросить Алексея про оформление по ИП / ГПХ' }],
+        },
+        {
+          id: 'health',
+          title: 'Здоровье',
+          icon: '🩺',
+          tasks: [{ id: 'ct-sinuses', text: 'Записаться на КТ пазух' }],
+        },
+        {
+          id: 'car',
+          title: 'Автомобиль',
+          icon: '🚗',
+          tasks: [
+            {
+              id: 'pdd-theory',
+              text: 'Учить теорию ПДД',
+              due: 'week',
+              note: 'минимум 20 билетов за неделю',
+            },
+            { id: 'driving-lessons', text: 'Найти инструктора и взять несколько уроков вождения' },
+          ],
+        },
+        {
+          id: 'personal',
+          title: 'Личные дела',
+          icon: '📌',
+          tasks: [
+            { id: 'jeweler', text: 'Найти ювелира' },
+            { id: 'dinner-wed', text: 'Забронировать место на ужин на эту среду', due: 'wed' },
+            {
+              id: 'tennis',
+              text: 'Выяснить расписание тенниса в Екатерингофе / на выходных',
+              due: 'weekend',
+            },
+            { id: 'youtube-profile', text: 'Проверить, сменился ли платежный профиль YouTube' },
+            { id: 'saturday-plan', text: 'Решить программу на субботу', due: 'sat' },
+            { id: 'sasha-email', text: 'Отправить письмо Саше в воскресенье', due: 'sun' },
+            { id: 'sasha-album', text: 'Заказать для Саши альбом с фото из Европы' },
+            { id: 'balcony-shelf', text: 'Этажерка на балкон заказать' },
+            { id: 'kitchen-table', text: 'Стол на кухне шлифовать' },
+            { id: 'under-bed', text: 'Порядок под кроватью навести' },
+            { id: 'throw-junk', text: 'Выкинуть хлам' },
+            { id: 'odyssey-film', text: 'Сходить на фильм «Одиссея»' },
+          ],
+        },
+        {
+          id: 'relationships',
+          title: 'Отношения',
+          icon: '💬',
+          tasks: [
+            { id: 'couples-therapy', text: 'Парная терапия' },
+            { id: 'living-together', text: 'Обсудить, живёте вместе или нет' },
+            { id: 'sexologist', text: 'Найти сексолога' },
+          ],
+        },
+        {
+          id: 'instagram',
+          title: 'Инстаграм',
+          icon: '📸',
+          tasks: [
+            { id: 'ig-zoo-yangon', text: 'Zoo Yangon' },
+            { id: 'ig-dogs-changgu', text: 'Грязные собаки Чангу' },
+            { id: 'ig-amed', text: 'Поездка в Амед — фото (Бали?)' },
+            {
+              id: 'ig-bali-castes',
+              text: 'Рилс про имена и касты на Бали',
+              note: 'материал на листках',
+            },
+            { id: 'ig-coffee-32', text: 'Кофейные зёрна в 32°' },
+            { id: 'ig-ace-cubes', text: 'Ace of Cubes' },
+            { id: 'ig-bamboo-bar', text: 'Bamboo Bar reels' },
+            { id: 'ig-bangkok-anniv', text: 'Bangkok anniversary' },
+            {
+              id: 'ig-myanmar-best',
+              text: 'Мьянма лучшие кадры (или Азия лучшие кадры)',
+            },
+            { id: 'ig-europe', text: 'Европа' },
+            {
+              id: 'ig-paris',
+              text: 'Пост с фотками Парижа',
+              note: 'забрать фотки у Саши в том числе',
+            },
+            {
+              id: 'ig-cannes',
+              text: 'Пост с фотками Канн, Монако и Ниццы',
+              note: 'Канн — фото Саши',
+            },
+            {
+              id: 'ig-fountain',
+              text: '«Жалкая пародия — неповторимый оригинал»: фонтанчик воды в море',
+            },
+            {
+              id: 'ig-eu-walks',
+              text: 'Рилс с проходками по странам в Европе',
+            },
+            { id: 'ig-braces', text: 'Брекеты рилс' },
+          ],
+        },
+        {
+          id: 'later',
+          title: 'Когда будет время',
+          icon: '🗓',
+          later: true,
+          tasks: [
+            { id: 'housing-eu', text: 'Жильё в Европе' },
+            {
+              id: 'nomad-long',
+              text: 'Долгосрочный план по номадству (права, бюджет, переезд)',
+            },
+          ],
+        },
+      ];
+
+      const dueLabels = {
+        week: 'эта неделя',
+        wed: 'среда',
+        fri: 'пятница',
+        sat: 'суббота',
+        sun: 'воскресенье',
+        weekend: 'выходные',
+      };
+
+      let showOnlyOpen = false;
+      let done = loadDone();
+
+      function loadDone() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        } catch {
+          return {};
+        }
+      }
+
+      function saveDone() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(done));
+      }
+
+      function allTasks() {
+        return groups.flatMap((g) => g.tasks);
+      }
+
+      function countDoneInGroup(group) {
+        const total = group.tasks.length;
+        const completed = group.tasks.filter((t) => done[t.id]).length;
+        return { total, completed };
+      }
+
+      function renderSummary() {
+        const tasks = allTasks();
+        const completed = tasks.filter((t) => done[t.id]).length;
+        const weekTasks = tasks.filter((t) => t.due);
+        const weekDone = weekTasks.filter((t) => done[t.id]).length;
+
+        document.getElementById('summary-cards').innerHTML = `
+          <div class="card">
+            <div class="card__label">Всего</div>
+            <div class="card__value">${tasks.length}</div>
+          </div>
+          <div class="card">
+            <div class="card__label">Сделано</div>
+            <div class="card__value">${completed}</div>
+            <div class="card__note">${Math.round((completed / tasks.length) * 100) || 0}%</div>
+          </div>
+          <div class="card">
+            <div class="card__label">Со сроком</div>
+            <div class="card__value">${weekDone}/${weekTasks.length}</div>
+            <div class="card__note">неделя и дни</div>
+          </div>
+          <div class="card">
+            <div class="card__label">Осталось</div>
+            <div class="card__value">${tasks.length - completed}</div>
+          </div>
+        `;
+      }
+
+      function badgeHtml(due) {
+        if (!due) return '';
+        const cls =
+          due === 'week' ? 'badge--week' : due === 'later' ? 'badge--later' : 'badge--day';
+        return `<span class="badge ${cls}">${dueLabels[due] || due}</span>`;
+      }
+
+      function renderBoard() {
+        const board = document.getElementById('board');
+        board.innerHTML = '';
+
+        groups.forEach((group) => {
+          const visibleTasks = group.tasks.filter((t) => !showOnlyOpen || !done[t.id]);
+          if (showOnlyOpen && visibleTasks.length === 0) return;
+
+          const { total, completed } = countDoneInGroup(group);
+          const pct = total ? Math.round((completed / total) * 100) : 0;
+
+          const section = document.createElement('section');
+          section.className = 'group';
+          if (group.priority) section.classList.add('group--priority');
+          if (group.later) section.classList.add('group--later');
+
+          section.innerHTML = `
+            <div class="group__head">
+              <h2 class="group__title">
+                <span class="group__icon" aria-hidden="true">${group.icon}</span>
+                ${group.title}
+              </h2>
+              <span class="group__meta">${completed} / ${total}</span>
+            </div>
+            <div class="group__progress" aria-hidden="true">
+              <div class="group__progress-fill" style="width:${pct}%"></div>
+            </div>
+            <ul class="tasks"></ul>
+          `;
+
+          const list = section.querySelector('.tasks');
+
+          (showOnlyOpen ? visibleTasks : group.tasks).forEach((task) => {
+            const li = document.createElement('li');
+            li.className = 'task' + (done[task.id] ? ' task--done' : '');
+
+            const subHtml = task.sub
+              ? `<ul class="task__sub">${task.sub.map((s) => `<li>${s}</li>`).join('')}</ul>`
+              : '';
+            const noteHtml = task.note
+              ? `<div style="font-size:0.8rem;color:var(--muted);margin-top:0.25rem">${task.note}</div>`
+              : '';
+
+            li.innerHTML = `
+              <input type="checkbox" id="cb-${task.id}" ${done[task.id] ? 'checked' : ''} aria-label="Готово" />
+              <div class="task__body">
+                <label class="task__text" for="cb-${task.id}">${task.text}</label>
+                ${noteHtml}
+                ${subHtml}
+                ${badgeHtml(task.due)}
+              </div>
+            `;
+
+            li.querySelector('input').addEventListener('change', (e) => {
+              done[task.id] = e.target.checked;
+              saveDone();
+              render();
+            });
+
+            list.appendChild(li);
+          });
+
+          board.appendChild(section);
+        });
+      }
+
+      function render() {
+        renderSummary();
+        renderBoard();
+      }
+
+      document.getElementById('btn-show-open').addEventListener('click', () => {
+        showOnlyOpen = true;
+        renderBoard();
+      });
+      document.getElementById('btn-show-all').addEventListener('click', () => {
+        showOnlyOpen = false;
+        renderBoard();
+      });
+      document.getElementById('btn-reset').addEventListener('click', () => {
+        if (confirm('Сбросить все галочки?')) {
+          done = {};
+          saveDone();
+          render();
+        }
+      });
+
+      render();
+    </script>
+  </body>
+</html>

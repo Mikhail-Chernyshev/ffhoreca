@@ -1,0 +1,3149 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Семейный план до 2040 — Россия / Испания / Грузия</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #0c1117;
+        --bg2: #121a22;
+        --card: #17212b;
+        --border: #2a3744;
+        --text: #eef3f7;
+        --muted: #8b9aab;
+        --green: #3ecf8e;
+        --green-dim: rgba(62, 207, 142, 0.14);
+        --blue: #5eb0ff;
+        --blue-dim: rgba(94, 176, 255, 0.14);
+        --orange: #f0a35e;
+        --orange-dim: rgba(240, 163, 94, 0.14);
+        --red: #ef6b6b;
+        --red-dim: rgba(239, 107, 107, 0.14);
+        --purple: #b48cff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: Manrope, system-ui, sans-serif;
+        background:
+          radial-gradient(1200px 600px at 10% -10%, rgba(62, 207, 142, 0.12), transparent 55%),
+          radial-gradient(900px 500px at 90% 0%, rgba(94, 176, 255, 0.1), transparent 50%),
+          var(--bg);
+        color: var(--text);
+        line-height: 1.55;
+        padding: 1.25rem 1rem 3.5rem;
+      }
+      .wrap { max-width: 920px; margin: 0 auto; }
+
+      .scenario-switch {
+        display: flex;
+        justify-content: center;
+        padding: 0.35rem 0 0.15rem;
+      }
+      .scenario-switch__inner {
+        display: inline-flex;
+        padding: 4px;
+        gap: 2px;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+      }
+      .scenario-switch__btn {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 0.84rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        padding: 0.5rem 0.95rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+      }
+      .scenario-switch__btn:hover { color: var(--text); }
+      .scenario-switch__btn.is-active {
+        color: var(--text);
+        background: linear-gradient(180deg, #1e2a36 0%, var(--card) 100%);
+        box-shadow:
+          0 0 0 1px rgba(94, 176, 255, 0.35),
+          0 4px 14px rgba(0, 0, 0, 0.25);
+      }
+
+      .scenario-flags {
+        margin: 0.85rem 0 0.25rem;
+        padding: 0.85rem 1rem;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+      }
+      .scenario-flags__title {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 0.65rem;
+      }
+      .scenario-flags__list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem 1.1rem;
+      }
+      .scenario-flags__item {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text);
+        cursor: pointer;
+        user-select: none;
+        max-width: 100%;
+      }
+      .scenario-flags__item input {
+        appearance: none;
+        width: 1.1rem;
+        height: 1.1rem;
+        margin: 0.12rem 0 0;
+        flex: 0 0 auto;
+        border: 1.5px solid var(--border);
+        border-radius: 5px;
+        background: var(--card);
+        cursor: pointer;
+        position: relative;
+      }
+      .scenario-flags__item input:checked {
+        background: var(--green);
+        border-color: var(--green);
+      }
+      .scenario-flags__item input:checked::after {
+        content: '';
+        position: absolute;
+        left: 0.28rem;
+        top: 0.08rem;
+        width: 0.28rem;
+        height: 0.55rem;
+        border: solid #0c1117;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+      .scenario-flags__item.is-dim {
+        opacity: 0.45;
+      }
+      .scenario-flags__hint {
+        margin: 0.55rem 0 0;
+        font-size: 0.78rem;
+        color: var(--muted);
+      }
+
+      .hero {
+        text-align: center;
+        padding: 1.15rem 0 1.75rem;
+      }
+      .hero__eyebrow {
+        display: inline-block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--blue);
+        background: var(--blue-dim);
+        border: 1px solid rgba(94, 176, 255, 0.35);
+        border-radius: 999px;
+        padding: 0.35rem 0.8rem;
+        margin-bottom: 0.9rem;
+      }
+      .hero h1 {
+        font-size: clamp(1.6rem, 4vw, 2.25rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin: 0 0 0.65rem;
+        line-height: 1.2;
+      }
+      .hero__lead {
+        font-size: 1.05rem;
+        color: var(--muted);
+        max-width: 36rem;
+        margin: 0 auto;
+      }
+      .hero__lead strong { color: var(--text); font-weight: 700; }
+
+      .verdict {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+        margin-bottom: 1.5rem;
+      }
+      @media (min-width: 720px) {
+        .verdict { grid-template-columns: repeat(3, 1fr); }
+      }
+      .verdict__card {
+        background: linear-gradient(180deg, #1a2632 0%, var(--card) 100%);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.2rem 1.15rem 1.15rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .verdict__card::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 3px;
+      }
+      .verdict__card--save::before { background: var(--green); }
+      .verdict__card--home::before { background: var(--blue); }
+      .verdict__card--pay::before { background: var(--orange); }
+      .verdict__step {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.45rem;
+      }
+      .verdict__value {
+        font-size: clamp(1.55rem, 3.5vw, 1.9rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.15;
+      }
+      .verdict__card--save .verdict__value { color: var(--green); }
+      .verdict__card--home .verdict__value { color: var(--blue); }
+      .verdict__card--pay .verdict__value { color: var(--orange); }
+      .income-growth {
+        background: linear-gradient(180deg, #1a2632 0%, var(--card) 100%);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.15rem 1.15rem 1.05rem;
+        margin-bottom: 1.5rem;
+      }
+      .income-growth__head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 0.5rem 1rem;
+        margin-bottom: 0.95rem;
+      }
+      .income-growth__title {
+        margin: 0;
+        font-size: 1.05rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+      .income-growth__summary {
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+      .income-growth__summary strong {
+        color: var(--green);
+        font-weight: 800;
+      }
+      .income-track {
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+      .income-step {
+        display: grid;
+        grid-template-columns: minmax(6.5rem, 8.5rem) 1fr auto;
+        gap: 0.65rem 0.85rem;
+        align-items: center;
+      }
+      @media (max-width: 560px) {
+        .income-step {
+          grid-template-columns: 1fr auto;
+          gap: 0.25rem 0.65rem;
+        }
+        .income-step__when { grid-column: 1 / -1; }
+      }
+      .income-step__when {
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--muted);
+        line-height: 1.3;
+      }
+      .income-step__bar-wrap {
+        height: 1.85rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 999px;
+        overflow: hidden;
+      }
+      .income-step__bar {
+        height: 100%;
+        min-width: 0.4rem;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #2a9f6a 0%, var(--green) 100%);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+        transition: width 0.35s ease;
+      }
+      .income-step__bar--mid {
+        background: linear-gradient(90deg, #3a7eb8 0%, var(--blue) 100%);
+      }
+      .income-step__bar--high {
+        background: linear-gradient(90deg, #2a9f6a 0%, #7dffb2 100%);
+      }
+      .income-step__bar--dip {
+        background: linear-gradient(90deg, #b86a3a 0%, var(--orange) 100%);
+      }
+      .income-step__val {
+        font-size: 0.92rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        text-align: right;
+        min-width: 5.5rem;
+      }
+      .income-step__val--dip { color: var(--orange); }
+      .income-step__val--high { color: var(--green); }
+      .income-growth__note {
+        margin: 0.85rem 0 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .income-growth__note strong { color: var(--orange); }
+
+      .spend-snaps {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+      }
+      @media (min-width: 820px) {
+        .spend-snaps { grid-template-columns: repeat(3, 1fr); }
+      }
+      .spend-card {
+        background: linear-gradient(180deg, #1a2632 0%, var(--card) 100%);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 1rem 1rem 0.95rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+      }
+      .spend-card__title {
+        margin: 0;
+        font-size: 0.95rem;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        line-height: 1.25;
+      }
+      .spend-card__sub {
+        margin: -0.35rem 0 0;
+        font-size: 0.78rem;
+        color: var(--muted);
+        line-height: 1.35;
+      }
+      .spend-card__income {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 0.5rem;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .spend-card__income strong {
+        color: var(--text);
+        font-weight: 800;
+        font-size: 1rem;
+      }
+      .spend-stack {
+        display: flex;
+        height: 1.65rem;
+        border-radius: 999px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .spend-stack__seg {
+        height: 100%;
+        min-width: 0;
+      }
+      .spend-stack__seg--rent { background: var(--blue); }
+      .spend-stack__seg--living { background: #7a8fa3; }
+      .spend-stack__seg--child { background: var(--purple); }
+      .spend-stack__seg--tax { background: var(--red); }
+      .spend-stack__seg--mortgage { background: var(--orange); }
+      .spend-stack__seg--free { background: var(--green); }
+      .spend-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        flex: 1;
+      }
+      .spend-list li {
+        display: grid;
+        grid-template-columns: 0.7rem 1fr auto;
+        gap: 0.45rem;
+        align-items: center;
+        font-size: 0.8rem;
+      }
+      .spend-list__dot {
+        width: 0.55rem;
+        height: 0.55rem;
+        border-radius: 999px;
+      }
+      .spend-list__dot--rent { background: var(--blue); }
+      .spend-list__dot--living { background: #7a8fa3; }
+      .spend-list__dot--child { background: var(--purple); }
+      .spend-list__dot--tax { background: var(--red); }
+      .spend-list__dot--mortgage { background: var(--orange); }
+      .spend-list__dot--free { background: var(--green); }
+      .spend-list__name { color: var(--muted); }
+      .spend-list__val { font-weight: 700; font-variant-numeric: tabular-nums; }
+      .spend-list__val--free { color: var(--green); }
+      .spend-list__val--neg { color: var(--red); }
+      .spend-card__foot {
+        margin: 0;
+        font-size: 0.75rem;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+        padding-top: 0.55rem;
+      }
+      .region-absent {
+        margin: 0.85rem 0 0;
+        padding: 0.75rem 0.9rem;
+        font-size: 0.84rem;
+        color: var(--muted);
+        background: rgba(139, 154, 171, 0.08);
+        border: 1px dashed var(--border);
+        border-radius: 12px;
+        line-height: 1.45;
+      }
+      .region-absent strong { color: var(--text); font-weight: 700; }
+
+      .verdict__note {
+        margin-top: 0.45rem;
+        font-size: 0.86rem;
+        color: var(--muted);
+      }
+
+      .section {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.35rem 1.35rem 1.4rem;
+        margin-bottom: 1rem;
+      }
+      .section h2 {
+        font-size: 1.15rem;
+        font-weight: 800;
+        margin: 0 0 0.35rem;
+        letter-spacing: -0.02em;
+      }
+      .section__hint {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin: 0 0 1.15rem;
+      }
+
+      .story {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        position: relative;
+        padding-left: 0.25rem;
+      }
+      .story__item {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 0.85rem;
+        padding-bottom: 1.25rem;
+        position: relative;
+      }
+      .story__item:last-child { padding-bottom: 0; }
+      .story__rail {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .story__dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: var(--green);
+        border: 3px solid #243140;
+        box-shadow: 0 0 0 2px var(--green);
+        flex-shrink: 0;
+        z-index: 1;
+      }
+      .story__dot--warn { background: var(--orange); box-shadow: 0 0 0 2px var(--orange); }
+      .story__dot--key { background: var(--blue); box-shadow: 0 0 0 2px var(--blue); width: 18px; height: 18px; }
+      .story__dot--after { background: var(--purple); box-shadow: 0 0 0 2px var(--purple); }
+      .story__line {
+        width: 2px;
+        flex: 1;
+        background: linear-gradient(180deg, var(--border), transparent);
+        margin-top: 4px;
+        min-height: 1.5rem;
+      }
+      .story__item:last-child .story__line { display: none; }
+      .story__when {
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.2rem;
+      }
+      .story__title {
+        font-size: 1.02rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+      }
+      .story__text {
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+      .story__text strong { color: var(--text); }
+      .story__tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 0.55rem;
+      }
+      .tag {
+        font-size: 0.78rem;
+        font-weight: 600;
+        padding: 0.28rem 0.55rem;
+        border-radius: 999px;
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .tag--money { color: var(--green); border-color: rgba(62, 207, 142, 0.35); background: var(--green-dim); }
+      .tag--cost { color: var(--orange); border-color: rgba(240, 163, 94, 0.35); background: var(--orange-dim); }
+      .tag--home { color: var(--blue); border-color: rgba(94, 176, 255, 0.35); background: var(--blue-dim); }
+
+      .chart-box {
+        position: relative;
+        height: 340px;
+        margin-top: 0.5rem;
+      }
+      .legend-inline {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.1rem;
+        margin: 0.85rem 0 0;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .legend-inline span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .swatch {
+        width: 18px;
+        height: 3px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+      .swatch--green { background: var(--green); }
+      .swatch--blue { background: var(--blue); }
+      .swatch--purple { background: var(--purple); }
+      .swatch--orange { background: var(--orange); border-top: 1px dashed transparent; height: 0; border-top-width: 2px; border-top-style: dashed; border-top-color: var(--orange); width: 18px; }
+      .swatch--dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--red);
+      }
+
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.85rem;
+      }
+      @media (min-width: 700px) {
+        .compare { grid-template-columns: 1fr 1fr; }
+      }
+      .compare__col {
+        border-radius: 14px;
+        padding: 1rem 1.05rem;
+        border: 1px solid var(--border);
+        background: var(--bg2);
+      }
+      .compare__col--before { border-color: rgba(240, 163, 94, 0.35); }
+      .compare__col--after { border-color: rgba(94, 176, 255, 0.35); }
+      .compare__title {
+        font-weight: 800;
+        font-size: 0.95rem;
+        margin-bottom: 0.75rem;
+      }
+      .compare__row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        font-size: 0.9rem;
+        padding: 0.35rem 0;
+        border-bottom: 1px solid rgba(42, 55, 68, 0.7);
+      }
+      .compare__row:last-child { border-bottom: 0; }
+      .compare__row span:first-child { color: var(--muted); }
+      .compare__row strong { font-weight: 700; }
+      .compare__total {
+        margin-top: 0.65rem;
+        padding-top: 0.65rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        font-weight: 800;
+      }
+
+      .deal-box {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        background: linear-gradient(135deg, rgba(94, 176, 255, 0.1), rgba(62, 207, 142, 0.06));
+        border: 1px solid rgba(94, 176, 255, 0.3);
+        border-radius: 16px;
+        padding: 1.15rem 1.2rem;
+      }
+      @media (min-width: 640px) {
+        .deal-box { grid-template-columns: repeat(2, 1fr); }
+      }
+      .deal-box__item h3 {
+        margin: 0 0 0.2rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .deal-box__item p {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 800;
+      }
+      .deal-box__wide { grid-column: 1 / -1; }
+      .deal-box__explain {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin: 0;
+        line-height: 1.55;
+      }
+      .deal-box__explain strong { color: var(--text); }
+
+      .simple-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        display: grid;
+        gap: 0.55rem;
+      }
+      .simple-list li {
+        display: grid;
+        grid-template-columns: 110px 1fr;
+        gap: 0.75rem;
+        font-size: 0.92rem;
+        padding: 0.65rem 0.8rem;
+        background: var(--bg2);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+      @media (max-width: 560px) {
+        .simple-list li { grid-template-columns: 1fr; gap: 0.2rem; }
+      }
+      .simple-list__k {
+        font-weight: 700;
+        color: var(--blue);
+      }
+      .simple-list__v { color: var(--muted); }
+      .simple-list__v strong { color: var(--text); }
+
+      details.more {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 0.2rem 1.2rem 0.9rem;
+        margin-bottom: 1rem;
+      }
+      details.more summary {
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 1.02rem;
+        padding: 0.95rem 0.15rem;
+        list-style: none;
+      }
+      details.more summary::-webkit-details-marker { display: none; }
+      details.more summary::after {
+        content: '▾';
+        float: right;
+        color: var(--muted);
+      }
+      details.more[open] summary::after { content: '▴'; }
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.85rem;
+        margin: 0.5rem 0 1rem;
+      }
+      .control label {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.3rem;
+      }
+      .control input[type='range'] { width: 100%; }
+      .control select {
+        width: 100%;
+        padding: 0.5rem 0.6rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg2);
+        color: var(--text);
+        font: inherit;
+      }
+      .control__val {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--blue);
+        margin-bottom: 0.25rem;
+      }
+      .mini-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.65rem;
+      }
+      .mini-card {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.75rem 0.85rem;
+      }
+      .mini-card__l {
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .mini-card__v {
+        font-size: 1.1rem;
+        font-weight: 800;
+        margin-top: 0.2rem;
+        color: var(--green);
+      }
+      .mini-card__n {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-top: 0.2rem;
+      }
+
+      .footer {
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 1.5rem;
+      }
+      .note-soft {
+        font-size: 0.86rem;
+        color: var(--muted);
+        background: var(--orange-dim);
+        border: 1px solid rgba(240, 163, 94, 0.3);
+        border-radius: 12px;
+        padding: 0.75rem 0.9rem;
+        margin-top: 1rem;
+      }
+      .note-soft strong { color: var(--orange); }
+      .is-hidden { display: none !important; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="scenario-switch" role="tablist" aria-label="Сценарий страны">
+        <div class="scenario-switch__inner">
+          <button
+            type="button"
+            class="scenario-switch__btn is-active"
+            id="btn-ru"
+            role="tab"
+            aria-selected="true"
+            data-scenario="ru"
+          >
+            Россия
+          </button>
+          <button
+            type="button"
+            class="scenario-switch__btn"
+            id="btn-es"
+            role="tab"
+            aria-selected="false"
+            data-scenario="es"
+          >
+            Испания
+          </button>
+          <button
+            type="button"
+            class="scenario-switch__btn"
+            id="btn-ge"
+            role="tab"
+            aria-selected="false"
+            data-scenario="ge"
+          >
+            Грузия
+          </button>
+        </div>
+      </div>
+
+      <div class="scenario-flags" aria-label="Переключатели сценария">
+        <p class="scenario-flags__title">Что учитывать в расчёте</p>
+        <div class="scenario-flags__list">
+          <label class="scenario-flags__item" for="flag-wedding">
+            <input type="checkbox" id="flag-wedding" checked />
+            <span>Включить свадьбу</span>
+          </label>
+          <label class="scenario-flags__item" for="flag-maternity">
+            <input type="checkbox" id="flag-maternity" checked />
+            <span>Включить декрет</span>
+          </label>
+          <label class="scenario-flags__item" id="flag-rent-wrap" for="flag-rent-big">
+            <input type="checkbox" id="flag-rent-big" checked />
+            <span>Включить аренду жилья побольше в Петербурге</span>
+          </label>
+          <label class="scenario-flags__item" for="flag-early">
+            <input type="checkbox" id="flag-early" />
+            <span>Досрочное погашение (×2 к платежу)</span>
+          </label>
+        </div>
+        <p class="scenario-flags__hint" id="flags-hint">
+          Пересчёт сразу. «Аренда побольше в Петербурге» влияет только на сценарий Россия.
+        </p>
+      </div>
+
+      <header class="hero">
+        <div class="hero__eyebrow" id="hero-eyebrow">Семейный план · Россия · до 2030</div>
+        <h1 id="hero-title">Как накопить и купить квартиру</h1>
+        <p class="hero__lead" id="hero-lead">
+          Простая история: копим → в конце 2029 покупаем → потом платим ипотеку
+          и копим на ремонт отдельно.
+        </p>
+      </header>
+
+      <div class="verdict" id="verdict"></div>
+
+      <section class="income-growth" id="income-growth" aria-label="Рост дохода семьи">
+        <div class="income-growth__head">
+          <h2 class="income-growth__title">Рост дохода семьи</h2>
+          <div class="income-growth__summary" id="income-summary"></div>
+        </div>
+        <div class="income-track" id="income-track"></div>
+        <p class="income-growth__note" id="income-note"></p>
+      </section>
+
+      <section class="section" id="spend-section">
+        <h2>Куда уходят деньги каждый месяц</h2>
+        <p class="section__hint" id="spend-hint">
+          Три обычных месяца без разовых трат (свадьба, роды, отпуск) — только
+          регулярные статьи.
+        </p>
+        <div class="spend-snaps" id="spend-snaps"></div>
+        <p class="region-absent" id="spend-region-note"></p>
+      </section>
+
+      <section class="section">
+        <h2>История по шагам</h2>
+        <p class="section__hint">Читайте сверху вниз — как комикс про ваши деньги.</p>
+        <div class="story" id="story"></div>
+      </section>
+
+      <section class="section">
+        <h2 id="chart-title">Главный график: копилка</h2>
+        <p class="section__hint" id="chart-hint">
+          Копилка на квартиру (старт с 550к во взнос). Подушка 1,5 млн на графике
+          не рисуется — на чёрный день отдельно. Красная точка в конце 2029 —
+          отдали взнос. Голубая линия после — копим на ремонт / резерв.
+        </p>
+        <div class="chart-box"><canvas id="chartCumulative"></canvas></div>
+        <div class="legend-inline" id="chart-legend">
+          <span><i class="swatch swatch--green"></i> Копилка до покупки</span>
+          <span><i class="swatch swatch--dot"></i> Покупка (весь взнос)</span>
+          <span><i class="swatch swatch--blue"></i> После покупки</span>
+          <span><i class="swatch swatch--orange"></i> Цель «откладывать 160к/мес»</span>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 id="deal-title">Что покупаем в декабре 2029</h2>
+        <p class="section__hint" id="deal-hint">
+          Весь накопленный кэш кладём в первый взнос. Ремонт — позже, когда сдадут дом.
+        </p>
+        <div class="deal-box" id="deal-box"></div>
+      </section>
+
+      <section class="section">
+        <h2 id="compare-title">Месяц до и после ипотеки</h2>
+        <p class="section__hint" id="compare-hint">
+          Наглядно: на что уходят деньги при доходе 700к (с мая 2029).
+        </p>
+        <div class="compare" id="compare"></div>
+        <p class="note-soft" id="compare-note"></p>
+      </section>
+
+      <section class="section">
+        <h2>Откуда берутся цифры</h2>
+        <p class="section__hint">Короткие правила, на которых стоит весь план.</p>
+        <ul class="simple-list" id="rules"></ul>
+      </section>
+
+      <section class="section" id="mortgage-section">
+        <h2 id="mortgage-section-title">Ипотека</h2>
+        <p class="section__hint" id="mortgage-section-lead">
+          Условия кредита зависят от страны — ниже либо калькулятор, либо
+          фиксированные параметры.
+        </p>
+
+        <details class="more" id="mortgage-details">
+          <summary>Калькулятор: а если ставку или дату поменять?</summary>
+          <p class="section__hint" style="margin-top: 0">
+            Основной сценарий выше — декабрь 2029 и 17%. Здесь можно покрутить.
+          </p>
+          <div class="controls">
+            <div class="control">
+              <label>Когда покупаем</label>
+              <select id="buy-when">
+                <option value="2029" selected>Конец 2029 (основной)</option>
+                <option value="2030">Конец 2030 (если ждать)</option>
+              </select>
+            </div>
+            <div class="control">
+              <label>Ставка банка</label>
+              <div class="control__val"><span id="rate-val">17</span>% годовых</div>
+              <input id="rate" type="range" min="12" max="28" step="0.5" value="17" />
+            </div>
+            <div class="control">
+              <label>Ремонт потом (% цены)</label>
+              <div class="control__val"><span id="reno-val">15</span>%</div>
+              <input id="reno" type="range" min="0" max="30" step="1" value="15" />
+            </div>
+            <div class="control">
+              <label>Срок кредита</label>
+              <div class="control__val"><span id="term-val">30</span> лет</div>
+              <input id="term" type="range" min="10" max="30" step="1" value="30" />
+            </div>
+          </div>
+          <div class="mini-cards" id="mortgage-cards"></div>
+          <p class="section__hint" id="mortgage-note" style="margin: 0.85rem 0 0"></p>
+        </details>
+
+        <div id="spain-mortgage-note" class="is-hidden">
+          <p class="section__hint" style="margin: 0" id="spain-mortgage-note-text"></p>
+        </div>
+        <p class="region-absent" id="mortgage-region-note"></p>
+      </section>
+
+      <details class="more">
+        <summary>Таблица по периодам (для тех, кто любит цифры)</summary>
+        <div style="overflow-x: auto; margin-top: 0.35rem">
+          <table id="phase-table" style="width:100%;border-collapse:collapse;font-size:0.84rem">
+            <thead>
+              <tr style="color:var(--muted)" id="phase-thead">
+                <th style="text-align:left;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">Период</th>
+                <th style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">Доход</th>
+                <th style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">Жизнь</th>
+                <th style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">Разовое</th>
+                <th style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">В копилку</th>
+                <th style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">Итого</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </details>
+
+      <p class="footer">
+        Это оценка для разговора, не финансовая рекомендация ·
+        docs/budget-2030-russia.html
+      </p>
+    </div>
+
+    <script>
+      let chartRef = null;
+      let currentScenario = 'ru';
+      let ruMortgageBound = false;
+      let ruBalEndPre = null;
+
+      const opts = {
+        wedding: true,
+        maternity: true,
+        rentBigSpb: true,
+        earlyPay: false,
+      };
+
+      function readOptsFromUi() {
+        opts.wedding = !!document.getElementById('flag-wedding')?.checked;
+        opts.maternity = !!document.getElementById('flag-maternity')?.checked;
+        opts.rentBigSpb = !!document.getElementById('flag-rent-big')?.checked;
+        opts.earlyPay = !!document.getElementById('flag-early')?.checked;
+        return opts;
+      }
+      function syncOptsToUi() {
+        const w = document.getElementById('flag-wedding');
+        const m = document.getElementById('flag-maternity');
+        const r = document.getElementById('flag-rent-big');
+        const e = document.getElementById('flag-early');
+        if (w) w.checked = opts.wedding;
+        if (m) m.checked = opts.maternity;
+        if (r) r.checked = opts.rentBigSpb;
+        if (e) e.checked = opts.earlyPay;
+      }
+      function persistOpts() {
+        try {
+          localStorage.setItem('budget2030-flags', JSON.stringify(opts));
+        } catch (_) {}
+      }
+      function loadOpts() {
+        try {
+          const raw = localStorage.getItem('budget2030-flags');
+          if (!raw) return;
+          const saved = JSON.parse(raw);
+          if (typeof saved.wedding === 'boolean') opts.wedding = saved.wedding;
+          if (typeof saved.maternity === 'boolean') opts.maternity = saved.maternity;
+          if (typeof saved.rentBigSpb === 'boolean') opts.rentBigSpb = saved.rentBigSpb;
+          if (typeof saved.earlyPay === 'boolean') opts.earlyPay = saved.earlyPay;
+        } catch (_) {}
+        syncOptsToUi();
+      }
+
+      const moShort = [
+        'янв', 'фев', 'мар', 'апр', 'май', 'июн',
+        'июл', 'авг', 'сен', 'окт', 'ноя', 'дек',
+      ];
+
+      Chart.defaults.color = '#8b9aab';
+      Chart.defaults.borderColor = '#2a3744';
+      Chart.defaults.font.family = 'Manrope, system-ui, sans-serif';
+
+      /* Общий график дохода семьи (€) — РФ считается по курсу */
+      const EUR_RUB = 93;
+      const INCOME_FROM_2027 = 7000;
+      const INCOME_FROM_2028 = 8000;
+      const INCOME_FROM_2029 = 10000;
+      const MATERNITY_CUT_ES = 3000;
+      /** РФ: те же ступени, что ES × курс, плюс надбавка ~8% */
+      const RU_INCOME_UPLIFT = 1.08;
+      const RU_INCOME_2027 = Math.round(INCOME_FROM_2027 * EUR_RUB * RU_INCOME_UPLIFT);
+      const RU_INCOME_2028 = Math.round(INCOME_FROM_2028 * EUR_RUB * RU_INCOME_UPLIFT);
+      const RU_INCOME_2029 = Math.round(INCOME_FROM_2029 * EUR_RUB * RU_INCOME_UPLIFT);
+      const MATERNITY_CUT_RU = Math.round(MATERNITY_CUT_ES * EUR_RUB);
+      const CHILD_EUR = 500;
+      const CHILD_RU = Math.round(CHILD_EUR * EUR_RUB);
+
+      /* ========== Россия ========== */
+      const EMERGENCY = 1_500_000;
+      const DP_SEED = 550_000;
+      const START_BALANCE = DP_SEED;
+      const LIFE_MO_2027 = 300_000;
+      const SAVE_TARGET_MO = 160_000;
+      const CAR = 1_200_000;
+      const BIRTH = 500_000;
+      const WEDDING_RU = 1_500_000;
+      const BIRTH_YEAR = 2028;
+      const BIRTH_MONTH = 11;
+      /** 3 мес. до родов + 12 мес. с месяца родов включительно */
+      const MATERNITY_BEFORE_MO = 3;
+      const MATERNITY_AFTER_MO = 12;
+      const VAC_SUMMER_2027 = 400_000;
+      const VAC_WINTER_2027 = 650_000;
+      const RENT_BIG_2028 = 80_000;
+      const INFLATION = 0.08;
+      /** С 2031 траты и «уровень жизни» без дальнейшей инфляции (иначе копилка уезжает в минус). */
+      const COST_FREEZE_YEAR = 2030;
+      const costYear = (year) => Math.min(year, COST_FREEZE_YEAR);
+      const MIN_DP_PCT = 0.2;
+      const MAX_DTI = 0.5;
+      const DEFAULT_RATE = 0.17;
+      const RU_TAX_RATE = 0.15;
+
+      const ymIdx = (year, month) => year * 12 + month;
+      const inMaternity = (year, month) => {
+        const birth = ymIdx(BIRTH_YEAR, BIRTH_MONTH);
+        const idx = ymIdx(year, month);
+        return (
+          idx >= birth - MATERNITY_BEFORE_MO &&
+          idx < birth + MATERNITY_AFTER_MO
+        );
+      };
+
+      const inflFrom2027 = (year) => Math.pow(1 + INFLATION, year - 2027);
+      const inflFrom2028 = (year) =>
+        Math.pow(1 + INFLATION, Math.max(0, year - 2028));
+      const livingCostMo = (year) =>
+        Math.round(LIFE_MO_2027 * inflFrom2027(costYear(year)));
+      const rentMo = (year, month) => {
+        if (!opts.rentBigSpb) return 0;
+        if (!(year > 2028 || (year === 2028 && month >= 9))) return 0;
+        return Math.round(RENT_BIG_2028 * inflFrom2028(costYear(year)));
+      };
+      const vacSummer = (year) =>
+        Math.round(VAC_SUMMER_2027 * inflFrom2027(costYear(year)));
+      const vacWinter = (year) =>
+        Math.round(VAC_WINTER_2027 * inflFrom2027(costYear(year)));
+
+      const incomeMo = (year, month) => {
+        let base =
+          year >= 2029
+            ? RU_INCOME_2029
+            : year >= 2028
+              ? RU_INCOME_2028
+              : RU_INCOME_2027;
+        if (opts.maternity && inMaternity(year, month)) base -= MATERNITY_CUT_RU;
+        return base;
+      };
+      const taxRuMo = (income) => Math.round(income * RU_TAX_RATE);
+
+      const fmtRu = (n) => {
+        const sign = n < 0 ? '−' : '';
+        const abs = Math.abs(Math.round(n));
+        if (abs >= 1_000_000) {
+          const m = abs / 1_000_000;
+          const s = m >= 10 || m % 1 < 0.05 ? m.toFixed(0) : m.toFixed(1);
+          return sign + s.replace('.', ',') + ' млн ₽';
+        }
+        return sign + abs.toLocaleString('ru-RU') + ' ₽';
+      };
+      const fmtShortRu = (n) => {
+        const sign = n < 0 ? '−' : '';
+        const abs = Math.abs(Math.round(n));
+        if (abs >= 1_000_000) {
+          const m = abs / 1_000_000;
+          const s = m >= 10 || m % 1 < 0.05 ? m.toFixed(0) : m.toFixed(1);
+          return sign + s.replace('.', ',') + 'M';
+        }
+        if (abs >= 1000) return sign + Math.round(abs / 1000) + 'k';
+        return sign + String(abs);
+      };
+
+      function oneTimes(year, month) {
+        const items = [];
+        if (month === 7) {
+          const a = vacSummer(year);
+          items.push({ amount: a, label: `отпуск ${fmtShortRu(a)}` });
+        }
+        if (month === 12 && year !== 2029) {
+          const a = vacWinter(year);
+          items.push({ amount: a, label: `отпуск ${fmtShortRu(a)}` });
+        }
+        if (opts.wedding && year === 2027 && month === 10)
+          items.push({ amount: WEDDING_RU, label: 'свадьба' });
+        if (year === 2028 && month === 4)
+          items.push({ amount: CAR, label: 'машина' });
+        if (year === 2028 && month === 11)
+          items.push({ amount: BIRTH, label: 'роды' });
+        const amount = items.reduce((s, x) => s + x.amount, 0);
+        const label = items.map((x) => x.label).join(' + ');
+        let event = null;
+        if (opts.wedding && year === 2027 && month === 10) event = 'wedding';
+        else if (year === 2028 && month === 4) event = 'car';
+        else if (year === 2028 && month === 11) event = 'birth';
+        else if (opts.rentBigSpb && year === 2028 && month === 9)
+          event = 'rent-start';
+        else if (month === 7 || (month === 12 && year !== 2029))
+          event = 'vacation';
+        return { amount, label, event };
+      }
+
+      function loanPayment(principal, annualRate, years) {
+        if (principal <= 0) return 0;
+        const r = annualRate / 12;
+        const n = years * 12;
+        if (r === 0) return principal / n;
+        return (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+      }
+      function maxLoan(payment, annualRate, years) {
+        if (payment <= 0) return 0;
+        const r = annualRate / 12;
+        const n = years * 12;
+        if (r === 0) return payment * n;
+        return (payment * (Math.pow(1 + r, n) - 1)) / (r * Math.pow(1 + r, n));
+      }
+
+      /** Досрочка: платим scheduledPay × mult, пока долг не закроется. */
+      const EARLY_PAY_MULT = 2;
+      const PLAN_END_YEAR = 2040;
+      const payMult = () => (opts.earlyPay ? EARLY_PAY_MULT : 1);
+      function mortgageStep(balance, annualRate, scheduledPay, mult = payMult()) {
+        if (!(balance > 0.5) || !(scheduledPay > 0)) {
+          return { payment: 0, balance: 0, paidOff: true };
+        }
+        const r = annualRate / 12;
+        const withInterest = balance * (1 + r);
+        const due = scheduledPay * mult;
+        const payment = Math.min(due, withInterest);
+        const next = Math.max(0, withInterest - payment);
+        const paidOff = next < 1;
+        return {
+          payment: Math.round(payment),
+          balance: paidOff ? 0 : next,
+          paidOff,
+        };
+      }
+      function fmtYm(year, month) {
+        return `${moShort[month - 1]}'${String(year).slice(2)}`;
+      }
+      function findPayoff(rows) {
+        return rows.find((r) => r.event === 'mortgage-paid') || null;
+      }
+
+      function maxApartment(savings, income, opts) {
+        const {
+          annualRate,
+          years,
+          renoPct = 0.15,
+          livingMo,
+          minDpPct = MIN_DP_PCT,
+          maxDti = MAX_DTI,
+        } = opts;
+        const afterTax = income * (1 - RU_TAX_RATE);
+        const maxPay = Math.max(
+          0,
+          Math.min(afterTax * maxDti, afterTax - livingMo),
+        );
+        const loanCap = maxLoan(maxPay, annualRate, years);
+        const dp = Math.max(0, savings);
+        const priceCapByDp = minDpPct > 0 ? dp / minDpPct : Infinity;
+        const loanAtDpCap = Math.max(0, priceCapByDp - dp);
+        const loan = Math.min(loanCap, loanAtDpCap);
+        const price = dp + loan;
+        const renoLater = renoPct * price;
+        const pay = loanPayment(loan, annualRate, years);
+        const affordable =
+          dp > 0 && price > 0 && dp >= price * minDpPct - 1 && pay <= maxPay + 1;
+        return {
+          savings, income, maxPay, loanCap, price, dp,
+          reno: renoLater, loan, pay,
+          dpPct: price > 0 ? dp / price : 0,
+          affordable,
+          binding: loanCap < loanAtDpCap - 1 ? 'платёж' : 'накопления',
+        };
+      }
+
+      function buildMonthly(deal) {
+        const rows = [];
+        let bal = START_BALANCE;
+        let target = START_BALANCE;
+        let minBal = START_BALANCE;
+        let minLabel = "01.01'27";
+        let targetFrozen = false;
+        let loanBal = 0;
+        const scheduledPay = deal ? deal.pay : 0;
+        const loanRate = deal?.annualRate ?? DEFAULT_RATE;
+
+        for (let year = 2027; year <= PLAN_END_YEAR; year++) {
+          for (let month = 1; month <= 12; month++) {
+            const income = incomeMo(year, month);
+            const tax = taxRuMo(income);
+            const ot = oneTimes(year, month);
+            const rent =
+              deal && year >= 2030 ? 0 : rentMo(year, month);
+            const living = livingCostMo(year);
+            const child =
+              year > BIRTH_YEAR ||
+              (year === BIRTH_YEAR && month >= BIRTH_MONTH)
+                ? CHILD_RU
+                : 0;
+
+            let mortgage = 0;
+            let paidOff = false;
+            if (deal && year >= 2030 && loanBal > 0.5) {
+              const step = mortgageStep(
+                loanBal,
+                loanRate,
+                scheduledPay,
+                payMult(),
+              );
+              mortgage = step.payment;
+              loanBal = step.balance;
+              paidOff = step.paidOff;
+            }
+
+            let oneTime = ot.amount;
+            let oneTimeLabel = ot.label;
+            let event =
+              opts.rentBigSpb && year === 2028 && month === 9
+                ? 'rent-start'
+                : ot.event;
+            if (!event && year === BIRTH_YEAR && month === BIRTH_MONTH)
+              event = 'birth';
+            if (paidOff) event = 'mortgage-paid';
+
+            let expense = living + rent + child + mortgage + oneTime + tax;
+            let net = income - expense;
+            bal += net;
+
+            if (deal && year === 2029 && month === 12) {
+              const dp = Math.round(deal.dp);
+              const beforeDp = bal;
+              bal = Math.max(0, bal - dp);
+              const paid = beforeDp - bal;
+              oneTime += paid;
+              oneTimeLabel = oneTimeLabel
+                ? `${oneTimeLabel} + первый взнос`
+                : 'первый взнос';
+              expense += paid;
+              net -= paid;
+              event = 'mortgage';
+              targetFrozen = true;
+              loanBal = Math.max(0, deal.loan);
+            }
+
+            if (!targetFrozen) target += SAVE_TARGET_MO;
+            if (bal < minBal) {
+              minBal = bal;
+              minLabel = `${moShort[month - 1]}'${String(year).slice(2)}`;
+            }
+
+            rows.push({
+              year, month,
+              label: `${moShort[month - 1]}'${String(year).slice(2)}`,
+              income, tax, living, child, life: living + rent + child, rent, mortgage,
+              oneTime, oneTimeLabel, event, expense, net, bal, target,
+              loanLeft: Math.round(loanBal),
+            });
+          }
+        }
+        return { rows, minBal, minLabel };
+      }
+
+      /* ========== Испания (из budget-2030 copy.html) ========== */
+      const ES_START = 7000;
+      const ES_DP_STASH = 15000;
+      const BALI_RENT_MO = 1000;
+      const BALI_OTHER_MO = 3000;
+      const RU_LIFE_MO = 4000;
+      const ES_TAX_RATE = 0.31;
+      const ES_TAX_BASE = 4000;
+      const taxSpainMo = (income) =>
+        Math.round(Math.min(Math.max(0, income), ES_TAX_BASE) * ES_TAX_RATE);
+      const ES_RENT_MO = 1400;
+      const ES_RENT_BIG_MO = 1700;
+      const ES_LIVING_MO = 2500;
+      const CHILD_MO = CHILD_EUR;
+      const esLiving2028 = ES_LIVING_MO * 1.15;
+      const esLiving2029 = esLiving2028 * 1.05;
+      const esLiving2030 = esLiving2029 * 1.05;
+      /** Грузия: те же доходы/аренда, быт −15%, налог 1% со всего дохода */
+      const GE_LIVING_CUT = 0.85;
+      const GE_TAX_RATE = 0.01;
+      const geLiving = (base) => Math.round(base * GE_LIVING_CUT);
+      const taxGeorgiaMo = (year, month, income) => {
+        if (year < 2027 || (year === 2027 && month < 7)) return 0;
+        return Math.round(Math.max(0, income) * GE_TAX_RATE);
+      };
+      const MOVE_ONETIME = 8000;
+      const ES_RATE = 0.03;
+      const ES_TERM_YEARS = 20;
+      const ES_MIN_DP_PCT = 0.25;
+      const RENTAL_INCOME_MO = 1000;
+      const RING_2027 = 6000;
+      const WEDDING_2027 = 15000;
+      const VACATION_TRIP_2028 = Math.round(2500 * 1.7);
+      const VACATION_TRIP_LATER = Math.round(3000 * 1.7);
+      const CAR_ONETIME = 10000;
+      const CAR_2030 = 10000;
+      const BIRTH_2028 = 10000;
+
+      const fmtEs = (n) => {
+        const sign = n < 0 ? '−' : '';
+        return sign + '€' + Math.abs(Math.round(n)).toLocaleString('en-US');
+      };
+      const fmtShortEs = (n) => {
+        const sign = n < 0 ? '−' : '';
+        const abs = Math.abs(Math.round(n));
+        if (abs >= 1000) {
+          const k = abs / 1000;
+          const s = k >= 10 || k % 1 < 0.05 ? k.toFixed(0) : k.toFixed(1);
+          return sign + s + 'k';
+        }
+        return sign + String(abs);
+      };
+
+      function spainApartment(savings, stash = 0) {
+        const fromPiggy = Math.max(0, Math.round(savings));
+        const fromStash = Math.max(0, Math.round(stash));
+        const dp = fromPiggy + fromStash;
+        const price = ES_MIN_DP_PCT > 0 ? dp / ES_MIN_DP_PCT : 0;
+        const loan = Math.max(0, price - dp);
+        const pay = loanPayment(loan, ES_RATE, ES_TERM_YEARS);
+        return {
+          savings: fromPiggy,
+          fromPiggy,
+          fromStash,
+          stash: fromStash,
+          dp,
+          price,
+          loan,
+          pay,
+          dpPct: ES_MIN_DP_PCT,
+          rate: ES_RATE,
+          years: ES_TERM_YEARS,
+        };
+      }
+
+      function buildEuroMonthly(deal, region = 'es') {
+        const isGe = region === 'ge';
+        /** Быт −15% только после переезда в Грузию (с июля 2027). */
+        const L = (base) => (isGe ? geLiving(base) : Math.round(base));
+        const livingEuro = (year) => {
+          if (year <= 2027) return L(ES_LIVING_MO);
+          if (year === 2028) return L(esLiving2028);
+          if (year === 2029) return L(esLiving2029);
+          return L(esLiving2030);
+        };
+        const vacEuro = (year) =>
+          Math.round(
+            VACATION_TRIP_LATER *
+              Math.pow(1.05, Math.max(0, costYear(year) - 2029)),
+          );
+        const rows = [];
+        const mortgageMo = deal ? deal.pay : 0;
+        const mortgageDp = deal ? Math.round(deal.dp) : 0;
+        const stashPart = deal ? Math.round(deal.fromStash || 0) : 0;
+        const liquidDp = Math.max(0, mortgageDp - stashPart);
+        const moveLabel = isGe ? 'переезд в Грузию' : 'переезд в Испанию';
+        let loanBal = 0;
+
+        const add = (
+          year,
+          month,
+          income,
+          breakdown,
+          event,
+          oneTimeLabel,
+        ) => {
+          const {
+            rent = 0,
+            living = 0,
+            child = 0,
+            mortgage = 0,
+            oneTime = 0,
+          } = breakdown;
+          const incomeAdj =
+            opts.maternity && inMaternity(year, month)
+              ? income - MATERNITY_CUT_ES
+              : income;
+          const tax = isGe
+            ? taxGeorgiaMo(year, month, incomeAdj)
+            : year >= 2028
+              ? taxSpainMo(incomeAdj)
+              : 0;
+          const lifeMo = rent + living + child;
+          const expense = lifeMo + tax + mortgage + oneTime;
+          const yy = String(year).slice(2);
+          rows.push({
+            year,
+            month,
+            label: `${moShort[month - 1]}'${yy}`,
+            income: incomeAdj,
+            rent,
+            living,
+            child,
+            tax,
+            mortgage,
+            oneTime,
+            life: lifeMo,
+            lifeMo,
+            expense,
+            net: incomeAdj - expense,
+            oneTimeLabel,
+            event,
+            loanLeft: Math.round(loanBal),
+          });
+        };
+
+        const mortPay = (year, month) => {
+          if (!deal) return { payment: 0, paidOff: false };
+          if (year < 2029 || (year === 2029 && month < 7)) {
+            return { payment: 0, paidOff: false };
+          }
+          if (year === 2029 && month === 7) {
+            loanBal = Math.max(0, deal.loan);
+          }
+          if (!(loanBal > 0.5)) return { payment: 0, paidOff: false };
+          const step = mortgageStep(
+            loanBal,
+            ES_RATE,
+            mortgageMo,
+            payMult(),
+          );
+          loanBal = step.balance;
+          return { payment: step.payment, paidOff: step.paidOff };
+        };
+
+        for (let m = 1; m <= 4; m++)
+          add(
+            2027,
+            m,
+            INCOME_FROM_2027,
+            { rent: BALI_RENT_MO, living: Math.round(BALI_OTHER_MO) },
+            null,
+            null,
+          );
+        add(
+          2027,
+          5,
+          INCOME_FROM_2027,
+          { living: Math.round(RU_LIFE_MO) },
+          null,
+          null,
+        );
+        add(
+          2027,
+          6,
+          INCOME_FROM_2027,
+          { living: Math.round(RU_LIFE_MO) },
+          null,
+          null,
+        );
+        add(
+          2027,
+          7,
+          INCOME_FROM_2027,
+          {
+            rent: ES_RENT_MO,
+            living: L(ES_LIVING_MO),
+            oneTime: MOVE_ONETIME,
+          },
+          null,
+          moveLabel,
+        );
+        add(
+          2027,
+          8,
+          INCOME_FROM_2027,
+          { rent: ES_RENT_MO, living: L(ES_LIVING_MO) },
+          null,
+          null,
+        );
+        add(
+          2027,
+          9,
+          INCOME_FROM_2027,
+          {
+            rent: ES_RENT_MO,
+            living: L(ES_LIVING_MO),
+            oneTime: opts.wedding ? RING_2027 : 0,
+          },
+          opts.wedding ? 'ring-after' : null,
+          opts.wedding ? 'обручальное кольцо' : null,
+        );
+        add(
+          2027,
+          10,
+          INCOME_FROM_2027,
+          {
+            rent: ES_RENT_MO,
+            living: L(ES_LIVING_MO),
+            oneTime: opts.wedding ? WEDDING_2027 : 0,
+          },
+          opts.wedding ? 'wedding-after' : null,
+          opts.wedding ? 'свадьба' : null,
+        );
+        add(
+          2027,
+          11,
+          INCOME_FROM_2027,
+          { rent: ES_RENT_MO, living: L(ES_LIVING_MO) },
+          null,
+          null,
+        );
+        add(
+          2027,
+          12,
+          INCOME_FROM_2027,
+          {
+            rent: ES_RENT_MO,
+            living: L(ES_LIVING_MO),
+            oneTime: CAR_ONETIME,
+          },
+          null,
+          'автомобиль',
+        );
+
+        for (let m = 1; m <= 12; m++) {
+          const may = m === 5;
+          const aug = m === 8;
+          const nov = m === 11;
+          const bigFlat = m >= 10;
+          const withChild = m >= 11;
+          let oneTime = 0;
+          let label = null;
+          if (may) {
+            oneTime = VACATION_TRIP_2028;
+            label = 'отпуск';
+          } else if (aug) {
+            oneTime = VACATION_TRIP_2028;
+            label = 'отпуск';
+          } else if (nov) {
+            oneTime = BIRTH_2028;
+            label = 'роды';
+          }
+          const rent = bigFlat ? ES_RENT_BIG_MO : ES_RENT_MO;
+          const living = L(esLiving2028);
+          const child = withChild ? CHILD_MO : 0;
+          add(
+            2028,
+            m,
+            INCOME_FROM_2028,
+            { rent, living, child, oneTime },
+            withChild && m === 11
+              ? 'child-start'
+              : bigFlat && m === 10
+                ? 'flat-bigger'
+                : null,
+            label ?? (bigFlat && m === 10 ? 'квартира побольше' : null),
+          );
+        }
+
+        for (let m = 1; m <= 12; m++) {
+          const withRental = m >= 11;
+          const income =
+            INCOME_FROM_2029 + (withRental ? RENTAL_INCOME_MO : 0);
+          const oneTime =
+            (m === 7 ? liquidDp : 0) +
+            (m === 2 || m === 10 ? VACATION_TRIP_LATER : 0);
+          const mort = mortPay(2029, m);
+          add(
+            2029,
+            m,
+            income,
+            {
+              rent: ES_RENT_BIG_MO,
+              living: L(esLiving2029),
+              child: CHILD_MO,
+              mortgage: mort.payment,
+              oneTime,
+            },
+            m === 6
+              ? 'mortgage-before'
+              : m === 7 && deal
+                ? 'mortgage-after'
+                : mort.paidOff
+                  ? 'mortgage-paid'
+                  : withRental && m === 11
+                    ? 'rental-start'
+                    : null,
+            m === 7 && deal
+              ? stashPart
+                ? `первый взнос (из копилки; +${fmtShortEs(stashPart)} заначка)${
+                    opts.earlyPay ? `; дальше ×${EARLY_PAY_MULT} платёж` : ''
+                  }`
+                : opts.earlyPay
+                  ? `первый взнос; дальше ×${EARLY_PAY_MULT} платёж`
+                  : 'первый взнос'
+              : mort.paidOff
+                ? 'ипотека закрыта досрочно'
+                : m === 2 || m === 10
+                  ? 'отпуск'
+                  : withRental && m === 11
+                    ? 'сдача квартиры'
+                    : null,
+          );
+        }
+
+        for (let year = 2030; year <= PLAN_END_YEAR; year++) {
+          for (let m = 1; m <= 12; m++) {
+            const vac = vacEuro(year);
+            const oneTime =
+              (year === 2030 && m === 2 ? CAR_2030 : 0) +
+              (m === 3 || m === 9 ? vac : 0);
+            const mort = mortPay(year, m);
+            let event = mort.paidOff ? 'mortgage-paid' : null;
+            let label = mort.paidOff
+              ? 'ипотека закрыта досрочно'
+              : year === 2030 && m === 2
+                ? 'новая машина'
+                : m === 3 || m === 9
+                  ? 'отпуск'
+                  : null;
+            add(
+              year,
+              m,
+              INCOME_FROM_2029 + RENTAL_INCOME_MO,
+              {
+                rent: ES_RENT_BIG_MO,
+                living: livingEuro(year),
+                child: CHILD_MO,
+                mortgage: mort.payment,
+                oneTime,
+              },
+              event,
+              label,
+            );
+          }
+        }
+
+        return rows;
+      }
+      const buildSpainMonthly = (deal) => buildEuroMonthly(deal, 'es');
+      const buildGeorgiaMonthly = (deal) => buildEuroMonthly(deal, 'ge');
+
+      function destroyChart() {
+        if (chartRef) {
+          chartRef.destroy();
+          chartRef = null;
+        }
+      }
+
+      function buildIncomePhases(getIncome, fromY, fromM, toY, toM) {
+        const phases = [];
+        let cur = null;
+        for (let y = fromY; y <= toY; y++) {
+          for (let m = 1; m <= 12; m++) {
+            if (y === fromY && m < fromM) continue;
+            if (y === toY && m > toM) continue;
+            const { income, isDip = false } = getIncome(y, m);
+            const label = `${moShort[m - 1]}'${String(y).slice(2)}`;
+            if (!cur || cur.income !== income || cur.isDip !== isDip) {
+              if (cur) phases.push(cur);
+              cur = {
+                income,
+                isDip,
+                startLabel: label,
+                endLabel: label,
+                months: 1,
+              };
+            } else {
+              cur.endLabel = label;
+              cur.months += 1;
+            }
+          }
+        }
+        if (cur) phases.push(cur);
+        return phases;
+      }
+
+      function renderIncomeGrowth({ getIncome, fmt, noteHtml = '' }) {
+        const phases = buildIncomePhases(getIncome, 2027, 1, PLAN_END_YEAR, 12);
+        const maxIncome = Math.max(...phases.map((p) => p.income), 1);
+        const start = phases[0]?.income ?? 0;
+        const end = phases[phases.length - 1]?.income ?? 0;
+        const growthPct =
+          start > 0 ? Math.round(((end - start) / start) * 100) : 0;
+
+        document.getElementById('income-summary').innerHTML =
+          `${fmt(start)} → <strong>${fmt(end)}/мес</strong>` +
+          (growthPct > 0 ? ` · +${growthPct}%` : growthPct < 0 ? ` · ${growthPct}%` : '');
+
+        document.getElementById('income-track').innerHTML = phases
+          .map((p, i) => {
+            const pct = Math.max(8, Math.round((p.income / maxIncome) * 100));
+            const isHigh = !p.isDip && p.income >= maxIncome * 0.92;
+            const barClass = p.isDip
+              ? 'income-step__bar--dip'
+              : isHigh
+                ? 'income-step__bar--high'
+                : i >= Math.floor(phases.length / 2)
+                  ? 'income-step__bar--mid'
+                  : '';
+            const valClass = p.isDip
+              ? 'income-step__val--dip'
+              : isHigh
+                ? 'income-step__val--high'
+                : '';
+            const when =
+              p.startLabel === p.endLabel
+                ? p.startLabel
+                : `${p.startLabel} – ${p.endLabel}`;
+            return `
+              <div class="income-step">
+                <div class="income-step__when">${when}</div>
+                <div class="income-step__bar-wrap">
+                  <div class="income-step__bar ${barClass}" style="width:${pct}%"></div>
+                </div>
+                <div class="income-step__val ${valClass}">${fmt(p.income)}<span style="font-weight:600;color:var(--muted);font-size:0.78rem">/мес</span></div>
+              </div>`;
+          })
+          .join('');
+
+        document.getElementById('income-note').innerHTML = noteHtml;
+      }
+
+      function fillPhaseTable(phases, fmt) {
+        const tbody = document.querySelector('#phase-table tbody');
+        tbody.innerHTML = '';
+        phases.forEach((p) => {
+          const income = p.months.reduce((s, m) => s + m.income, 0);
+          const life = p.months.reduce(
+            (s, m) => s + m.life + (m.mortgage || 0) + (m.tax || 0),
+            0,
+          );
+          const oneTime = p.months.reduce((s, m) => s + m.oneTime, 0);
+          const net = p.months.reduce((s, m) => s + m.net, 0);
+          const cum = p.months[p.months.length - 1].bal;
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="text-align:left;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">${p.label}</td>
+            <td style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">${fmt(income)}</td>
+            <td style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">${fmt(life)}</td>
+            <td style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)">${fmt(oneTime)}</td>
+            <td style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border);color:${net >= 0 ? 'var(--green)' : 'var(--red)'}">${fmt(net)}</td>
+            <td style="text-align:right;padding:0.45rem 0.5rem;border-bottom:1px solid var(--border)"><strong>${fmt(cum)}</strong></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      function renderSpendSnaps(scenario, monthly, fmt) {
+        const root = document.getElementById('spend-snaps');
+        const noteEl = document.getElementById('spend-region-note');
+        if (!root) return;
+
+        const isEs = scenario === 'es';
+        const isGe = scenario === 'ge';
+        const isEuro = isEs || isGe;
+        const picks = isEuro
+          ? [
+              {
+                year: 2027,
+                month: 8,
+                title: isGe
+                  ? 'Авг. 2027 · только переехали в Грузию'
+                  : 'Авг. 2027 · только переехали',
+                sub: isGe
+                  ? 'Аренда как в ES, быт −15%, налог 1% со всего дохода'
+                  : 'Студия, быт, ещё без испанского налога и ребёнка',
+              },
+              {
+                year: 2028,
+                month: 12,
+                title: 'Дек. 2028 · семья и квартира побольше',
+                sub: isGe
+                  ? 'Налог 1% со всего дохода, ребёнок, большая аренда' +
+                    (opts.maternity ? ', декрет' : '') +
+                    ', быт −15%'
+                  : 'Налог 31% только с €4k базы, ребёнок, большая аренда' +
+                    (opts.maternity ? ', декрет' : ''),
+              },
+              {
+                year: 2029,
+                month: 12,
+                title: 'Дек. 2029 · ипотека + сдача',
+                sub: 'Живёте в аренде, купленную сдаёте, платите банку',
+              },
+            ]
+          : [
+              {
+                year: 2027,
+                month: 8,
+                title: 'Авг. 2027 · обычный месяц',
+                sub: 'Быт + НДФЛ 15%, ещё без большой аренды в СПб',
+              },
+              {
+                year: 2029,
+                month: 3,
+                title: 'Мар. 2029 · аренда побольше' + (opts.maternity ? ' и декрет' : ''),
+                sub:
+                  (opts.rentBigSpb
+                    ? 'Большая аренда в Петербурге, '
+                    : 'Без большой аренды (чекбокс выключен), ') +
+                  'НДФЛ 15%' +
+                  (opts.maternity ? ', доход урезан декретом' : ''),
+              },
+              {
+                year: 2030,
+                month: 6,
+                title: 'Июн. 2030 · своя + ипотека',
+                sub: 'Аренды больше нет — вместо неё платёж банку',
+              },
+            ];
+
+        const cats = isEuro
+          ? [
+              { key: 'rent', label: 'Аренда жилья', cls: 'rent' },
+              { key: 'living', label: isGe ? 'Еда и быт (−15%)' : 'Еда и быт', cls: 'living' },
+              { key: 'child', label: 'Ребёнок', cls: 'child' },
+              {
+                key: 'tax',
+                label: isGe ? 'Налог 1%' : 'Налог',
+                cls: 'tax',
+              },
+              { key: 'mortgage', label: 'Ипотека', cls: 'mortgage' },
+            ]
+          : [
+              { key: 'rent', label: 'Аренда (СПб побольше)', cls: 'rent' },
+              { key: 'living', label: 'Еда и быт', cls: 'living' },
+              { key: 'child', label: 'Ребёнок', cls: 'child' },
+              { key: 'tax', label: 'НДФЛ 15%', cls: 'tax' },
+              { key: 'mortgage', label: 'Ипотека', cls: 'mortgage' },
+            ];
+
+        root.innerHTML = picks
+          .map((p) => {
+            const row = monthly.find(
+              (r) => r.year === p.year && r.month === p.month,
+            );
+            if (!row) return '';
+            const parts = cats
+              .map((c) => ({
+                ...c,
+                amount: Math.max(0, Math.round(row[c.key] || 0)),
+              }))
+              .filter((c) => c.amount > 0);
+            const spent = parts.reduce((s, c) => s + c.amount, 0);
+            const free = Math.round(row.income - spent);
+            const scale = Math.max(row.income, spent, 1);
+            const segs = [
+              ...parts.map(
+                (c) =>
+                  `<div class="spend-stack__seg spend-stack__seg--${c.cls}" style="width:${(c.amount / scale) * 100}%" title="${c.label}: ${fmt(c.amount)}"></div>`,
+              ),
+              free > 0
+                ? `<div class="spend-stack__seg spend-stack__seg--free" style="width:${(free / scale) * 100}%" title="Свободно: ${fmt(free)}"></div>`
+                : '',
+            ].join('');
+            const list = [
+              ...parts.map(
+                (c) => `
+                <li>
+                  <i class="spend-list__dot spend-list__dot--${c.cls}"></i>
+                  <span class="spend-list__name">${c.label}</span>
+                  <span class="spend-list__val">${fmt(c.amount)}</span>
+                </li>`,
+              ),
+              `<li>
+                <i class="spend-list__dot spend-list__dot--free"></i>
+                <span class="spend-list__name">${free >= 0 ? 'Остаётся свободными' : 'Не хватает'}</span>
+                <span class="spend-list__val ${free >= 0 ? 'spend-list__val--free' : 'spend-list__val--neg'}">${fmt(free)}</span>
+              </li>`,
+            ].join('');
+            const spentPct = Math.round((spent / Math.max(row.income, 1)) * 100);
+            return `
+              <article class="spend-card">
+                <h3 class="spend-card__title">${p.title}</h3>
+                <p class="spend-card__sub">${p.sub}</p>
+                <div class="spend-card__income">
+                  <span>Доход семьи</span>
+                  <strong>${fmt(row.income)}</strong>
+                </div>
+                <div class="spend-stack" aria-hidden="true">${segs}</div>
+                <ul class="spend-list">${list}</ul>
+                <p class="spend-card__foot">
+                  Регулярные траты <strong>${fmt(spent)}</strong> · ${spentPct}% дохода
+                  ${row.oneTime ? ` · в этом месяце ещё разовое ${fmt(row.oneTime)} не показано` : ''}
+                </p>
+              </article>`;
+          })
+          .join('');
+
+        document.getElementById('spend-hint').textContent =
+          'Три обычных месяца: цветные доли — на что уходит доход. Зелёный кусок — сколько остаётся откладывать (без учёта отпусков и прочих разовых).';
+
+        if (noteEl) {
+          if (isGe) {
+            noteEl.innerHTML =
+              `<strong>Грузия vs Испания:</strong> доходы и аренда те же; быт <strong>−15%</strong>; налог <strong>1%</strong> со всего дохода (с июля 2027), а не 31% с базы €4k.
+               Ипотека как в ES: 3% / 20 лет / ПВ 25% + заначка €15k.`;
+          } else if (isEs) {
+            noteEl.innerHTML =
+              `<strong>Чего нет в Испании (по сравнению с РФ):</strong> отдельной «аренды побольше в Петербурге» нет — тут своя аренда ES.
+               Подушки 1,5 млн ₽ на чёрный день в этом сценарии нет.
+               Цель «откладывать 160к/мес» на графике — только для России.`;
+          } else {
+            noteEl.innerHTML =
+              `<strong>Чего нет в России (по сравнению с ES/GE):</strong> дохода от сдачи купленной квартиры нет — после покупки живёте в своей.
+               Заначки €15k на ПВ нет — во взнос идёт вся рублёвая копилка (подушка 1,5 млн отдельно и не трогается).`;
+          }
+        }
+      }
+
+      function setSwitcher(scenario) {
+        const isEs = scenario === 'es';
+        const isGe = scenario === 'ge';
+        const isRu = scenario === 'ru';
+        const isEuro = isEs || isGe;
+        document.getElementById('btn-ru').classList.toggle('is-active', isRu);
+        document.getElementById('btn-es').classList.toggle('is-active', isEs);
+        document.getElementById('btn-ge').classList.toggle('is-active', isGe);
+        document.getElementById('btn-ru').setAttribute('aria-selected', String(isRu));
+        document.getElementById('btn-es').setAttribute('aria-selected', String(isEs));
+        document.getElementById('btn-ge').setAttribute('aria-selected', String(isGe));
+        document.getElementById('mortgage-details').classList.toggle('is-hidden', isEuro);
+        document.getElementById('spain-mortgage-note').classList.toggle('is-hidden', !isEuro);
+
+        document.getElementById('mortgage-section-title').textContent = isGe
+          ? 'Ипотека в Грузии'
+          : isEs
+            ? 'Ипотека в Испании'
+            : 'Ипотека в России';
+        document.getElementById('mortgage-section-lead').textContent = isEuro
+          ? 'Фиксированные условия сделки — как в европейском плане: 3%, 20 лет, ПВ 25%.'
+          : 'Основной сценарий — декабрь 2029 и 17%. Ниже можно покрутить ставку, срок и ремонт.';
+        document.getElementById('mortgage-region-note').innerHTML = isGe
+          ? `<strong>Отличия Грузии:</strong> налог <strong>1%</strong> со всего дохода, быт <strong>−15%</strong> к испанскому.
+             Калькулятора ставки как в РФ нет — условия кредита те же, что в Испании.`
+          : isEs
+            ? `<strong>Почему нет калькулятора как в РФ:</strong> ставка <strong>3%</strong>, срок <strong>20 лет</strong> и ПВ <strong>25%</strong> заданы жёстко.
+               Подушка 1,5 млн ₽ и цель «160к/мес» — элементы только российского сценария.`
+            : `<strong>Чего нет из ES/GE:</strong> отдельной заначки €15k на ПВ и сдачи купленной квартиры параллельно аренде.
+               Ремонт здесь заложен отдельно (% цены), а не «съедается» из взноса.`;
+
+        const rentWrap = document.getElementById('flag-rent-wrap');
+        if (rentWrap) rentWrap.classList.toggle('is-dim', isEuro);
+        const hint = document.getElementById('flags-hint');
+        if (hint) {
+          hint.textContent = isGe
+            ? 'Пересчёт сразу. Грузия: доходы как ES, аренда как ES, быт −15%, налог 1%. Досрочка ×2 — чекбокс сверху (во всех странах).'
+            : isEs
+              ? 'Пересчёт сразу. «Аренда побольше в Петербурге» — только Россия. Досрочка ×2 — чекбокс сверху.'
+              : `Пересчёт сразу. Свадьба (РФ) — ${fmtRu(WEDDING_RU)}; декрет −${fmtRu(MATERNITY_CUT_RU)}/мес; аренда СПб +80к. Досрочка ×2 — отдельно (в РФ часто уводит копилку в минус).`;
+        }
+      }
+
+      function persistScenario(scenario) {
+        try {
+          localStorage.setItem('budget2030-scenario', scenario);
+        } catch (_) {}
+        const hash =
+          scenario === 'es' ? '#es' : scenario === 'ge' ? '#ge' : '#ru';
+        if (location.hash !== hash) {
+          history.replaceState(null, '', hash);
+        }
+      }
+
+      function readSavedScenario() {
+        const h = (location.hash || '').replace('#', '').toLowerCase();
+        if (h === 'es' || h === 'spain' || h === 'es-es') return 'es';
+        if (h === 'ge' || h === 'georgia' || h === 'ge-ge') return 'ge';
+        if (h === 'ru' || h === 'russia') return 'ru';
+        try {
+          const s = localStorage.getItem('budget2030-scenario');
+          if (s === 'es' || s === 'ru' || s === 'ge') return s;
+        } catch (_) {}
+        return 'ru';
+      }
+
+      function renderRussia() {
+        const fmt = fmtRu;
+        const { rows: preDealRows } = buildMonthly(null);
+        const savingsForDeal = preDealRows.find(
+          (r) => r.year === 2029 && r.month === 12,
+        ).bal;
+        const livingForDeal =
+          livingCostMo(2030) +
+          CHILD_RU +
+          Math.round((vacSummer(2030) + vacWinter(2030)) / 12);
+        const deal2029 = maxApartment(Math.max(0, savingsForDeal), RU_INCOME_2029, {
+          annualRate: DEFAULT_RATE,
+          years: 30,
+          renoPct: 0.15,
+          livingMo: livingForDeal,
+        });
+        const { rows: monthly } = buildMonthly(deal2029);
+        const bal2029 = savingsForDeal;
+        const bal2030 = monthly.find((r) => r.year === 2030 && r.month === 12).bal;
+        const balEnd = monthly.find((r) => r.year === PLAN_END_YEAR && r.month === 12).bal;
+        const apt = deal2029;
+        const payoff = findPayoff(monthly);
+        const mult = payMult();
+        const earlyOn = opts.earlyPay;
+        const earlyPay = Math.round(apt.pay * mult);
+        const payoffLabel = payoff
+          ? fmtYm(payoff.year, payoff.month)
+          : earlyOn
+            ? `после ${PLAN_END_YEAR}`
+            : `после графика (30 лет)`;
+
+        ruBalEndPre = (y) => {
+          const row = preDealRows.find(
+            (r) => r.year === Number(y) && r.month === 12,
+          );
+          return row ? row.bal : 0;
+        };
+
+        document.getElementById('hero-eyebrow').textContent =
+          `Семейный план · Россия · до ${PLAN_END_YEAR}`;
+        document.getElementById('hero-title').textContent =
+          'Как накопить и купить квартиру';
+        const payBound = apt.binding === 'платёж';
+        const bindNote = payBound
+          ? `Кредит упёрся в доход (макс. ~${fmt(apt.loanCap)}) — платёж не растёт вместе с копилкой: лишние деньги увеличивают взнос выше 20% и цену.`
+          : `Упёрлись во взнос (мин. 20%): квартира = накопления ÷ 20%. Банк мог бы дать до ~${fmt(apt.loanCap)}, но своих пока не хватает.`;
+
+        document.getElementById('hero-lead').innerHTML =
+          `К <strong>декабрю 2029</strong> копим около <strong>${fmt(bal2029)}</strong> ` +
+          `и берём квартиру примерно за <strong>${fmt(apt.price)}</strong>. ` +
+          (earlyOn
+            ? `Дальше платим <strong>×${EARLY_PAY_MULT}</strong> от графика (~${fmt(earlyPay)}/мес) — ипотека закрывается около <strong>${payoffLabel}</strong>`
+            : `Дальше платим по графику <strong>${fmt(earlyPay)}/мес</strong> (17%, 30 лет); досрочка выключена`) +
+          (payBound
+            ? `. <span style="color:var(--muted)">Базовый платёж ограничен доходом.</span>`
+            : `.`);
+
+        document.getElementById('verdict').innerHTML = `
+          <div class="verdict__card verdict__card--save">
+            <div class="verdict__step">Шаг 1 · копим</div>
+            <div class="verdict__value">${fmt(bal2029)}</div>
+            <div class="verdict__note">в копилку на квартиру к дек. 2029<br>(старт +${fmt(DP_SEED)} во взнос) · подушка ${fmt(EMERGENCY)} не трогаем</div>
+          </div>
+          <div class="verdict__card verdict__card--home">
+            <div class="verdict__step">Шаг 2 · покупаем</div>
+            <div class="verdict__value">${fmt(apt.price)}</div>
+            <div class="verdict__note">квартира при ставке 17%<br>взнос ${fmt(apt.dp)} (${Math.round(apt.dpPct * 100)}%) · кредит ${fmt(apt.loan)}</div>
+          </div>
+          <div class="verdict__card verdict__card--pay">
+            <div class="verdict__step">${earlyOn ? `Шаг 3 · гасим ×${EARLY_PAY_MULT}` : 'Шаг 3 · платим'}</div>
+            <div class="verdict__value">${fmt(earlyPay)}<span style="font-size:0.9rem">/мес</span></div>
+            <div class="verdict__note">${
+              earlyOn
+                ? `вместо ${fmt(Math.round(apt.pay))} по графику · закрытие ~<strong>${payoffLabel}</strong>`
+                : `по графику 17% · 30 лет · досрочка выкл.`
+            }</div>
+          </div>
+        `;
+
+        renderIncomeGrowth({
+          getIncome: (year, month) => ({
+            income: incomeMo(year, month),
+            isDip: opts.maternity && inMaternity(year, month),
+          }),
+          fmt,
+          noteHtml: opts.maternity
+            ? `Доход = ES × <strong>€1 = ${EUR_RUB} ₽</strong> + <strong>${Math.round((RU_INCOME_UPLIFT - 1) * 100)}%</strong>. Оранжевые ступени — <strong>декрет</strong> (−${fmt(MATERNITY_CUT_RU)}/мес = −€${MATERNITY_CUT_ES}).`
+            : `Доход = ES × <strong>€1 = ${EUR_RUB} ₽</strong> + <strong>${Math.round((RU_INCOME_UPLIFT - 1) * 100)}%</strong>: ${fmt(RU_INCOME_2027)} → ${fmt(RU_INCOME_2028)} → ${fmt(RU_INCOME_2029)}. Декрет выключен.`,
+        });
+        renderSpendSnaps('ru', monthly, fmt);
+
+        const weddingStory = opts.wedding
+          ? `<div class="story__item">
+            <div class="story__rail"><div class="story__dot story__dot--warn"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">Октябрь 2027</div>
+              <div class="story__title">Свадьба</div>
+              <div class="story__text">Разовый расход <strong>${fmt(WEDDING_RU)}</strong> (можно выключить чекбоксом сверху).</div>
+              <div class="story__tags"><span class="tag tag--cost">свадьба ${fmt(WEDDING_RU)}</span></div>
+            </div>
+          </div>`
+          : '';
+        const rentBit = opts.rentBigSpb
+          ? ` С сентября снимаем жильё побольше в Петербурге: <strong>+80к/мес</strong> (с ребёнком в однушке тесно).`
+          : ` Аренду «побольше» в Петербурге в этом прогоне <strong>не учитываем</strong>.`;
+        const matBit = opts.maternity
+          ? ` С авг. 2028 по окт. 2029 доход семьи <strong>−${fmt(MATERNITY_CUT_RU)}/мес</strong> (декрет = −€${MATERNITY_CUT_ES} × ${EUR_RUB}).`
+          : ` Декрет в этом прогоне <strong>выключен</strong>.`;
+        const y2029Mat = opts.maternity
+          ? `База ${fmt(RU_INCOME_2029)}, но до окт. 2029 ещё декрет (−${fmt(MATERNITY_CUT_RU)}). С ноября доход снова полный.`
+          : `Доход ${fmt(RU_INCOME_2029)} (декрет выключен).`;
+        const y2029Rent = opts.rentBigSpb
+          ? ` Аренду большой квартиры ещё платим.`
+          : ``;
+
+        document.getElementById('story').innerHTML = `
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">Январь 2027</div>
+              <div class="story__title">Две заначки — разная судьба</div>
+              <div class="story__text">На чёрный день лежит <strong>${fmt(EMERGENCY)}</strong> — не трогаем. Ещё <strong>${fmt(DP_SEED)}</strong> можно сразу положить во взнос — с них и начинается копилка на квартиру. Доход = ступени ES × <strong>€1 = ${EUR_RUB} ₽</strong> + <strong>${Math.round((RU_INCOME_UPLIFT - 1) * 100)}%</strong>: ${fmt(RU_INCOME_2027)} → ${fmt(RU_INCOME_2028)} → ${fmt(RU_INCOME_2029)}. НДФЛ <strong>${Math.round(RU_TAX_RATE * 100)}%</strong>. Жизнь ~300к (+8%/год до ${COST_FREEZE_YEAR}, дальше без инфляции).</div>
+              <div class="story__tags">
+                <span class="tag">подушка ${fmt(EMERGENCY)} неприкосновенна</span>
+                <span class="tag tag--money">+${fmt(DP_SEED)} уже во взнос</span>
+              </div>
+            </div>
+          </div>
+          ${weddingStory}
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot story__dot--warn"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">2028 — плотный год</div>
+              <div class="story__title">Машина, роды${opts.rentBigSpb ? ', аренда побольше' : ''}</div>
+              <div class="story__text">В апреле — машина за <strong>1,2 млн</strong>.${rentBit} В ноябре — роды минимум <strong>500к</strong> и дальше ребёнок <strong>+${fmt(CHILD_RU)}/мес</strong> (= €${CHILD_EUR} × ${EUR_RUB}).${matBit} Плюс два отпуска в год.</div>
+              <div class="story__tags">
+                <span class="tag tag--cost">машина 1,2 млн</span>
+                ${opts.rentBigSpb ? '<span class="tag tag--cost">аренда +80к</span>' : ''}
+                <span class="tag tag--cost">роды 500к</span>
+                <span class="tag tag--cost">ребёнок +${fmt(CHILD_RU)}/мес</span>
+                ${opts.maternity ? `<span class="tag tag--cost">декрет −${fmt(MATERNITY_CUT_RU)}/мес</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">2029 — дожимаем копилку</div>
+              <div class="story__title">Копим на взнос, декабрь без отпуска</div>
+              <div class="story__text">${y2029Mat}${y2029Rent} Зимний отпуск в декабре 2029 пропускаем — чтобы не съесть взнос.</div>
+              <div class="story__tags">
+                <span class="tag tag--money">к покупке ${fmt(bal2029)}</span>
+                <span class="tag">дек'29 без отпуска</span>
+              </div>
+            </div>
+          </div>
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot story__dot--key"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">Декабрь 2029 — покупка</div>
+              <div class="story__title">Вся копилка → первый взнос</div>
+              <div class="story__text">Покупаем квартиру примерно за <strong>${fmt(apt.price)}</strong>. Свои <strong>${fmt(apt.dp)}</strong> отдаём банку как взнос, кредит <strong>${fmt(apt.loan)}</strong>. Копилка на графике падает почти в ноль — так и должно быть.</div>
+              <div class="story__tags">
+                <span class="tag tag--home">квартира ${fmt(apt.price)}</span>
+                <span class="tag tag--home">взнос ${fmt(apt.dp)}</span>
+                <span class="tag">ставка 17%</span>
+              </div>
+            </div>
+          </div>
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot story__dot--after"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">С января 2030 → ${PLAN_END_YEAR}</div>
+              <div class="story__title">${
+                earlyOn
+                  ? `Досрочка ×${EARLY_PAY_MULT}: закрытие ~${payoffLabel}`
+                  : 'Живём в своей, платим по графику'
+              }</div>
+              <div class="story__text">${opts.rentBigSpb ? 'Аренда 80к больше не нужна. ' : ''}${
+                earlyOn
+                  ? `Платим банку не ${fmt(Math.round(apt.pay))}, а <strong>~${fmt(earlyPay)}/мес</strong> (×${EARLY_PAY_MULT} к графику 17% / 30 лет). При таком темпе кредит заканчивается около <strong>${payoffLabel}</strong>${payoff ? '' : ' (в горизонте плана ещё не закрыт)'}.`
+                  : `Платим банку <strong>~${fmt(earlyPay)}/мес</strong> по графику (17% / 30 лет). Досрочка выключена чекбоксом — копилка не уходит в минус от двойных платежей.`
+              } К концу 2030 в рабочей копилке ~<strong>${fmt(bal2030)}</strong>, к концу ${PLAN_END_YEAR} ~<strong>${fmt(balEnd)}</strong>; подушка <strong>${fmt(EMERGENCY)}</strong> лежит отдельно.</div>
+              <div class="story__tags">
+                <span class="tag tag--home">${earlyOn ? `×${EARLY_PAY_MULT} → ` : ''}${fmt(earlyPay)}/мес</span>
+                ${earlyOn ? `<span class="tag tag--home">закрытие ${payoffLabel}</span>` : '<span class="tag">досрочка выкл.</span>'}
+                <span class="tag tag--money">к ${PLAN_END_YEAR} ~${fmt(balEnd)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('chart-title').textContent = `Главный график: копилка (до ${PLAN_END_YEAR})`;
+        document.getElementById('chart-hint').innerHTML =
+          `Копилка на квартиру (старт с 550к во взнос). Подушка 1,5 млн на графике
+          не рисуется. Красная точка — дек. 2029, отдали взнос. Дальше голубая линия:
+          ${
+            earlyOn
+              ? `платим ипотеку <strong>×${EARLY_PAY_MULT}</strong> (~${fmt(earlyPay)}/мес). Фиолетовая точка — досрочное закрытие (~${payoffLabel}).`
+              : `платим по графику (~${fmt(earlyPay)}/мес). Досрочка выключена.`
+          }
+          <span style="color:var(--muted)">В ES/GE покупка в июле 2029; тот же чекбокс досрочки.</span>`;
+        document.getElementById('chart-legend').innerHTML = `
+          <span><i class="swatch swatch--green"></i> Копилка до покупки</span>
+          <span><i class="swatch swatch--dot"></i> Покупка (весь взнос)</span>
+          <span><i class="swatch swatch--blue"></i> После покупки${earlyOn ? ` (×${EARLY_PAY_MULT})` : ''}</span>
+          ${earlyOn ? '<span><i class="swatch swatch--purple"></i> Ипотека закрыта</span>' : ''}
+          <span><i class="swatch swatch--orange"></i> Цель «откладывать 160к/мес»</span>
+        `;
+
+        document.getElementById('deal-title').textContent = 'Что покупаем в декабре 2029';
+        document.getElementById('deal-hint').textContent =
+          'Весь накопленный кэш кладём в первый взнос. Ремонт — позже, когда сдадут дом.';
+        document.getElementById('deal-box').innerHTML = `
+          <div class="deal-box__item">
+            <h3>Цена квартиры</h3>
+            <p style="color:var(--blue)">${fmt(apt.price)}</p>
+          </div>
+          <div class="deal-box__item">
+            <h3>Ваш первый взнос</h3>
+            <p style="color:var(--green)">${fmt(apt.dp)}</p>
+          </div>
+          <div class="deal-box__item">
+            <h3>Кредит в банке</h3>
+            <p>${fmt(apt.loan)}</p>
+          </div>
+          <div class="deal-box__item">
+            <h3>${earlyOn ? `Платёж ×${EARLY_PAY_MULT} (в плане)` : 'Платёж каждый месяц'}</h3>
+            <p style="color:var(--orange)">${fmt(earlyPay)}</p>
+          </div>
+          <div class="deal-box__item deal-box__wide">
+            <p class="deal-box__explain">
+              Простыми словами: в копилку на квартиру (включая стартовые
+              <strong>${fmt(DP_SEED)}</strong>) накопили <strong>${fmt(bal2029)}</strong>
+              → всё это взнос. Подушка <strong>${fmt(EMERGENCY)}</strong> нетронута.
+              Банк добавляет ещё <strong>${fmt(apt.loan)}</strong> → квартира
+              <strong>${fmt(apt.price)}</strong>. Ремонт (~${fmt(apt.reno)}) — отдельно, к сдаче дома.
+            </p>
+            <p class="deal-box__explain" style="margin-top:0.75rem">
+              <strong>Почему платёж может не меняться от декрета:</strong> кредит —
+              минимум из «сколько банк даст по доходу» (~${fmt(apt.loanCap)}) и
+              «сколько можно при взносе ≥20%». Сейчас
+              <strong>${payBound ? 'упёрлись в платёж по доходу' : 'упёрлись во взнос'}</strong>.
+              ${bindNote}
+              Декрет режет копилку (и взнос), но доход с 2030 снова полный — потолок платежа тот же.
+            </p>
+            <p class="region-absent" style="margin-top:0.75rem">
+              <strong>В Испании иначе:</strong> покупка в <strong>июле 2029</strong>, ПВ 25% + заначка €15k,
+              ставка 3% / 20 лет, ремонт из взноса не выделяется, можно жить в аренде и сдавать купленную.
+            </p>
+          </div>
+        `;
+
+        const life29 = livingCostMo(2029);
+        const rent29 = rentMo(2029, 10);
+        const life30 = livingCostMo(2030);
+        const pay = earlyPay;
+        const incomeBefore = incomeMo(2029, 10);
+        const incomeAfter = incomeMo(2030, 6);
+        const taxBefore = taxRuMo(incomeBefore);
+        const taxAfter = taxRuMo(incomeAfter);
+        const beforeTotal = life29 + rent29 + taxBefore + CHILD_RU;
+        const afterTotal = life30 + pay + taxAfter + CHILD_RU;
+        document.getElementById('compare-title').textContent = 'Месяц до и после ипотеки';
+        document.getElementById('compare-hint').textContent = opts.maternity
+          ? `Осень 2029 ещё в декрете (−${fmt(MATERNITY_CUT_RU)}); с 2030 доход снова ${fmt(RU_INCOME_2029)}.${earlyOn ? ` После покупки — досрочка ×${EARLY_PAY_MULT}.` : ' Досрочка выкл.'}`
+          : `Декрет выключен.${
+              earlyOn
+                ? ` После покупки платим ×${EARLY_PAY_MULT} (~${fmt(earlyPay)}/мес), закрытие ~${payoffLabel}.`
+                : ` После покупки платим по графику (~${fmt(earlyPay)}/мес).`
+            }`;
+        document.getElementById('compare').innerHTML = `
+          <div class="compare__col compare__col--before">
+            <div class="compare__title">До покупки (осень 2029)</div>
+            <div class="compare__row"><span>Доход${opts.maternity ? ' (с декретом)' : ''}</span><strong>${fmt(incomeBefore)}</strong></div>
+            <div class="compare__row"><span>НДФЛ ${Math.round(RU_TAX_RATE * 100)}%</span><strong>${fmt(taxBefore)}</strong></div>
+            <div class="compare__row"><span>Еда, быт…</span><strong>${fmt(life29)}</strong></div>
+            <div class="compare__row"><span>Ребёнок</span><strong>${fmt(CHILD_RU)}</strong></div>
+            ${
+              opts.rentBigSpb
+                ? `<div class="compare__row"><span>Аренда большой кв.</span><strong>${fmt(rent29)}</strong></div>`
+                : ''
+            }
+            <div class="compare__total"><span>Уходит на жизнь</span><span>${fmt(beforeTotal)}</span></div>
+            <div class="compare__row" style="border:0;padding-top:0.55rem"><span>Остаётся «свободными»</span><strong style="color:var(--green)">${fmt(incomeBefore - beforeTotal)}</strong></div>
+          </div>
+          <div class="compare__col compare__col--after">
+            <div class="compare__title">После (2030${earlyOn ? `, ×${EARLY_PAY_MULT}` : ''})</div>
+            <div class="compare__row"><span>Доход</span><strong>${fmt(incomeAfter)}</strong></div>
+            <div class="compare__row"><span>НДФЛ ${Math.round(RU_TAX_RATE * 100)}%</span><strong>${fmt(taxAfter)}</strong></div>
+            <div class="compare__row"><span>Еда, быт…</span><strong>${fmt(life30)}</strong></div>
+            <div class="compare__row"><span>Ребёнок</span><strong>${fmt(CHILD_RU)}</strong></div>
+            <div class="compare__row"><span>Ипотека${earlyOn ? ` ×${EARLY_PAY_MULT}` : ''}</span><strong>${fmt(pay)}</strong></div>
+            <div class="compare__total"><span>Уходит на жизнь</span><span>${fmt(afterTotal)}</span></div>
+            <div class="compare__row" style="border:0;padding-top:0.55rem"><span>Остаётся «свободными»</span><strong style="color:var(--green)">${fmt(incomeAfter - afterTotal)}</strong></div>
+          </div>
+        `;
+        document.getElementById('compare-note').innerHTML =
+          (earlyOn
+            ? `<strong>Досрочка:</strong> вместо ${fmt(Math.round(apt.pay))} по графику платим <strong>${fmt(earlyPay)}</strong> — закрытие ~<strong>${payoffLabel}</strong> (вместо 30 лет).`
+            : `<strong>Досрочка выключена:</strong> платим <strong>${fmt(earlyPay)}</strong> по графику. Включите чекбокс сверху, чтобы смоделировать ×${EARLY_PAY_MULT}.`) +
+          (opts.maternity
+            ? ` Декрет: авг. 2028 – окт. 2029 (−${fmt(MATERNITY_CUT_RU)}/мес).`
+            : ` Декрет выключен.`);
+
+        document.getElementById('rules').innerHTML = `
+          <li><span class="simple-list__k">Подушка</span><span class="simple-list__v"><strong>${fmt(EMERGENCY)}</strong> на чёрный день — <strong>не тратим</strong> и во взнос не кладём</span></li>
+          <li><span class="simple-list__k">Взнос-старт</span><span class="simple-list__v"><strong>${fmt(DP_SEED)}</strong> — другая заначка, сразу идёт в копилку на квартиру / ПВ</span></li>
+          <li><span class="simple-list__k">Доход</span><span class="simple-list__v">ES × <strong>${EUR_RUB} ₽</strong> + <strong>${Math.round((RU_INCOME_UPLIFT - 1) * 100)}%</strong>: ${fmt(RU_INCOME_2027)} (2027) → ${fmt(RU_INCOME_2028)} (2028) → ${fmt(RU_INCOME_2029)} (с 2029)</span></li>
+          <li><span class="simple-list__k">Налог РФ</span><span class="simple-list__v"><strong>${Math.round(RU_TAX_RATE * 100)}%</strong> от дохода семьи каждый месяц</span></li>
+          <li><span class="simple-list__k">Декрет</span><span class="simple-list__v">${
+            opts.maternity
+              ? `Авг. 2028 – окт. 2029: <strong>−${fmt(MATERNITY_CUT_RU)}/мес</strong> (= −€${MATERNITY_CUT_ES} × ${EUR_RUB})`
+              : '<strong>Выключен</strong> чекбоксом сверху'
+          }</span></li>
+          <li><span class="simple-list__k">Жизнь</span><span class="simple-list__v">База <strong>300к/мес</strong> в 2027, +8%/год до <strong>${COST_FREEZE_YEAR}</strong>, дальше без инфляции (иначе горизонт до ${PLAN_END_YEAR} ломает график)</span></li>
+          <li><span class="simple-list__k">Аренда СПб</span><span class="simple-list__v">${
+            opts.rentBigSpb
+              ? 'С сент. 2028 ещё <strong>+80к</strong> (+8%/год до 2030) — до своей квартиры'
+              : '<strong>Выключена</strong> чекбоксом сверху'
+          }</span></li>
+          <li><span class="simple-list__k">Отпуска</span><span class="simple-list__v">~400к летом и ~650к зимой (с инфляцией). <strong>Дек 2029 — без отпуска</strong></span></li>
+          <li><span class="simple-list__k">Крупное</span><span class="simple-list__v">Машина <strong>1,2 млн</strong> (апр 2028), роды <strong>500к</strong> (ноя 2028)${
+            opts.wedding ? `, свадьба <strong>${fmt(WEDDING_RU)}</strong> (окт 2027)` : ''
+          }</span></li>
+          <li><span class="simple-list__k">Ребёнок</span><span class="simple-list__v">С ноя. 2028 <strong>+${fmt(CHILD_RU)}/мес</strong> (= €${CHILD_EUR} × ${EUR_RUB}, как в ES)</span></li>
+          <li><span class="simple-list__k">Ипотека</span><span class="simple-list__v">Ставка <strong>17%</strong>, график 30 лет${
+            earlyOn
+              ? `, в плане <strong>×${EARLY_PAY_MULT}</strong> (~${fmt(earlyPay)}) → закрытие ~<strong>${payoffLabel}</strong>`
+              : `, в плане по графику (~${fmt(earlyPay)}); досрочка выкл.`
+          }. Взнос = все накопления (мин. 20%)</span></li>
+        `;
+
+        const phases = [
+          { label: '2027', months: monthly.filter((r) => r.year === 2027) },
+          { label: '2028 (машина, роды, аренда)', months: monthly.filter((r) => r.year === 2028) },
+          { label: '2029 до покупки', months: monthly.filter((r) => r.year === 2029 && r.month <= 11) },
+          { label: 'Дек 2029 — покупка', months: monthly.filter((r) => r.year === 2029 && r.month === 12) },
+          { label: earlyOn ? '2030 — своя + ×2' : '2030 — своя + ипотека', months: monthly.filter((r) => r.year === 2030) },
+          ...(earlyOn
+            ? [
+                {
+                  label: payoff
+                    ? `2031… до закрытия (${payoffLabel})`
+                    : `2031–${PLAN_END_YEAR} досрочка`,
+                  months: monthly.filter(
+                    (r) =>
+                      r.year >= 2031 &&
+                      (!payoff ||
+                        r.year < payoff.year ||
+                        (r.year === payoff.year && r.month <= payoff.month)),
+                  ),
+                },
+                ...(payoff
+                  ? [
+                      {
+                        label: `После закрытия → ${PLAN_END_YEAR}`,
+                        months: monthly.filter(
+                          (r) =>
+                            r.year > payoff.year ||
+                            (r.year === payoff.year && r.month > payoff.month),
+                        ),
+                      },
+                    ]
+                  : []),
+              ]
+            : [
+                {
+                  label: `2031–${PLAN_END_YEAR} по графику`,
+                  months: monthly.filter((r) => r.year >= 2031),
+                },
+              ]),
+        ].filter((p) => p.months.length);
+        fillPhaseTable(phases, fmt);
+
+        const cumLabels = ["старт", ...monthly.map((r) => r.label)];
+        const cumBal = [START_BALANCE, ...monthly.map((r) => r.bal)];
+        const cumTarget = [START_BALANCE, ...monthly.map((r) => r.target)];
+        const cumEvents = [null, ...monthly.map((r) => r.event)];
+        const mortIdx = cumEvents.indexOf('mortgage');
+        const paidIdx = cumEvents.indexOf('mortgage-paid');
+
+        const pointColor = (ev) => {
+          if (ev === 'mortgage') return '#ef6b6b';
+          if (ev === 'mortgage-paid') return '#b48cff';
+          if (ev === 'wedding') return '#b48cff';
+          if (ev === 'car' || ev === 'birth' || ev === 'rent-start') return '#f0a35e';
+          if (ev === 'vacation') return '#5eb0ff';
+          return 'rgba(62, 207, 142, 0.35)';
+        };
+
+        destroyChart();
+        chartRef = new Chart(document.getElementById('chartCumulative'), {
+          type: 'line',
+          data: {
+            labels: cumLabels,
+            datasets: [
+              {
+                label: 'Копилка',
+                data: cumBal.map((x) => Math.round(x)),
+                borderColor: '#3ecf8e',
+                backgroundColor: 'rgba(62, 207, 142, 0.1)',
+                fill: true,
+                tension: 0.2,
+                pointRadius: cumEvents.map((e) =>
+                  e === 'mortgage' || e === 'mortgage-paid' ? 10 : e ? 5 : 0,
+                ),
+                pointBackgroundColor: cumEvents.map(pointColor),
+                pointBorderColor: cumEvents.map(pointColor),
+                segment: {
+                  borderColor: (ctx) => {
+                    if (cumEvents[ctx.p1DataIndex] === 'mortgage') return '#ef6b6b';
+                    if (cumEvents[ctx.p1DataIndex] === 'mortgage-paid')
+                      return '#b48cff';
+                    if (paidIdx >= 0 && ctx.p1DataIndex > paidIdx) return '#3ecf8e';
+                    if (mortIdx >= 0 && ctx.p1DataIndex > mortIdx) return '#5eb0ff';
+                    return '#3ecf8e';
+                  },
+                  borderWidth: (ctx) =>
+                    cumEvents[ctx.p1DataIndex] === 'mortgage' ||
+                    cumEvents[ctx.p1DataIndex] === 'mortgage-paid'
+                      ? 3.5
+                      : 2,
+                },
+              },
+              {
+                label: 'Цель 160к/мес',
+                data: cumTarget.map((x) => Math.round(x)),
+                borderColor: '#f0a35e',
+                borderDash: [6, 4],
+                pointRadius: 0,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (items) => {
+                    const i = items[0].dataIndex;
+                    if (i === 0) return 'Старт плана';
+                    return monthly[i - 1]?.label || '';
+                  },
+                  label: (item) => `${item.dataset.label}: ${fmt(item.parsed.y)}`,
+                  afterBody: (items) => {
+                    const i = items[0]?.dataIndex;
+                    if (!i) return '';
+                    const r = monthly[i - 1];
+                    if (!r) return '';
+                    if (r.event === 'mortgage') {
+                      return [
+                        '→ Отдали весь первый взнос за квартиру',
+                        earlyOn
+                          ? `Квартира ${fmt(apt.price)} · дальше ×${EARLY_PAY_MULT} = ${fmt(earlyPay)}/мес`
+                          : `Квартира ${fmt(apt.price)} · дальше ${fmt(earlyPay)}/мес по графику`,
+                      ];
+                    }
+                    if (r.event === 'mortgage-paid') {
+                      return [
+                        `→ Ипотека закрыта досрочно (${payoffLabel})`,
+                        `Последний платёж ${fmt(r.mortgage)}`,
+                      ];
+                    }
+                    const lines = [];
+                    if (r.oneTime) lines.push(`Крупный расход: ${r.oneTimeLabel}`);
+                    if (r.mortgage)
+                      lines.push(
+                        earlyOn
+                          ? `Ипотека ×${EARLY_PAY_MULT}: ${fmt(r.mortgage)}`
+                          : `Ипотека: ${fmt(r.mortgage)}`,
+                      );
+                    return lines;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { ticks: { maxTicksLimit: 16, maxRotation: 0 } },
+              y: { ticks: { callback: (v) => fmtShortRu(v) } },
+            },
+          },
+        });
+
+        if (!ruMortgageBound) {
+          ['buy-when', 'rate', 'reno', 'term'].forEach((id) => {
+            document.getElementById(id).addEventListener('input', renderMortgage);
+            document.getElementById(id).addEventListener('change', renderMortgage);
+          });
+          ruMortgageBound = true;
+        }
+        renderMortgage();
+      }
+
+      function renderMortgage() {
+        if (currentScenario !== 'ru' || !ruBalEndPre) return;
+        const fmt = fmtRu;
+        const when = document.getElementById('buy-when').value;
+        const rate = Number(document.getElementById('rate').value) / 100;
+        const renoPct = Number(document.getElementById('reno').value) / 100;
+        const years = Number(document.getElementById('term').value);
+        document.getElementById('rate-val').textContent =
+          document.getElementById('rate').value;
+        document.getElementById('reno-val').textContent =
+          document.getElementById('reno').value;
+        document.getElementById('term-val').textContent = String(years);
+
+        const buyYear = Number(when);
+        const savings = ruBalEndPre(buyYear);
+        const livingMo =
+          livingCostMo(Math.max(buyYear, 2030)) +
+          CHILD_RU +
+          Math.round(
+            (vacSummer(Math.max(buyYear, 2030)) +
+              vacWinter(Math.max(buyYear, 2030))) /
+              12,
+          );
+        const m = maxApartment(Math.max(0, savings), RU_INCOME_2029, {
+          annualRate: rate,
+          years,
+          renoPct,
+          livingMo,
+        });
+        const ok = savings > 0 && m.affordable && m.price > 0;
+        document.getElementById('mortgage-cards').innerHTML = `
+          <div class="mini-card"><div class="mini-card__l">Накопления</div><div class="mini-card__v">${fmt(savings)}</div><div class="mini-card__n">к концу ${when}</div></div>
+          <div class="mini-card"><div class="mini-card__l">Квартира</div><div class="mini-card__v">${ok ? fmt(m.price) : '—'}</div><div class="mini-card__n">${m.binding === 'платёж' ? 'упираемся в платёж' : 'упираемся во взнос'}</div></div>
+          <div class="mini-card"><div class="mini-card__l">Взнос</div><div class="mini-card__v">${ok ? fmt(m.dp) : '—'}</div><div class="mini-card__n">${ok ? Math.round(m.dpPct * 100) + '% цены' : ''}</div></div>
+          <div class="mini-card"><div class="mini-card__l">Платёж</div><div class="mini-card__v">${ok ? fmt(m.pay) : '—'}</div><div class="mini-card__n">в месяц</div></div>
+          <div class="mini-card"><div class="mini-card__l">Ремонт потом</div><div class="mini-card__v">${ok ? fmt(m.reno) : '—'}</div><div class="mini-card__n">не из взноса</div></div>
+        `;
+        document.getElementById('mortgage-note').textContent = !ok
+          ? 'Накоплений маловато для минимального взноса 20%.'
+          : m.binding === 'платёж'
+            ? `Упёрлись в платёж по доходу: кредит максимум ~${fmt(m.loanCap)}, платёж ~${fmt(m.pay)}. Больше копить на взнос поднимает цену и % взноса, но не ежемесячный платёж.`
+            : `Упёрлись во взнос (мин. 20%): квартира масштабируется от накоплений. Банк по доходу мог бы дать до ~${fmt(m.loanCap)}, но своих денег на такой объект не хватает.`;
+      }
+
+      function renderSpain() {
+        renderAbroad('es');
+      }
+      function renderGeorgia() {
+        renderAbroad('ge');
+      }
+
+      function renderAbroad(region = 'es') {
+        const isGe = region === 'ge';
+        const country = isGe ? 'Грузия' : 'Испания';
+        const fmt = fmtEs;
+        const buildMonthlyAbroad = isGe ? buildGeorgiaMonthly : buildSpainMonthly;
+        const preDealRaw = buildMonthlyAbroad(null);
+        let preBal = ES_START;
+        const preDeal = preDealRaw.map((r) => {
+          preBal += r.net;
+          return { ...r, bal: preBal };
+        });
+        const beforeMortgage = preDeal.find(
+          (r) => r.year === 2029 && r.month === 6,
+        ).bal;
+        const apt = spainApartment(beforeMortgage, ES_DP_STASH);
+        const pay = Math.round(apt.pay);
+        const earlyOn = opts.earlyPay;
+        const earlyPay = Math.round(pay * payMult());
+
+        const monthlyRaw = buildMonthlyAbroad(apt);
+        let bal = ES_START;
+        const monthly = monthlyRaw.map((r) => {
+          bal += r.net;
+          return { ...r, bal };
+        });
+        const bal2030 = monthly.find((r) => r.year === 2030 && r.month === 12).bal;
+        const balEnd = monthly.find(
+          (r) => r.year === PLAN_END_YEAR && r.month === 12,
+        ).bal;
+        const payoff = findPayoff(monthly);
+        const payoffLabel = payoff
+          ? fmtYm(payoff.year, payoff.month)
+          : earlyOn
+            ? `после ${PLAN_END_YEAR}`
+            : `после графика (20 лет)`;
+
+        document.getElementById('hero-eyebrow').textContent =
+          `Семейный план · ${country} · до ${PLAN_END_YEAR}`;
+        document.getElementById('hero-title').textContent = isGe
+          ? 'Бали → РФ → Грузия → ипотека'
+          : 'Бали → РФ → Испания → ипотека';
+        document.getElementById('hero-lead').innerHTML =
+          `Старт <strong>${fmt(ES_START)}</strong> в янв. 2027. К июлю 2029 копим около
+          <strong>${fmt(beforeMortgage)}</strong> + заначка <strong>${fmt(ES_DP_STASH)}</strong>
+          → ПВ <strong>${fmt(apt.dp)}</strong> → квартира ~<strong>${fmt(apt.price)}</strong>
+          (25%, 3%, 20 лет). ${
+            earlyOn
+              ? `Дальше платим <strong>×${EARLY_PAY_MULT}</strong> (~${fmt(earlyPay)}/мес) — закрытие около <strong>${payoffLabel}</strong>.`
+              : `Дальше платим по графику <strong>${fmt(earlyPay)}/мес</strong>; досрочка выключена.`
+          }
+          ${
+            isGe
+              ? `Быт −15% к ES, налог <strong>1%</strong> со всего дохода. `
+              : ''
+          }
+          С ноя. 2029 +${fmt(RENTAL_INCOME_MO)} от сдачи.`;
+
+        document.getElementById('verdict').innerHTML = `
+          <div class="verdict__card verdict__card--save">
+            <div class="verdict__step">Шаг 1 · копим</div>
+            <div class="verdict__value">${fmt(beforeMortgage)}</div>
+            <div class="verdict__note">накопления к июню 2029<br>+ заначка ${fmt(ES_DP_STASH)} → взнос ${fmt(apt.dp)}</div>
+          </div>
+          <div class="verdict__card verdict__card--home">
+            <div class="verdict__step">Шаг 2 · покупаем</div>
+            <div class="verdict__value">${fmt(apt.price)}</div>
+            <div class="verdict__note">квартира при ПВ 25%<br>взнос ${fmt(apt.dp)} · кредит ${fmt(apt.loan)}</div>
+          </div>
+          <div class="verdict__card verdict__card--pay">
+            <div class="verdict__step">${earlyOn ? `Шаг 3 · гасим ×${EARLY_PAY_MULT}` : 'Шаг 3 · платим'}</div>
+            <div class="verdict__value">${fmt(earlyPay)}<span style="font-size:0.9rem">/мес</span></div>
+            <div class="verdict__note">${
+              earlyOn
+                ? `вместо ${fmt(pay)} по графику · закрытие ~<strong>${payoffLabel}</strong>`
+                : `по графику 3% · 20 лет · досрочка выкл.`
+            }</div>
+          </div>
+        `;
+
+        renderIncomeGrowth({
+          getIncome: (year, month) => {
+            let base =
+              year >= 2029
+                ? INCOME_FROM_2029
+                : year >= 2028
+                  ? INCOME_FROM_2028
+                  : INCOME_FROM_2027;
+            if (year > 2029 || (year === 2029 && month >= 11))
+              base += RENTAL_INCOME_MO;
+            const isDip = opts.maternity && inMaternity(year, month);
+            if (isDip) base -= MATERNITY_CUT_ES;
+            return { income: base, isDip };
+          },
+          fmt,
+          noteHtml:
+            (opts.maternity
+              ? `Оранжевые ступени — <strong>декрет</strong> (−${fmt(MATERNITY_CUT_ES)}/мес). `
+              : `Декрет выключен. `) +
+            `С ноя. 2029 в доход входит сдача +${fmt(RENTAL_INCOME_MO)}/мес.` +
+            (isGe
+              ? ` Быт −15% к испанскому, налог ${Math.round(GE_TAX_RATE * 100)}% со всего дохода.`
+              : ''),
+        });
+        renderSpendSnaps(region, monthly, fmt);
+
+        document.getElementById('story').innerHTML = `
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">Январь 2027</div>
+              <div class="story__title">Старт €7k · Бали</div>
+              <div class="story__text">В копилке <strong>${fmt(ES_START)}</strong>. Янв–апр на Бали: доход <strong>${fmt(INCOME_FROM_2027)}/мес</strong>, жизнь ~${fmt(BALI_RENT_MO + BALI_OTHER_MO)} (аренда + быт).</div>
+              <div class="story__tags">
+                <span class="tag tag--money">старт ${fmt(ES_START)}</span>
+                <span class="tag">Бали 4 мес</span>
+              </div>
+            </div>
+          </div>
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">Май–июнь 2027</div>
+              <div class="story__title">РФ · документы</div>
+              <div class="story__text">Два месяца в России, жизнь ~<strong>${fmt(RU_LIFE_MO)}/мес</strong>, готовимся к переезду.</div>
+            </div>
+          </div>
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot story__dot--warn"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">С июля 2027 — ${country}</div>
+              <div class="story__title">Переезд${opts.wedding ? ', кольцо, свадьба' : ''}, машина</div>
+              <div class="story__text">Июль — переезд <strong>${fmt(MOVE_ONETIME)}</strong>. Аренда <strong>${fmt(ES_RENT_MO)}</strong> + быт <strong>${fmt(isGe ? geLiving(ES_LIVING_MO) : ES_LIVING_MO)}</strong>${isGe ? ' (−15%)' : ''}.${
+                isGe
+                  ? ` Налог <strong>${Math.round(GE_TAX_RATE * 100)}%</strong> со всего дохода.`
+                  : ''
+              }${
+                opts.wedding
+                  ? ` Сент — кольцо <strong>${fmt(RING_2027)}</strong>, окт — свадьба <strong>${fmt(WEDDING_2027)}</strong>,`
+                  : ` Свадьбу/кольцо в этом прогоне <strong>не учитываем</strong>.`
+              } дек — авто <strong>${fmt(CAR_ONETIME)}</strong>.</div>
+              <div class="story__tags">
+                <span class="tag tag--cost">переезд ${fmt(MOVE_ONETIME)}</span>
+                ${opts.wedding ? `<span class="tag tag--cost">свадьба ${fmt(WEDDING_2027)}</span>` : ''}
+                <span class="tag tag--cost">авто ${fmt(CAR_ONETIME)}</span>
+                ${isGe ? `<span class="tag tag--cost">налог ${Math.round(GE_TAX_RATE * 100)}%</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot story__dot--warn"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">2028</div>
+              <div class="story__title">Налог, отпуска, роды, квартира побольше</div>
+              <div class="story__text">Доход <strong>${fmt(INCOME_FROM_2028)}</strong>. ${
+                isGe
+                  ? `Налог <strong>${Math.round(GE_TAX_RATE * 100)}%</strong> со всего дохода (~${fmt(Math.round(INCOME_FROM_2028 * GE_TAX_RATE))}/мес). Быт <strong>${fmt(geLiving(esLiving2028))}</strong> (−15% к ES).`
+                  : `С янв. налог <strong>${Math.round(ES_TAX_RATE * 100)}% × ${fmt(ES_TAX_BASE)}</strong> = <strong>${fmt(taxSpainMo(INCOME_FROM_2028))}/мес</strong> (остальной доход без этого налога).`
+              } Окт — большая аренда <strong>${fmt(ES_RENT_BIG_MO)}</strong>, ноя — роды <strong>${fmt(BIRTH_2028)}</strong> и ребёнок +${fmt(CHILD_MO)}/мес.${
+                opts.maternity
+                  ? ` С авг. 2028 по окт. 2029 доход семьи <strong>−${fmt(MATERNITY_CUT_ES)}/мес</strong> (декрет: 3 мес. до + год после).`
+                  : ` Декрет в этом прогоне <strong>выключен</strong>.`
+              } Два отпуска по ~${fmt(VACATION_TRIP_2028)}.</div>
+              <div class="story__tags">
+                <span class="tag tag--cost">налог ${
+                  isGe
+                    ? fmt(Math.round(INCOME_FROM_2028 * GE_TAX_RATE))
+                    : fmt(taxSpainMo(INCOME_FROM_2028))
+                }/мес</span>
+                <span class="tag tag--cost">роды ${fmt(BIRTH_2028)}</span>
+                ${opts.maternity ? `<span class="tag tag--cost">декрет −${fmt(MATERNITY_CUT_ES)}/мес</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot story__dot--key"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">Июль 2029 — покупка</div>
+              <div class="story__title">Квартира ~${fmt(apt.price)}</div>
+              <div class="story__text">К покупке в копилке ~<strong>${fmt(beforeMortgage)}</strong> плюс заначка <strong>${fmt(ES_DP_STASH)}</strong> → ПВ <strong>${fmt(apt.dp)}</strong> (25%). Квартира ~<strong>${fmt(apt.price)}</strong>, кредит <strong>${fmt(apt.loan)}</strong>. ${
+                earlyOn
+                  ? `По графику было бы ${fmt(pay)}/мес (3%, 20 лет), в плане сразу <strong>×${EARLY_PAY_MULT}</strong> (~${fmt(earlyPay)}) — закрытие ~${payoffLabel}.`
+                  : `Платёж по графику <strong>${fmt(earlyPay)}/мес</strong> (3%, 20 лет); досрочка выключена.`
+              } Аренда своей жизни продолжается — купленную можно сдавать.</div>
+              <div class="story__tags">
+                <span class="tag tag--home">квартира ${fmt(apt.price)}</span>
+                <span class="tag tag--home">взнос ${fmt(apt.dp)}</span>
+                <span class="tag tag--money">заначка ${fmt(ES_DP_STASH)}</span>
+                <span class="tag tag--home">${earlyOn ? `×${EARLY_PAY_MULT} ` : ''}${fmt(earlyPay)}/мес</span>
+              </div>
+            </div>
+          </div>
+          <div class="story__item">
+            <div class="story__rail"><div class="story__dot story__dot--after"></div><div class="story__line"></div></div>
+            <div>
+              <div class="story__when">С ноября 2029 → ${PLAN_END_YEAR}</div>
+              <div class="story__title">${
+                earlyOn
+                  ? `Сдача + досрочка ×${EARLY_PAY_MULT}`
+                  : 'Сдача + ипотека по графику'
+              }</div>
+              <div class="story__text">С ноя. 2029 доход +<strong>${fmt(RENTAL_INCOME_MO)}</strong> от сдачи. ${
+                earlyOn
+                  ? `Ипотеку платим не ${fmt(pay)}, а <strong>~${fmt(earlyPay)}/мес</strong> (×${EARLY_PAY_MULT} к графику 3% / 20 лет) — закрытие около <strong>${payoffLabel}</strong>.`
+                  : `Ипотеку платим <strong>~${fmt(earlyPay)}/мес</strong> по графику; досрочка выключена.`
+              } Аренда своей жизни ${fmt(ES_RENT_BIG_MO)} параллельно. К концу 2030 в копилке ~<strong>${fmt(bal2030)}</strong>, к ${PLAN_END_YEAR} ~<strong>${fmt(balEnd)}</strong>.</div>
+              <div class="story__tags">
+                <span class="tag tag--money">+${fmt(RENTAL_INCOME_MO)} аренда</span>
+                <span class="tag tag--home">${earlyOn ? `×${EARLY_PAY_MULT} → ` : ''}${fmt(earlyPay)}/мес</span>
+                ${earlyOn ? `<span class="tag tag--home">закрытие ${payoffLabel}</span>` : '<span class="tag">досрочка выкл.</span>'}
+                <span class="tag tag--money">к ${PLAN_END_YEAR} ~${fmt(balEnd)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('chart-title').textContent =
+          `Главный график: копилка (€, до ${PLAN_END_YEAR})`;
+        document.getElementById('chart-hint').innerHTML =
+          `Накопительный баланс со старта <strong>${fmt(ES_START)}</strong>. Красная точка —
+          июль 2029: из копилки ушёл взнос <strong>${fmt(apt.fromPiggy)}</strong>
+          (+ заначка ${fmt(ES_DP_STASH)} вне графика). Дальше
+          ${
+            earlyOn
+              ? `платим ипотеку <strong>×${EARLY_PAY_MULT}</strong> (~${fmt(earlyPay)}/мес). Фиолетовая точка — досрочное закрытие (~${payoffLabel}).`
+              : `платим по графику (~${fmt(earlyPay)}/мес). Досрочка выключена.`
+          }
+          <span style="color:var(--muted)">Оранжевой цели «160к/мес» здесь нет — это только для РФ.</span>`;
+        document.getElementById('chart-legend').innerHTML = `
+          <span><i class="swatch swatch--green"></i> Копилка до покупки</span>
+          <span><i class="swatch swatch--dot"></i> Покупка (взнос из копилки)</span>
+          <span><i class="swatch swatch--blue"></i> После покупки${earlyOn ? ` (×${EARLY_PAY_MULT})` : ''}</span>
+          ${earlyOn ? '<span><i class="swatch swatch--purple"></i> Ипотека закрыта</span>' : ''}
+        `;
+
+        document.getElementById('deal-title').textContent = 'Что покупаем в июле 2029';
+        document.getElementById('deal-hint').textContent = earlyOn
+          ? `Накопления + заначка €15k → ПВ 25%. В плане гасим ×${EARLY_PAY_MULT} к графику 3%/20 лет.`
+          : 'Накопления + заначка €15k → ПВ 25%. Платёж по графику 3%/20 лет (досрочка выкл.).';
+        document.getElementById('deal-box').innerHTML = `
+          <div class="deal-box__item">
+            <h3>Цена квартиры</h3>
+            <p style="color:var(--blue)">${fmt(apt.price)}</p>
+          </div>
+          <div class="deal-box__item">
+            <h3>Ваш первый взнос (25%)</h3>
+            <p style="color:var(--green)">${fmt(apt.dp)}</p>
+          </div>
+          <div class="deal-box__item">
+            <h3>Кредит в банке</h3>
+            <p>${fmt(apt.loan)}</p>
+          </div>
+          <div class="deal-box__item">
+            <h3>${earlyOn ? `Платёж ×${EARLY_PAY_MULT}` : 'Платёж каждый месяц'}</h3>
+            <p style="color:var(--orange)">${fmt(earlyPay)}</p>
+          </div>
+          <div class="deal-box__item deal-box__wide">
+            <p class="deal-box__explain">
+              К июню 2029 в копилке ~<strong>${fmt(beforeMortgage)}</strong>
+              + отдельная заначка <strong>${fmt(ES_DP_STASH)}</strong>
+              = взнос <strong>${fmt(apt.dp)}</strong> (25%).
+              Банк добавляет <strong>${fmt(apt.loan)}</strong>
+              (график 3% · 20 лет → ${fmt(pay)}/мес).
+              ${
+                earlyOn
+                  ? `В плане платим <strong>${fmt(earlyPay)}/мес</strong> (×${EARLY_PAY_MULT}) — закрытие около <strong>${payoffLabel}</strong>.`
+                  : `В плане платим <strong>${fmt(earlyPay)}/мес</strong> по графику; досрочка выключена.`
+              }
+              С ноября 2029 квартира приносит <strong>${fmt(RENTAL_INCOME_MO)}/мес</strong>.
+            </p>
+            <p class="region-absent" style="margin-top:0.75rem">
+              <strong>В России иначе:</strong> покупка в <strong>декабре 2029</strong>, во взнос идёт вся копилка
+              (мин. ПВ 20%), ставка ~17% / 30 лет, после покупки живёте в своей (аренда прекращается),
+              ремонт копите отдельно. Подушка 1,5 млн ₽ во взнос не идёт. Досрочка — общий чекбокс сверху.
+            </p>
+          </div>
+        `;
+
+        document.getElementById('spain-mortgage-note-text').innerHTML =
+          `${isGe ? '<strong>Грузия.</strong> ' : '<strong>Испания.</strong> '}Ставка <strong>3%</strong>, график <strong>20 лет</strong>, ПВ
+          <strong>25%</strong>. ${
+            earlyOn
+              ? `В плане гасим <strong>×${EARLY_PAY_MULT}</strong> (~${fmt(earlyPay)}/мес) — закрытие ~<strong>${payoffLabel}</strong>.`
+              : `В плане платим по графику (~${fmt(earlyPay)}/мес); досрочка выкл.`
+          } К июню 2029 ~<strong>${fmt(beforeMortgage)}</strong>
+          + заначка <strong>${fmt(ES_DP_STASH)}</strong> = ПВ <strong>${fmt(apt.dp)}</strong>
+          → квартира ~<strong>${fmt(apt.price)}</strong>.${
+            isGe
+              ? ` Быт −15% к ES, налог ${Math.round(GE_TAX_RATE * 100)}% со всего дохода.`
+              : ''
+          }`;
+
+        const incomeBefore =
+          INCOME_FROM_2029 - (opts.maternity ? MATERNITY_CUT_ES : 0);
+        const incomeAfter = INCOME_FROM_2029 + RENTAL_INCOME_MO;
+        const livingCmp = isGe ? geLiving(esLiving2029) : esLiving2029;
+        const taxBefore = isGe
+          ? taxGeorgiaMo(2029, 6, incomeBefore)
+          : taxSpainMo(incomeBefore);
+        const taxAfter = isGe
+          ? taxGeorgiaMo(2029, 11, incomeAfter)
+          : taxSpainMo(incomeAfter);
+        const lifeBefore =
+          ES_RENT_BIG_MO + livingCmp + CHILD_MO + taxBefore;
+        const lifeAfter =
+          ES_RENT_BIG_MO + livingCmp + CHILD_MO + taxAfter + earlyPay;
+        document.getElementById('compare-title').textContent =
+          'Месяц до и после ипотеки';
+        document.getElementById('compare-hint').textContent = opts.maternity
+          ? `Июнь 2029 ещё в декрете (−€3k); с ноя. 2029 декрет закончен, плюс сдача.${earlyOn ? ` После покупки — досрочка ×${EARLY_PAY_MULT}.` : ' Досрочка выкл.'}`
+          : `Декрет выключен; с ноя. 2029 плюс сдача. ${
+              earlyOn
+                ? `Платим ×${EARLY_PAY_MULT} (~${fmt(earlyPay)}), закрытие ~${payoffLabel}.`
+                : `Платим по графику (~${fmt(earlyPay)}).`
+            }`;
+        document.getElementById('compare').innerHTML = `
+          <div class="compare__col compare__col--before">
+            <div class="compare__title">До покупки (июнь 2029)</div>
+            <div class="compare__row"><span>Доход${opts.maternity ? ' (с декретом)' : ''}</span><strong>${fmt(incomeBefore)}</strong></div>
+            <div class="compare__row"><span>Аренда + быт${isGe ? ' (−15%)' : ''} + ребёнок</span><strong>${fmt(ES_RENT_BIG_MO + livingCmp + CHILD_MO)}</strong></div>
+            <div class="compare__row"><span>${
+              isGe
+                ? `Налог ${Math.round(GE_TAX_RATE * 100)}%`
+                : `Налог ${Math.round(ES_TAX_RATE * 100)}% × ${fmt(ES_TAX_BASE)}`
+            }</span><strong>${fmt(taxBefore)}</strong></div>
+            <div class="compare__total"><span>Уходит на жизнь</span><span>${fmt(lifeBefore)}</span></div>
+            <div class="compare__row" style="border:0;padding-top:0.55rem"><span>Остаётся «свободными»</span><strong style="color:var(--green)">${fmt(incomeBefore - lifeBefore)}</strong></div>
+          </div>
+          <div class="compare__col compare__col--after">
+            <div class="compare__title">После (с ноя. 2029${earlyOn ? `, ×${EARLY_PAY_MULT}` : ''})</div>
+            <div class="compare__row"><span>Доход (+сдача)</span><strong>${fmt(incomeAfter)}</strong></div>
+            <div class="compare__row"><span>Аренда + быт${isGe ? ' (−15%)' : ''} + ребёнок</span><strong>${fmt(ES_RENT_BIG_MO + livingCmp + CHILD_MO)}</strong></div>
+            <div class="compare__row"><span>Налог + ипотека${earlyOn ? ` ×${EARLY_PAY_MULT}` : ''}</span><strong>${fmt(taxAfter + earlyPay)}</strong></div>
+            <div class="compare__total"><span>Уходит на жизнь</span><span>${fmt(lifeAfter)}</span></div>
+            <div class="compare__row" style="border:0;padding-top:0.55rem"><span>Остаётся «свободными»</span><strong style="color:var(--green)">${fmt(incomeAfter - lifeAfter)}</strong></div>
+          </div>
+        `;
+        document.getElementById('compare-note').innerHTML =
+          (earlyOn
+            ? `<strong>Досрочка:</strong> вместо ${fmt(pay)} по графику платим <strong>${fmt(earlyPay)}</strong> — закрытие ~<strong>${payoffLabel}</strong> (вместо 20 лет).`
+            : `<strong>Досрочка выключена:</strong> платим <strong>${fmt(earlyPay)}</strong> по графику. Включите чекбокс сверху для ×${EARLY_PAY_MULT}.`) +
+          ` Аренда жизни параллельно.` +
+          (opts.maternity
+            ? ` Декрет: авг. 2028 – окт. 2029 (−${fmt(MATERNITY_CUT_ES)}/мес).`
+            : ` Декрет выключен.`);
+
+        document.getElementById('rules').innerHTML = `
+          <li><span class="simple-list__k">Старт</span><span class="simple-list__v"><strong>${fmt(ES_START)}</strong> к 01.01.2027</span></li>
+          <li><span class="simple-list__k">Заначка на ПВ</span><span class="simple-list__v"><strong>${fmt(ES_DP_STASH)}</strong> — отдельно от копилки, в июле 2029 идёт во взнос</span></li>
+          <li><span class="simple-list__k">Доход</span><span class="simple-list__v">${fmt(INCOME_FROM_2027)} (2027) → ${fmt(INCOME_FROM_2028)} (2028) → ${fmt(INCOME_FROM_2029)} (с 2029); с ноя. 2029 +${fmt(RENTAL_INCOME_MO)} от сдачи</span></li>
+          <li><span class="simple-list__k">Декрет</span><span class="simple-list__v">${
+            opts.maternity
+              ? `Авг. 2028 – окт. 2029: доход семьи <strong>−${fmt(MATERNITY_CUT_ES)}/мес</strong>`
+              : '<strong>Выключен</strong> чекбоксом сверху'
+          }</span></li>
+          <li><span class="simple-list__k">Фазы</span><span class="simple-list__v">Бали → РФ (май–июнь 2027) → ${country} с июля 2027 · горизонт до ${PLAN_END_YEAR}</span></li>
+          <li><span class="simple-list__k">Жильё</span><span class="simple-list__v">Аренда ${fmt(ES_RENT_MO)}, с окт. 2028 ${fmt(ES_RENT_BIG_MO)}; быт ${fmt(isGe ? geLiving(ES_LIVING_MO) : ES_LIVING_MO)}${isGe ? ' (−15% к ES с июля 2027; рост как в ES до 2030, дальше без инфляции)' : ' (+15% в 2028, +5%/год до 2030, дальше без инфляции)'}</span></li>
+          <li><span class="simple-list__k">Налог</span><span class="simple-list__v">${
+            isGe
+              ? `<strong>${Math.round(GE_TAX_RATE * 100)}%</strong> со всего дохода с июля 2027`
+              : `<strong>${Math.round(ES_TAX_RATE * 100)}% × ${fmt(ES_TAX_BASE)}</strong> = <strong>${fmt(taxSpainMo(ES_TAX_BASE))}/мес</strong> с янв. 2028; доход сверх ${fmt(ES_TAX_BASE)} без этого налога`
+          }</span></li>
+          <li><span class="simple-list__k">2027 крупное</span><span class="simple-list__v">Переезд ${fmt(MOVE_ONETIME)}${
+            opts.wedding
+              ? `, кольцо ${fmt(RING_2027)}, свадьба ${fmt(WEDDING_2027)}`
+              : ' · свадьба выключена'
+          }, авто ${fmt(CAR_ONETIME)}</span></li>
+          <li><span class="simple-list__k">2028</span><span class="simple-list__v">Роды ${fmt(BIRTH_2028)}, ребёнок +${fmt(CHILD_MO)}/мес, отпуска</span></li>
+          <li><span class="simple-list__k">Ипотека</span><span class="simple-list__v">Июль 2029: ПВ <strong>25%</strong>, 3% / график 20 лет${
+            earlyOn
+              ? `, в плане <strong>×${EARLY_PAY_MULT}</strong> (~${fmt(earlyPay)}) → закрытие ~<strong>${payoffLabel}</strong>`
+              : `, в плане по графику (~${fmt(earlyPay)}); досрочка выкл.`
+          }</span></li>
+        `;
+
+        const phases = [
+          { label: `2027 Бали + РФ + ${isGe ? 'GE' : 'ES'}`, months: monthly.filter((r) => r.year === 2027) },
+          { label: '2028 налог / роды', months: monthly.filter((r) => r.year === 2028) },
+          { label: '2029 до ипотеки', months: monthly.filter((r) => r.year === 2029 && r.month <= 6) },
+          { label: 'Июл 2029 — покупка', months: monthly.filter((r) => r.year === 2029 && r.month === 7) },
+          { label: 'Авг–дек 2029', months: monthly.filter((r) => r.year === 2029 && r.month >= 8) },
+          { label: earlyOn ? '2030 · ×2' : '2030', months: monthly.filter((r) => r.year === 2030) },
+          ...(earlyOn
+            ? [
+                {
+                  label: payoff
+                    ? `2031… до закрытия (${payoffLabel})`
+                    : `2031–${PLAN_END_YEAR} досрочка`,
+                  months: monthly.filter(
+                    (r) =>
+                      r.year >= 2031 &&
+                      (!payoff ||
+                        r.year < payoff.year ||
+                        (r.year === payoff.year && r.month <= payoff.month)),
+                  ),
+                },
+                ...(payoff
+                  ? [
+                      {
+                        label: `После закрытия → ${PLAN_END_YEAR}`,
+                        months: monthly.filter(
+                          (r) =>
+                            r.year > payoff.year ||
+                            (r.year === payoff.year && r.month > payoff.month),
+                        ),
+                      },
+                    ]
+                  : []),
+              ]
+            : [
+                {
+                  label: `2031–${PLAN_END_YEAR} по графику`,
+                  months: monthly.filter((r) => r.year >= 2031),
+                },
+              ]),
+        ].filter((p) => p.months.length);
+        fillPhaseTable(phases, fmt);
+
+        const cumLabels = ["старт", ...monthly.map((r) => r.label)];
+        const cumBal = [ES_START, ...monthly.map((r) => r.bal)];
+        const cumEvents = [null, ...monthly.map((r) => r.event)];
+        const mortIdx = cumEvents.indexOf('mortgage-after');
+        const paidIdx = cumEvents.indexOf('mortgage-paid');
+
+        const pointColor = (ev) => {
+          if (ev === 'mortgage-after') return '#ef6b6b';
+          if (ev === 'mortgage-paid') return '#b48cff';
+          if (ev === 'mortgage-before') return '#5eb0ff';
+          if (ev === 'rental-start') return '#3ecf8e';
+          if (ev === 'ring-after' || ev === 'wedding-after') return '#b48cff';
+          if (ev === 'child-start' || ev === 'flat-bigger') return '#f0a35e';
+          return 'rgba(62, 207, 142, 0.35)';
+        };
+
+        destroyChart();
+        chartRef = new Chart(document.getElementById('chartCumulative'), {
+          type: 'line',
+          data: {
+            labels: cumLabels,
+            datasets: [
+              {
+                label: 'Копилка',
+                data: cumBal.map((x) => Math.round(x)),
+                borderColor: '#3ecf8e',
+                backgroundColor: 'rgba(62, 207, 142, 0.1)',
+                fill: true,
+                tension: 0.2,
+                pointRadius: cumEvents.map((e) =>
+                  e === 'mortgage-after' || e === 'mortgage-paid' ? 10 : e ? 5 : 0,
+                ),
+                pointBackgroundColor: cumEvents.map(pointColor),
+                pointBorderColor: cumEvents.map(pointColor),
+                segment: {
+                  borderColor: (ctx) => {
+                    if (cumEvents[ctx.p1DataIndex] === 'mortgage-after')
+                      return '#ef6b6b';
+                    if (cumEvents[ctx.p1DataIndex] === 'mortgage-paid')
+                      return '#b48cff';
+                    if (paidIdx >= 0 && ctx.p1DataIndex > paidIdx) return '#3ecf8e';
+                    if (mortIdx >= 0 && ctx.p1DataIndex > mortIdx) return '#5eb0ff';
+                    return '#3ecf8e';
+                  },
+                  borderWidth: (ctx) =>
+                    cumEvents[ctx.p1DataIndex] === 'mortgage-after' ||
+                    cumEvents[ctx.p1DataIndex] === 'mortgage-paid'
+                      ? 3.5
+                      : 2,
+                },
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (items) => {
+                    const i = items[0].dataIndex;
+                    if (i === 0) return 'Старт плана';
+                    return monthly[i - 1]?.label || '';
+                  },
+                  label: (item) => `${item.dataset.label}: ${fmt(item.parsed.y)}`,
+                  afterBody: (items) => {
+                    const i = items[0]?.dataIndex;
+                    if (!i) return '';
+                    const r = monthly[i - 1];
+                    if (!r) return '';
+                    if (r.event === 'mortgage-after') {
+                      return [
+                        `→ Квартира ${fmt(apt.price)}`,
+                        `Взнос 25% ${fmt(apt.dp)} = копилка ${fmt(apt.fromPiggy)} + заначка ${fmt(apt.fromStash)}`,
+                        earlyOn
+                          ? `Дальше ×${EARLY_PAY_MULT} = ${fmt(earlyPay)}/мес (вместо ${fmt(pay)})`
+                          : `Дальше ${fmt(earlyPay)}/мес по графику`,
+                      ];
+                    }
+                    if (r.event === 'mortgage-paid') {
+                      return [
+                        `→ Ипотека закрыта досрочно (${payoffLabel})`,
+                        `Последний платёж ${fmt(r.mortgage)}`,
+                      ];
+                    }
+                    const lines = [];
+                    if (r.oneTime)
+                      lines.push(
+                        `Крупный расход: ${r.oneTimeLabel || ''} ${fmt(r.oneTime)}`.trim(),
+                      );
+                    if (r.mortgage)
+                      lines.push(
+                        earlyOn
+                          ? `Ипотека ×${EARLY_PAY_MULT}: ${fmt(r.mortgage)}`
+                          : `Ипотека: ${fmt(r.mortgage)}`,
+                      );
+                    if (r.tax) lines.push(`Налог: ${fmt(r.tax)}`);
+                    return lines;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: { ticks: { maxTicksLimit: 16, maxRotation: 0 } },
+              y: { ticks: { callback: (v) => fmtShortEs(v) } },
+            },
+          },
+        });
+      }
+
+      function renderScenario(scenario) {
+        readOptsFromUi();
+        const next =
+          scenario === 'es' ? 'es' : scenario === 'ge' ? 'ge' : 'ru';
+        currentScenario = next;
+        setSwitcher(next);
+        persistScenario(next);
+        persistOpts();
+        destroyChart();
+        if (next === 'es') renderSpain();
+        else if (next === 'ge') renderGeorgia();
+        else renderRussia();
+      }
+
+      document.getElementById('btn-ru').addEventListener('click', () => {
+        renderScenario('ru');
+      });
+      document.getElementById('btn-es').addEventListener('click', () => {
+        renderScenario('es');
+      });
+      document.getElementById('btn-ge').addEventListener('click', () => {
+        renderScenario('ge');
+      });
+      window.addEventListener('hashchange', () => {
+        const s = readSavedScenario();
+        if (s !== currentScenario) renderScenario(s);
+      });
+
+      ['flag-wedding', 'flag-maternity', 'flag-rent-big', 'flag-early'].forEach((id) => {
+        document.getElementById(id)?.addEventListener('change', () => {
+          renderScenario(currentScenario);
+        });
+      });
+
+      loadOpts();
+      renderScenario(readSavedScenario());
+    </script>
+  </body>
+</html>
