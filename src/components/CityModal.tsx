@@ -1,20 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import countries from 'i18n-iso-countries'
-import en from 'i18n-iso-countries/langs/en.json'
-import ru from 'i18n-iso-countries/langs/ru.json'
 import type { City } from '../data/types'
 import { apiBaseUrl, apiFetch, mediaUrl } from '../lib/apiBase'
 import { authHeaders } from '../lib/apiAuth'
 import { ModalPhotoCarousel } from './PlaceModal'
 import { useAlert } from './AlertProvider'
+import { countryName } from '../i18n/countryName'
 import { useLocale, useT } from '../i18n/LocaleContext'
-
-countries.registerLocale(ru)
-countries.registerLocale(en)
-
-function countryName(code: string, locale: 'ru' | 'en'): string {
-  return countries.getName(code, locale) ?? code
-}
 
 type Props = {
   city: City | null

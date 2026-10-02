@@ -2967,6 +2967,7 @@
 
 .manager-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
   margin-bottom: 1rem;
   border-bottom: 1px solid var(--border);

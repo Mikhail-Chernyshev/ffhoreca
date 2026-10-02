@@ -5,12 +5,20 @@ import { ConfirmModal } from './ConfirmModal';
 import { useAlert } from './AlertProvider';
 import { deleteRouteById } from '../lib/apiRoutes';
 import { deleteCityById } from '../lib/apiCities';
-import { catalogCitiesListed, cityLabelForPlace, placesCountForCity, placeCoordinates } from '../data/selectors';
+import {
+  catalogCitiesListed,
+  catalogCountriesListed,
+  cityLabelForPlace,
+  placesCountForCity,
+  placeCoordinates,
+  type CatalogCountryRow,
+} from '../data/selectors';
 import { cityMatchesQuery, fieldMatchesQuery, searchQueryVariants } from '../lib/transliterate';
+import { countryMatchesQuery, countryName } from '../i18n/countryName';
 import { useLocale, useT } from '../i18n/LocaleContext';
 import { categoryLabel, routeModeLabel } from '../i18n/labels';
 
-type Tab = 'routes' | 'places' | 'cities';
+type Tab = 'routes' | 'places' | 'cities' | 'countries';
 
 type Props = {
   routes: TravelRoute[];
@@ -144,6 +152,45 @@ function CityRow({
             document.body,
           )
         : null}
+    </div>
+  );
+}
+
+function CountryRow({
+  country,
+  name,
+  onShowOnMap,
+}: {
+  country: CatalogCountryRow;
+  name: string;
+  onShowOnMap?: () => void;
+}) {
+  const t = useT();
+
+  return (
+    <div className="manager-row">
+      <div className="manager-row__main">
+        <span className="manager-row__title">{name}</span>
+        <span className="manager-row__meta">
+          {t('manager.countryMeta', {
+            code: country.code,
+            cities: country.citiesCount,
+            places: country.placesCount,
+          })}
+        </span>
+      </div>
+      {onShowOnMap ? (
+        <div className="manager-row__actions">
+          <button
+            type="button"
+            className="manager-row__map"
+            onClick={onShowOnMap}
+            aria-label={t('manager.ariaShowOnMap', { name })}
+          >
+            {t('manager.showOnMap')}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -372,6 +419,18 @@ export function ManagerModal({
   );
 
   const listedCities = useMemo(() => catalogCitiesListed(catalog), [catalog]);
+  const listedCountries = useMemo(() => catalogCountriesListed(catalog), [catalog]);
+  const filteredCountries = useMemo(
+    () => listedCountries.filter((c) => countryMatchesQuery(c.code, listQuery)),
+    [listedCountries, listQuery],
+  );
+  const sortedCountriesList = useMemo(
+    () =>
+      [...filteredCountries].sort((a, b) =>
+        countryName(a.code, locale).localeCompare(countryName(b.code, locale), locale),
+      ),
+    [filteredCountries, locale],
+  );
 
   const citiesByCountry = useMemo(
     () => {
@@ -446,9 +505,16 @@ export function ManagerModal({
                 >
                   {t('manager.tabCities', { count: listedCities.length })}
                 </button>
+                <button
+                  type="button"
+                  className={`manager-tabs__btn${tab === 'countries' ? ' manager-tabs__btn--active' : ''}`}
+                  onClick={() => setTab('countries')}
+                >
+                  {t('manager.tabCountries', { count: listedCountries.length })}
+                </button>
               </div>
 
-              {tab === 'places' || tab === 'cities' ? (
+              {tab === 'places' || tab === 'cities' || tab === 'countries' ? (
                 <input
                   type="search"
                   className="manager-search"
@@ -520,6 +586,25 @@ export function ManagerModal({
                             />
                           ))}
                         </div>
+                      ))
+                )}
+
+                {tab === 'countries' && (
+                  listedCountries.length === 0
+                    ? <p className="manager-empty">{t('manager.emptyCountries')}</p>
+                    : sortedCountriesList.length === 0
+                      ? <p className="manager-empty">{t('manager.emptySearch')}</p>
+                    : sortedCountriesList.map((country) => (
+                        <CountryRow
+                          key={country.code}
+                          country={country}
+                          name={countryName(country.code, locale)}
+                          onShowOnMap={
+                            country.lat != null && country.lng != null
+                              ? () => showOnMap(country.lng!, country.lat!)
+                              : undefined
+                          }
+                        />
                       ))
                 )}
               </div>

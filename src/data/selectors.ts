@@ -135,6 +135,55 @@ export function catalogCitiesListed(catalog: Catalog): City[] {
   return catalog.cities.filter((c) => !isFineGrainedCity(c));
 }
 
+export type CatalogCountryRow = {
+  code: string;
+  citiesCount: number;
+  placesCount: number;
+  lat?: number;
+  lng?: number;
+};
+
+/** Страны каталога для списка в менеджере: города без подрайонов + места. */
+export function catalogCountriesListed(catalog: Catalog): CatalogCountryRow[] {
+  const cities = catalogCitiesListed(catalog);
+  const byCode = new Map<string, { cities: City[]; places: Place[] }>();
+
+  const bucket = (code: string) => {
+    const cc = (code || '??').toUpperCase();
+    let row = byCode.get(cc);
+    if (!row) {
+      row = { cities: [], places: [] };
+      byCode.set(cc, row);
+    }
+    return row;
+  };
+
+  for (const c of cities) bucket(c.countryCode).cities.push(c);
+  for (const p of catalog.places) bucket(p.countryCode).places.push(p);
+
+  return [...byCode.entries()].map(([code, { cities: cityList, places }]) => {
+    const pts: { lat: number; lng: number }[] = [];
+    for (const c of cityList) pts.push({ lat: c.lat, lng: c.lng });
+    if (pts.length === 0) {
+      for (const p of places) {
+        if (typeof p.lat === 'number' && typeof p.lng === 'number') {
+          pts.push({ lat: p.lat, lng: p.lng });
+        }
+      }
+    }
+    const row: CatalogCountryRow = {
+      code,
+      citiesCount: cityList.length,
+      placesCount: places.length,
+    };
+    if (pts.length > 0) {
+      row.lat = pts.reduce((s, p) => s + p.lat, 0) / pts.length;
+      row.lng = pts.reduce((s, p) => s + p.lng, 0) / pts.length;
+    }
+    return row;
+  });
+}
+
 function citiesFromVisiblePlaces(catalog: Catalog, visiblePlaces: Place[]): City[] {
   const byId = new Map<string, City>();
   for (const p of visiblePlaces) {

@@ -3,6 +3,7 @@ import {
   atlasCountryAlpha2,
   canonicalCity,
   catalogCitiesListed,
+  catalogCountriesListed,
   catalogCityIdFromPhotonHints,
   cityById,
   cityLabelForPlace,
@@ -94,6 +95,19 @@ describe('geoIdToAlpha2 / atlasCountryAlpha2', () => {
 describe('visitedCountryCodes', () => {
   it('собирает коды из городов и мест', () => {
     expect(visitedCountryCodes(full)).toEqual(new Set(['GE', 'RU', 'TH']));
+  });
+});
+
+describe('catalogCountriesListed', () => {
+  it('собирает страны из городов и мест, без подрайонов в счётчике городов', () => {
+    const rows = catalogCountriesListed(full);
+    expect(rows.map((r) => r.code).sort()).toEqual(['GE', 'RU', 'TH']);
+    expect(rows.find((r) => r.code === 'TH')).toEqual(
+      expect.objectContaining({ code: 'TH', citiesCount: 1, placesCount: 1 }),
+    );
+    expect(rows.find((r) => r.code === 'GE')).toEqual(
+      expect.objectContaining({ code: 'GE', citiesCount: 1, placesCount: 3 }),
+    );
   });
 });
 
