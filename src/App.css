@@ -3420,6 +3420,39 @@
   width: 100%;
 }
 
+.city-search-select__input-wrap {
+  position: relative;
+}
+
+.city-search-select__input-wrap .add-place-form__input {
+  padding-right: 2.1rem;
+}
+
+.city-search-select__spinner {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-top: -7px;
+  border: 2px solid var(--border, #ccc);
+  border-top-color: var(--accent, #5fa573);
+  border-radius: 50%;
+  animation: city-search-select-spin 0.6s linear infinite;
+}
+
+@keyframes city-search-select-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.city-search-select__status {
+  padding: 0.45rem 0.65rem;
+  font-size: 0.85rem;
+  color: var(--text-muted, #666);
+}
+
 .city-search-select__list {
   position: absolute;
   z-index: 30;

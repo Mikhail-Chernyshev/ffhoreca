@@ -63,6 +63,7 @@ export function AirportSearchSelect({
   const [remote, setRemote] = useState<AirportSuggestion[]>([]);
   const [noResults, setNoResults] = useState(false);
   const pickBusy = useRef(false);
+  const searching = open && query.trim().length >= 2 && loading;
 
   const catalogAirports = useMemo(() => airportsForRoutePicker(catalog), [catalog]);
   const selected = catalogAirports.find((a) => a.placeId === value);
@@ -77,10 +78,11 @@ export function AirportSearchSelect({
       return;
     }
 
+    setLoading(true);
+    setNoResults(false);
+
     const ac = new AbortController();
     const timer = window.setTimeout(() => {
-      setLoading(true);
-      setNoResults(false);
       void (async () => {
         try {
           const list = await searchAirports(q, ac.signal);
@@ -170,26 +172,32 @@ export function AirportSearchSelect({
 
   return (
     <div className="city-search-select">
-      <input
-        type="text"
-        className="add-place-form__input"
-        value={open ? query : displayClosed}
-        placeholder={resolvedPlaceholder}
-        required={required && !value}
-        autoComplete="off"
-        disabled={busy}
-        onFocus={() => {
-          setOpen(true);
-          setQuery(selected?.name ?? '');
-        }}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setOpen(true);
-        }}
-        onBlur={() => {
-          window.setTimeout(() => setOpen(false), 150);
-        }}
-      />
+      <div className="city-search-select__input-wrap">
+        <input
+          type="text"
+          className="add-place-form__input"
+          value={open ? query : displayClosed}
+          placeholder={resolvedPlaceholder}
+          required={required && !value}
+          autoComplete="off"
+          disabled={busy}
+          aria-busy={searching || busy}
+          onFocus={() => {
+            setOpen(true);
+            setQuery(selected?.name ?? '');
+          }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onBlur={() => {
+            window.setTimeout(() => setOpen(false), 150);
+          }}
+        />
+        {searching || busy ? (
+          <span className="city-search-select__spinner" aria-hidden />
+        ) : null}
+      </div>
       {open ? (
         <ul className="city-search-select__list" role="listbox">
           {items.map((item) => (
@@ -216,20 +224,20 @@ export function AirportSearchSelect({
               </button>
             </li>
           ))}
-          {loading ? (
-            <li className="city-search-select__empty" role="presentation">
-              {t('common.loading')}
+          {searching ? (
+            <li className="city-search-select__status" role="status">
+              {t('common.searching')}
             </li>
           ) : null}
-          {!loading && noResults && items.length === 0 && query.trim().length >= 2 ? (
-            <li className="city-search-select__empty" role="presentation">
+          {!searching && noResults && items.length === 0 && query.trim().length >= 2 ? (
+            <li className="city-search-select__status" role="status">
               {t('common.emptyResults')}
             </li>
           ) : null}
-          {!loading &&
+          {!searching &&
           query.trim().length > 0 &&
           query.trim().length < 2 ? (
-            <li className="city-search-select__empty" role="presentation">
+            <li className="city-search-select__status" role="status">
               {t('addRoute.airportSearchHint')}
             </li>
           ) : null}
