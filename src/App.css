@@ -2836,7 +2836,7 @@
   overflow-y: auto;
   flex: 1;
   min-height: 0;
-  padding-right: 0.15rem;
+  padding-right: 10px;
 }
 
 .manager-boarding-pass .manager-search {
@@ -2995,6 +2995,7 @@
 .manager-content {
   overflow-y: auto;
   flex: 1;
+  padding-right: 10px;
 }
 
 .manager-search {
