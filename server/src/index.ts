@@ -118,7 +118,7 @@ const OG_IMAGE_PATH = path.resolve(process.cwd(), 'public/og-share.png');
 const OG_IMAGE_VERSION = fs.existsSync(OG_IMAGE_PATH)
   ? String(Math.floor(fs.statSync(OG_IMAGE_PATH).mtimeMs / 1000))
   : '1';
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? '').trim().toLowerCase();
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'newmishach@gmail.com').trim().toLowerCase();
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,29}$/i;
 
@@ -222,6 +222,7 @@ function serializeAuthUser(u: DbUser) {
   return {
     ...serializePublicUser(u),
     email: u.email,
+    is_admin: Boolean(ADMIN_EMAIL) && (u.email ?? '').toLowerCase() === ADMIN_EMAIL,
   };
 }
 
