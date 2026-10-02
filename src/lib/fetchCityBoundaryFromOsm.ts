@@ -1,5 +1,6 @@
 import type { City } from '../data/types';
 import { cityBoundarySearchQueries } from './cityBoundaryLookup';
+import { NominatimRateLimitError, nominatimGet } from './nominatimClient';
 import { latinSearchHint } from './transliterate';
 
 interface NominatimResult {
@@ -14,11 +15,6 @@ interface NominatimResult {
 }
 
 const osmBoundaryCache = new Map<string, unknown | null>();
-
-const NOMINATIM_HEADERS = {
-  Accept: 'application/json',
-  'User-Agent': 'ffhoreca-travel-map/1.0',
-};
 
 /** Минимальная площадь bbox — отсекаем полигоны зданий (Villa Moana и т.п.) */
 const MIN_BBOX_AREA_KM2 = 0.5;
@@ -155,7 +151,7 @@ async function reverseGeocodeBoundary(
   city: City,
   signal?: AbortSignal,
 ): Promise<NominatimResult | null> {
-  for (const zoom of [13, 12, 11]) {
+  for (const zoom of [12, 10]) {
     const reverseParams = new URLSearchParams({
       lat: String(city.lat),
       lon: String(city.lng),
@@ -163,9 +159,9 @@ async function reverseGeocodeBoundary(
       polygon_geojson: '1',
       zoom: String(zoom),
     });
-    const reverseRes = await fetch(
+    const reverseRes = await nominatimGet(
       `https://nominatim.openstreetmap.org/reverse?${reverseParams}`,
-      { signal, headers: NOMINATIM_HEADERS },
+      signal,
     );
     if (!reverseRes.ok) continue;
     const reverse = (await reverseRes.json()) as NominatimResult;
@@ -186,9 +182,9 @@ async function searchBoundary(
     limit: '10',
     countrycodes: city.countryCode.toLowerCase(),
   });
-  const searchRes = await fetch(
+  const searchRes = await nominatimGet(
     `https://nominatim.openstreetmap.org/search?${searchParams}`,
-    { signal, headers: NOMINATIM_HEADERS },
+    signal,
   );
   if (!searchRes.ok) return null;
   const results = (await searchRes.json()) as NominatimResult[];
@@ -207,9 +203,8 @@ export async function fetchCityBoundaryFromOsm(
   city: City,
   signal?: AbortSignal,
 ): Promise<unknown | null> {
-  const cached = osmBoundaryCache.get(city.id);
-  if (cached != null && isAreaGeojson(cached)) {
-    return cached;
+  if (osmBoundaryCache.has(city.id)) {
+    return osmBoundaryCache.get(city.id) ?? null;
   }
 
   let searchResult: NominatimResult | null = null;
@@ -221,7 +216,9 @@ export async function fetchCityBoundaryFromOsm(
       searchResult = await searchBoundary(q, city, signal);
       if (searchResult) break;
     }
-  } catch {
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    if (e instanceof NominatimRateLimitError) throw e;
     searchResult = null;
   }
 
@@ -234,17 +231,14 @@ export async function fetchCityBoundaryFromOsm(
   let reverseResult: NominatimResult | null = null;
   try {
     reverseResult = await reverseGeocodeBoundary(city, signal);
-  } catch {
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') throw e;
+    if (e instanceof NominatimRateLimitError) throw e;
     reverseResult = null;
   }
 
   const picked = chooseBetterBoundary(searchResult, reverseResult, city);
   const geojson = geojsonFromResult(picked);
-  if (geojson) {
-    osmBoundaryCache.set(city.id, geojson);
-  }
+  osmBoundaryCache.set(city.id, geojson);
   return geojson;
 }
-
-/** Nominatim: не чаще ~1 запроса в секунду */
-export const NOMINATIM_MIN_INTERVAL_MS = 1100;

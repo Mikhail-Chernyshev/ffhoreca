@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { rewindGeoJson } from '../lib/geojsonRewind';
-import {
-  fetchCityBoundaryFromOsm,
-  NOMINATIM_MIN_INTERVAL_MS,
-} from '../lib/fetchCityBoundaryFromOsm';
+import { fetchCityBoundaryFromOsm } from '../lib/fetchCityBoundaryFromOsm';
+import { NominatimRateLimitError } from '../lib/nominatimClient';
 import type { City } from '../data/types';
 
 type GeoFeature = {
@@ -111,6 +109,7 @@ export function useCityBoundaryGeography(cities: City[]): {
 
   useEffect(() => {
     let cancelled = false;
+    const ac = new AbortController();
 
     const addBoundary = (
       cityId: string,
@@ -141,21 +140,18 @@ export function useCityBoundaryGeography(cities: City[]): {
         }
       };
 
-      for (let i = 0; i < cities.length; i++) {
+      for (const c of cities) {
         if (cancelled) return;
-        if (i > 0) {
-          await new Promise((resolve) => setTimeout(resolve, NOMINATIM_MIN_INTERVAL_MS));
-        }
-        const c = cities[i]!;
         try {
-          const raw = await fetchCityBoundaryFromOsm(c);
+          const raw = await fetchCityBoundaryFromOsm(c, ac.signal);
           if (cancelled || raw == null) continue;
           const gj = normalizeCityBoundaryJson(raw);
           if (!gj?.features?.length) continue;
           addBoundary(c.id, gj, loadedIds, allFeatures);
           publish();
-        } catch {
-          /* нет полигона в OSM */
+        } catch (e) {
+          if (e instanceof DOMException && e.name === 'AbortError') return;
+          if (e instanceof NominatimRateLimitError) return;
         }
       }
 
@@ -165,6 +161,7 @@ export function useCityBoundaryGeography(cities: City[]): {
 
     return () => {
       cancelled = true;
+      ac.abort();
     };
   }, [cityIds]);
 
