@@ -67,7 +67,7 @@ export function AccountModal({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [followActionId, setFollowActionId] = useState<string | null>(null);
-  const [followTab, setFollowTab] = useState<'requests' | 'followers' | 'following'>('requests');
+  const [followTab, setFollowTab] = useState<'requests' | 'followers' | 'following'>('followers');
   const [unfollowTarget, setUnfollowTarget] = useState<FollowingRow | null>(null);
   const [revokeTarget, setRevokeTarget] = useState<FollowRequest | null>(null);
   const {
@@ -505,22 +505,6 @@ export function AccountModal({
               <button
                 type='button'
                 role='tab'
-                aria-selected={followTab === 'requests'}
-                className={
-                  followTab === 'requests'
-                    ? 'account-follow-tabs__btn account-follow-tabs__btn--active'
-                    : 'account-follow-tabs__btn'
-                }
-                onClick={() => setFollowTab('requests')}
-              >
-                {t('account.followTabRequests')}
-                {followRequests.length > 0 ? (
-                  <span className='account-follow-tabs__count'>{followRequests.length}</span>
-                ) : null}
-              </button>
-              <button
-                type='button'
-                role='tab'
                 aria-selected={followTab === 'followers'}
                 className={
                   followTab === 'followers'
@@ -552,6 +536,22 @@ export function AccountModal({
                   <span className='account-follow-tabs__count account-follow-tabs__count--muted'>
                     {following.length}
                   </span>
+                ) : null}
+              </button>
+              <button
+                type='button'
+                role='tab'
+                aria-selected={followTab === 'requests'}
+                className={
+                  followTab === 'requests'
+                    ? 'account-follow-tabs__btn account-follow-tabs__btn--active'
+                    : 'account-follow-tabs__btn'
+                }
+                onClick={() => setFollowTab('requests')}
+              >
+                {t('account.followTabRequests')}
+                {followRequests.length > 0 ? (
+                  <span className='account-follow-tabs__count'>{followRequests.length}</span>
                 ) : null}
               </button>
             </div>
