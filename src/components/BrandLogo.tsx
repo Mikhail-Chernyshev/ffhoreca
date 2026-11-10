@@ -64,14 +64,16 @@ export function BrandLogo({
     return <IconMark className={className} size={size} gradientId={iconGradientId} />;
   }
 
-  const width = Math.round(height * (228 / 40));
+  const lockupVbW = 172;
+  const lockupVbH = 40;
+  const width = Math.round(height * (lockupVbW / lockupVbH));
 
   return (
     <svg
       className={className}
       width={width}
       height={height}
-      viewBox="0 0 228 40"
+      viewBox={`0 0 ${lockupVbW} ${lockupVbH}`}
       aria-hidden
       focusable="false"
     >

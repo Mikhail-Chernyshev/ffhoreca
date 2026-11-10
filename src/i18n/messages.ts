@@ -438,6 +438,7 @@ const ru = {
       'Для превью в Telegram и соцсетях используйте ссылку «Поделиться» (через API). Обычная ссылка на карту тоже работает.',
     copyShareLink: 'Ссылка для соцсетей',
     shareLinkCopied: 'Ссылка скопирована',
+    openPostcard: 'Открытка',
     comingSoon: 'Скоро',
     visibilityTitle: 'Видимость карты',
     visibilityHint:
@@ -540,6 +541,23 @@ const ru = {
     storyStats:
       '{{countries}} стран · {{percent}}% мира · {{cities}} городов · {{places}} мест · {{routes}} маршрутов',
     passportChip: '{{percent}}% мира',
+    storyPostcard: 'Открытка',
+  },
+  postcard: {
+    title: 'Открытка',
+    open: 'Открытка',
+    openAria: 'Открытка: {{percent}}% мира',
+    share: 'Отправить',
+    download: 'Скачать',
+    copyImage: 'Копировать картинку',
+    copyLink: 'Копировать ссылку',
+    copiedImage: 'Картинка скопирована',
+    copiedLink: 'Ссылка скопирована',
+    shareError: 'Не получилось поделиться',
+    copyError: 'Не получилось скопировать',
+    preparing: 'Собираем открытку…',
+    shareText: '{{percent}}% мира — карта {{name}}',
+    firstKicker: 'Отправьте друзьям — это уже ваша карта',
   },
   onboarding: {
     helpButton: 'Как пользоваться?',
@@ -555,8 +573,16 @@ const ru = {
       'Это витрина-пример. Ваша личная карта — по ссылке в профиле (@{{username}}).',
     emptyTitle: 'Ваша карта пока пустая',
     emptyBody:
-      'Начните с города — потом добавьте места, фото и маршруты. Всё появится на карте.',
-    emptyAddCity: 'Добавить первый город',
+      'Соберите первую поездку: два города и маршрут. Сразу появятся флаги и линия.',
+    emptyAddTrip: 'Собрать первую поездку',
+    emptyAddCity: 'Добавить только город',
+    firstTipTitle: 'Теперь совет с места',
+    firstTipBody:
+      'Маршрут уже на карте. Добавьте кафе, отель или место, которое советуете друзьям — это и есть Tips from trips.',
+    firstTipBodyCity:
+      'Маршрут уже на карте. Добавьте место в {{city}} — кафе, отель или что советуете друзьям. Это и есть Tips from trips.',
+    firstTipCta: 'Добавить место',
+    firstTipLater: 'Позже',
     checklistTitle: 'С чего начать',
     checklistAddCity: 'Добавить город',
     checklistAddPlace: 'Добавить место',
@@ -594,6 +620,24 @@ const ru = {
     tourShowcaseSlide2Body:
       'После входа выберите юзернейм — откроется пустая личная карта. Заполняйте с нуля.',
     tourDontAutoOpen: 'Больше не предлагать при открытии',
+  },
+  firstTrip: {
+    title: 'Первая поездка',
+    stepOf: 'Шаг {{step}} из {{total}}',
+    intro: 'Два города и как вы ехали — флаги и линия появятся на карте.',
+    from: 'Откуда',
+    to: 'Куда',
+    searchPlaceholder: 'Начните вводить город…',
+    pickHint: 'Выберите город из подсказок',
+    next: 'Далее',
+    back: 'Назад',
+    save: 'Показать на карте',
+    skip: 'Пропустить',
+    change: 'Изменить',
+    mode: 'Как вы добирались',
+    errorCountry: 'Нужен город со страной — выберите другой результат.',
+    errorSame: 'Города должны отличаться.',
+    summary: '{{from}} → {{to}}',
   },
 } as const;
 
@@ -1032,6 +1076,7 @@ const en = {
       'For Telegram and social previews, use the “Social share link” from your account. The regular map URL works too.',
     copyShareLink: 'Social share link',
     shareLinkCopied: 'Link copied',
+    openPostcard: 'Postcard',
     comingSoon: 'Coming soon',
     visibilityTitle: 'Map visibility',
     visibilityHint:
@@ -1130,6 +1175,23 @@ const en = {
     storyStats:
       '{{countries}} countries · {{percent}}% of the world · {{cities}} cities · {{places}} places · {{routes}} routes',
     passportChip: '{{percent}}% of the world',
+    storyPostcard: 'Postcard',
+  },
+  postcard: {
+    title: 'Postcard',
+    open: 'Postcard',
+    openAria: 'Postcard: {{percent}}% of the world',
+    share: 'Share',
+    download: 'Download',
+    copyImage: 'Copy image',
+    copyLink: 'Copy link',
+    copiedImage: 'Image copied',
+    copiedLink: 'Link copied',
+    shareError: 'Could not share',
+    copyError: 'Could not copy',
+    preparing: 'Making the postcard…',
+    shareText: '{{percent}}% of the world — {{name}}’s map',
+    firstKicker: 'Send this to friends — it’s your map now',
   },
   onboarding: {
     helpButton: 'How it works?',
@@ -1145,8 +1207,16 @@ const en = {
       'This is the showcase example. Your personal map is at @{{username}} in your profile.',
     emptyTitle: 'Your map is empty',
     emptyBody:
-      'Start with a city, then add places, photos, and routes. Everything will appear on the map.',
-    emptyAddCity: 'Add your first city',
+      'Add a first trip: two cities and a route. Flags and a line show up right away.',
+    emptyAddTrip: 'Build your first trip',
+    emptyAddCity: 'Add a city only',
+    firstTipTitle: 'Now add a tip',
+    firstTipBody:
+      'The route is on the map. Add a café, hotel, or a place you’d tell a friend — that’s Tips from trips.',
+    firstTipBodyCity:
+      'The route is on the map. Add a place in {{city}} — a café, hotel, or something you’d tell a friend. That’s Tips from trips.',
+    firstTipCta: 'Add a place',
+    firstTipLater: 'Later',
     checklistTitle: 'Getting started',
     checklistAddCity: 'Add a city',
     checklistAddPlace: 'Add a place',
@@ -1184,6 +1254,24 @@ const en = {
     tourShowcaseSlide2Body:
       'After sign-in, pick a username — you get an empty personal map to fill from scratch.',
     tourDontAutoOpen: "Don't suggest on open",
+  },
+  firstTrip: {
+    title: 'First trip',
+    stepOf: 'Step {{step}} of {{total}}',
+    intro: 'Two cities and how you travelled — flags and a line appear on the map.',
+    from: 'From',
+    to: 'To',
+    searchPlaceholder: 'Start typing a city…',
+    pickHint: 'Pick a city from the suggestions',
+    next: 'Next',
+    back: 'Back',
+    save: 'Show on map',
+    skip: 'Skip',
+    change: 'Change',
+    mode: 'How you travelled',
+    errorCountry: 'Need a city with a country — try another result.',
+    errorSame: 'Cities must be different.',
+    summary: '{{from}} → {{to}}',
   },
 };
 

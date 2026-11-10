@@ -47,6 +47,7 @@ type Props = {
   onClose: () => void;
   onUserUpdated: (user: AuthUser) => void;
   onAccountDeleted: () => void;
+  onOpenPostcard?: () => void;
 };
 
 export function AccountModal({
@@ -54,6 +55,7 @@ export function AccountModal({
   onClose,
   onUserUpdated,
   onAccountDeleted,
+  onOpenPostcard,
 }: Props) {
   const t = useT();
   const [usage, setUsage] = useState<UserUsage | null>(null);
@@ -335,7 +337,13 @@ export function AccountModal({
           </div>
 
           {!loading && usage ? (
-            <PassportPanel countries={usage.countries} t={t} />
+            <PassportPanel
+              countries={usage.countries}
+              t={t}
+              onOpenPostcard={
+                usage.countries > 0 ? onOpenPostcard : undefined
+              }
+            />
           ) : null}
 
           <section className='account-modal__section'>
@@ -824,9 +832,11 @@ const STAMP_I18N: Record<StampId, string> = {
 function PassportPanel({
   countries,
   t,
+  onOpenPostcard,
 }: {
   countries: number;
   t: (key: string, vars?: Record<string, string | number>) => string;
+  onOpenPostcard?: () => void;
 }) {
   const percent = worldCoveragePercent(countries);
   return (
@@ -842,6 +852,15 @@ function PassportPanel({
           <span className="passport__bar-fill" style={{ width: `${percent}%` }} />
         </span>
       </div>
+      {onOpenPostcard ? (
+        <button
+          type="button"
+          className="account-modal__share-btn passport__share"
+          onClick={onOpenPostcard}
+        >
+          {t('account.openPostcard')}
+        </button>
+      ) : null}
       <ul className="passport__stamps">
         {PASSPORT_STAMPS.map((stamp) => {
           const on = countries >= stamp.minCountries;

@@ -6,6 +6,7 @@ import type {
   City,
   Place,
   PlaceCategory,
+  TravelRoute,
   UserRouteMode,
 } from './types';
 
@@ -70,6 +71,21 @@ export const TRANSIT_LAYOVER_COUNTRY_CODES: ReadonlySet<string> = new Set([
 
 export function cityById(catalog: Catalog, id: string): City | undefined {
   return catalog.cities.find((c) => c.id === id);
+}
+
+/** Город для «первого совета»: куда вели в последнем маршруте, иначе последний в каталоге. */
+export function suggestedTipCity(
+  catalog: Catalog,
+  routes: TravelRoute[],
+): City | undefined {
+  for (let i = routes.length - 1; i >= 0; i--) {
+    const wp = routes[i]?.waypoints ?? [];
+    const toName = wp[wp.length - 1]?.name?.trim();
+    if (!toName) continue;
+    const hit = catalog.cities.find((c) => c.name === toName);
+    if (hit) return hit;
+  }
+  return catalog.cities[catalog.cities.length - 1];
 }
 
 /** Подрайон (khwaeng и т.п.) — не город для заливки и метки на табах категорий */

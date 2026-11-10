@@ -24,6 +24,9 @@ const HINT_MESSAGE_KEY: Record<OnboardingHintKey, string | null> = {
   firstPlaceOpen: 'onboarding.hintFirstPlaceOpen',
   checklistDismissed: null,
   skipAll: null,
+  firstTripWizard: null,
+  firstPostcard: null,
+  firstTip: null,
 };
 
 export function useMapOnboarding(enabled: boolean) {

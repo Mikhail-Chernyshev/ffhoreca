@@ -28,6 +28,7 @@ type Props = {
   onSaved: (place: Place, city: City) => boolean | void | Promise<boolean | void>;
   /** Если задан — вызывается вместо дефолтной загрузки фото через X-Admin-Token */
   uploadPhotos?: (files: File[]) => Promise<string[]>;
+  initialCityId?: string;
 };
 
 const CATEGORY_VALUES: PlaceCategory[] = ['attraction', 'lodging', 'food', 'bar', 'airport'];
@@ -98,11 +99,22 @@ function buildPlace(form: {
   };
 }
 
-export function AddPlaceModal({ onClose, catalog, onSaved, uploadPhotos }: Props) {
+export function AddPlaceModal({
+  onClose,
+  catalog,
+  onSaved,
+  uploadPhotos,
+  initialCityId,
+}: Props) {
   const t = useT();
   const { locale } = useLocale();
   const [name, setName] = useState('');
-  const [cityId, setCityId] = useState(catalog.cities[0]?.id ?? '');
+  const [cityId, setCityId] = useState(() => {
+    if (initialCityId && catalog.cities.some((c) => c.id === initialCityId)) {
+      return initialCityId;
+    }
+    return catalog.cities[0]?.id ?? '';
+  });
   const [category, setCategory] = useState<PlaceCategory>('attraction');
   /** Города, созданные «на лету» из результатов поиска (не в каталоге) */
   const [localCities, setLocalCities] = useState<City[]>([]);

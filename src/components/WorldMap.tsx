@@ -46,6 +46,21 @@ import { UserRoutes } from './UserRoutes';
 /** Топология world-atlas countries-50m (async, ~740 KB — баланс детализации и веса). */
 type CountriesTopology = typeof import('world-atlas/countries-50m.json');
 
+let countriesTopologyCache: CountriesTopology | null = null;
+let countriesTopologyPromise: Promise<CountriesTopology> | null = null;
+
+function loadCountriesTopology(): Promise<CountriesTopology> {
+  if (countriesTopologyCache) return Promise.resolve(countriesTopologyCache);
+  if (!countriesTopologyPromise) {
+    countriesTopologyPromise = import('world-atlas/countries-50m.json').then((mod) => {
+      const topo = (mod as { default?: CountriesTopology }).default ?? (mod as CountriesTopology);
+      countriesTopologyCache = topo;
+      return topo;
+    });
+  }
+  return countriesTopologyPromise;
+}
+
 const EMPTY_COUNTRIES_GEO: FeatureCollection<Geometry, GeoJsonProperties> = {
   type: 'FeatureCollection',
   features: [],
@@ -176,6 +191,8 @@ type Props = {
 export type WorldMapRef = {
   /** Приближение к точке как при клике по городу на карте. */
   flyToLngLat: (lng: number, lat: number) => void;
+  /** Кадр поездки так, чтобы флаги стран ещё были видны. */
+  fitTrip: (points: { lng: number; lat: number }[]) => void;
 };
 
 const NO_CITIES: City[] = [];
@@ -226,22 +243,27 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   );
 
   const [countriesTopology, setCountriesTopology] =
-    useState<CountriesTopology | null>(null);
+    useState<CountriesTopology | null>(() => countriesTopologyCache);
   useEffect(() => {
+    if (countriesTopologyCache) {
+      setCountriesTopology(countriesTopologyCache);
+      return;
+    }
     let cancelled = false;
-    const load = () => {
-      void import('world-atlas/countries-50m.json').then((mod) => {
-        if (!cancelled) setCountriesTopology(mod.default);
-      });
+    const apply = (topo: CountriesTopology) => {
+      if (!cancelled) setCountriesTopology(topo);
+    };
+    const start = () => {
+      void loadCountriesTopology().then(apply);
     };
     if (typeof requestIdleCallback === 'function') {
-      const id = requestIdleCallback(load, { timeout: 2500 });
+      const id = requestIdleCallback(start, { timeout: 2500 });
       return () => {
         cancelled = true;
         cancelIdleCallback(id);
       };
     }
-    const t = window.setTimeout(load, 150);
+    const t = window.setTimeout(start, 150);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
@@ -305,18 +327,39 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   useEffect(() => {
     if (!mapReady) return;
     const map = mapRef.current?.getMap();
-    if (!map?.isStyleLoaded()) return;
+    if (!map) return;
 
-    if (!map.getLayer(LAYER_COUNTRY_FLAG_FILLS)) {
-      map.addLayer(flagFillLayer, fillBeforeId);
-    } else if (fillBeforeId && map.getLayer(fillBeforeId)) {
-      map.moveLayer(LAYER_COUNTRY_FLAG_FILLS, fillBeforeId);
-    }
-    map.triggerRepaint();
+    // reuseMaps переносит тот же MapLibre на другую страницу и при reuse
+    // перезагружает стиль — кастомный слой снимается. Вешаем его снова
+    // на style.load, а не только в момент mapReady.
+    const ensureLayer = () => {
+      if (!map.getStyle()) return;
+      try {
+        if (map.getLayer(LAYER_COUNTRY_FLAG_FILLS)) return;
+        const before =
+          fillBeforeId && map.getLayer(fillBeforeId)
+            ? fillBeforeId
+            : firstSymbolLayerId(map);
+        map.addLayer(flagFillLayer, before);
+        map.triggerRepaint();
+      } catch {
+        /* стиль в процессе замены */
+      }
+    };
+
+    ensureLayer();
+    map.on('style.load', ensureLayer);
+    map.on('styledata', ensureLayer);
 
     return () => {
-      if (map.getLayer(LAYER_COUNTRY_FLAG_FILLS)) {
-        map.removeLayer(LAYER_COUNTRY_FLAG_FILLS);
+      map.off('style.load', ensureLayer);
+      map.off('styledata', ensureLayer);
+      try {
+        if (map.getLayer(LAYER_COUNTRY_FLAG_FILLS)) {
+          map.removeLayer(LAYER_COUNTRY_FLAG_FILLS);
+        }
+      } catch {
+        /* карта уже разобрана */
       }
     };
   }, [mapReady, fillBeforeId, flagFillLayer]);
@@ -338,6 +381,40 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           zoom: Math.min(MAP_MAX_ZOOM, z),
           duration: 750,
         });
+      },
+      fitTrip: (points) => {
+        const map = mapRef.current?.getMap();
+        if (!map || points.length === 0) return;
+        const maxZoom = COUNTRY_FILL_LAYER_MAX_ZOOM - 1.4;
+        if (points.length === 1) {
+          map.flyTo({
+            center: [points[0].lng, points[0].lat],
+            zoom: Math.min(4.2, maxZoom),
+            duration: 900,
+          });
+          return;
+        }
+        let west = points[0].lng;
+        let south = points[0].lat;
+        let east = points[0].lng;
+        let north = points[0].lat;
+        for (const p of points) {
+          west = Math.min(west, p.lng);
+          south = Math.min(south, p.lat);
+          east = Math.max(east, p.lng);
+          north = Math.max(north, p.lat);
+        }
+        map.fitBounds(
+          [
+            [west, south],
+            [east, north],
+          ],
+          {
+            padding: { top: 96, bottom: 140, left: 72, right: 72 },
+            maxZoom,
+            duration: 1000,
+          },
+        );
       },
     }),
     [],
@@ -418,16 +495,19 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     showCityLayer && cityBoundaryGeo != null && zoom >= CITY_BOUNDARY_MIN_ZOOM;
 
   useEffect(() => {
+    if (!mapReady) return;
     const map = mapRef.current?.getMap();
     if (!map) return;
-    // Обновляем firstSymbolId при смене стиля (например, при горячей замене тайлов)
-    const run = () => setFillBeforeId(firstSymbolLayerId(map));
-    if (map.isStyleLoaded()) run();
+    const run = () => {
+      const id = firstSymbolLayerId(map);
+      setFillBeforeId((prev) => (prev === id ? prev : id));
+    };
+    run();
     map.on('styledata', run);
     return () => {
       map.off('styledata', run);
     };
-  }, [countriesGeo, showCityBoundaries]);
+  }, [mapReady]);
 
   const showPlaceMarkers = zoom >= PLACE_MARKERS_MIN_ZOOM;
   const placeLabelHigh = zoom >= PLACE_LABEL_HIGH_ZOOM;

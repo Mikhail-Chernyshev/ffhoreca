@@ -8,7 +8,17 @@ export type OnboardingHintKey =
   | 'firstSearch'
   | 'firstPlaceOpen'
   | 'checklistDismissed'
+  | 'firstTripWizard'
+  | 'firstPostcard'
+  | 'firstTip'
   | 'skipAll';
+
+/** Не прячем «Пропустить обучение» — это шаги удержания, не тур. */
+const SKIP_ALL_EXEMPT: ReadonlySet<OnboardingHintKey> = new Set([
+  'firstTripWizard',
+  'firstPostcard',
+  'firstTip',
+]);
 
 export type OnboardingEvent =
   | 'cityAdded'
@@ -41,8 +51,12 @@ export function isOnboardingSkipped(): boolean {
 }
 
 export function isHintSeen(key: OnboardingHintKey): boolean {
-  if (isOnboardingSkipped()) return true;
+  if (!SKIP_ALL_EXEMPT.has(key) && isOnboardingSkipped()) return true;
   return !!readState().seen[key];
+}
+
+export function isFirstTripDismissed(): boolean {
+  return !!readState().seen.firstTripWizard;
 }
 
 export function markHintSeen(key: OnboardingHintKey): void {

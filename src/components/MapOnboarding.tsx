@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Catalog, TravelRoute } from '../data/types';
 import { useT } from '../i18n/LocaleContext';
-import { isHintSeen } from '../lib/onboardingStore';
+import { isHintSeen, markHintSeen } from '../lib/onboardingStore';
 import type { useMapOnboarding } from '../hooks/useMapOnboarding';
 import { OnboardingHelpControls } from './OnboardingHelpControls';
 
@@ -15,9 +16,14 @@ interface Props {
   isLoggedIn: boolean;
   username?: string | null;
   onAddCity: () => void;
+  onStartTrip?: () => void;
+  onAddPlace?: () => void;
   onboarding: ReturnType<typeof useMapOnboarding>;
   /** Рендерится в шапке; если false — кнопки не показываются здесь */
   hideHelpControls?: boolean;
+  /** Не показывать карточку «первый совет», пока открыта открытка / мастер */
+  hideFirstTip?: boolean;
+  firstTipCity?: string | null;
 }
 
 export function MapOnboarding({
@@ -28,10 +34,15 @@ export function MapOnboarding({
   isLoggedIn,
   username,
   onAddCity,
+  onStartTrip,
+  onAddPlace,
   onboarding,
   hideHelpControls = false,
+  hideFirstTip = false,
+  firstTipCity = null,
 }: Props) {
   const t = useT();
+  const [tipDismissed, setTipDismissed] = useState(() => isHintSeen('firstTip'));
   const {
     skipped,
     tourOpen,
@@ -50,7 +61,6 @@ export function MapOnboarding({
 
   const showEmpty =
     enabled &&
-    !skipped &&
     mode === 'ownMap' &&
     canEdit &&
     catalog.cities.length === 0 &&
@@ -63,13 +73,25 @@ export function MapOnboarding({
     !bannerDismissed &&
     !isHintSeen('showcaseBanner');
 
+  const showFirstTip =
+    enabled &&
+    mode === 'ownMap' &&
+    canEdit &&
+    !hideFirstTip &&
+    !showEmpty &&
+    !tipDismissed &&
+    catalog.cities.length > 0 &&
+    catalog.places.length === 0 &&
+    !!onAddPlace;
+
   const showChecklist =
     enabled &&
     !skipped &&
     mode === 'ownMap' &&
     canEdit &&
     !checklistCollapsed &&
-    !isHintSeen('checklistDismissed');
+    !isHintSeen('checklistDismissed') &&
+    !showFirstTip;
 
   const checklist = {
     city: catalog.cities.length > 0,
@@ -115,7 +137,16 @@ export function MapOnboarding({
           <h2 className="onboarding-empty__title">{t('onboarding.emptyTitle')}</h2>
           <p className="onboarding-empty__body">{t('onboarding.emptyBody')}</p>
           <div className="onboarding-empty__actions">
-            <button type="button" className="onboarding-empty__cta" onClick={onAddCity}>
+            {onStartTrip ? (
+              <button type="button" className="onboarding-empty__cta" onClick={onStartTrip}>
+                {t('onboarding.emptyAddTrip')}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className={onStartTrip ? 'onboarding-empty__link' : 'onboarding-empty__cta'}
+              onClick={onAddCity}
+            >
               {t('onboarding.emptyAddCity')}
             </button>
             <button
@@ -124,6 +155,32 @@ export function MapOnboarding({
               onClick={() => setTourOpen(true)}
             >
               {t('onboarding.helpButton')}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {showFirstTip ? (
+        <div className="onboarding-empty onboarding-empty--tip">
+          <h2 className="onboarding-empty__title">{t('onboarding.firstTipTitle')}</h2>
+          <p className="onboarding-empty__body">
+            {firstTipCity
+              ? t('onboarding.firstTipBodyCity', { city: firstTipCity })
+              : t('onboarding.firstTipBody')}
+          </p>
+          <div className="onboarding-empty__actions">
+            <button type="button" className="onboarding-empty__cta" onClick={onAddPlace}>
+              {t('onboarding.firstTipCta')}
+            </button>
+            <button
+              type="button"
+              className="onboarding-empty__link"
+              onClick={() => {
+                markHintSeen('firstTip');
+                setTipDismissed(true);
+              }}
+            >
+              {t('onboarding.firstTipLater')}
             </button>
           </div>
         </div>
@@ -169,7 +226,7 @@ export function MapOnboarding({
           onClose={() => setTourOpen(false)}
           onStart={() => {
             setTourOpen(false);
-            if (showEmpty) onAddCity();
+            if (showEmpty) (onStartTrip ?? onAddCity)();
           }}
         />
       ) : null}
@@ -217,7 +274,7 @@ function OnboardingTourModal({
 
   const last = slide >= slides.length - 1;
 
-  return (
+  return createPortal(
     <div
       className="onboarding-tour-overlay"
       role="dialog"
@@ -225,7 +282,7 @@ function OnboardingTourModal({
       aria-labelledby="onboarding-tour-title"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="onboarding-tour-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="onboarding-tour-panel">
         <div className="onboarding-tour-panel__header">
           <h2 id="onboarding-tour-title" className="onboarding-tour-panel__title">
             {t('onboarding.tourTitle')}
@@ -265,6 +322,7 @@ function OnboardingTourModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

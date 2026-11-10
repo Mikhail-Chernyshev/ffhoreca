@@ -57,7 +57,9 @@ import { MapOnboarding } from './components/MapOnboarding'
 import { OnboardingHelpControls } from './components/OnboardingHelpControls'
 import { useMapOnboarding } from './hooks/useMapOnboarding'
 import { useCurrentUser } from './hooks/useCurrentUser'
-import { useT } from './i18n/LocaleContext'
+import { useLocale, useT } from './i18n/LocaleContext'
+import { PostcardModal } from './components/PostcardModal'
+import { buildPostcardData } from './lib/postcard'
 import { useToast } from './components/ToastProvider'
 import { consumeAuthBootstrapError } from './lib/bootstrapAuth'
 
@@ -65,6 +67,7 @@ const EMPTY_CATALOG: Catalog = { cities: [], places: [] }
 
 function App() {
   const t = useT()
+  const { locale } = useLocale()
   const navigate = useNavigate()
   const { push: pushToast } = useToast()
   const apiConfiguredAtInit = apiBaseUrl() !== ''
@@ -95,6 +98,7 @@ function App() {
   const [favoritesOpen, setFavoritesOpen] = useState(false)
   const [adminUsersOpen, setAdminUsersOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [postcardOpen, setPostcardOpen] = useState(false)
   const onboardingEnabled = !adminMode
   const onboarding = useMapOnboarding(onboardingEnabled)
   const { notify: onboardingNotify, setTourOpen } = onboarding
@@ -198,6 +202,20 @@ function App() {
     [catalogMerged, transitCountries],
   )
   const worldPercent = worldCoveragePercent(countryCount)
+  const postcardData = useMemo(() => {
+    if (countryCount === 0) return null
+    const base = import.meta.env.BASE_URL.replace(/\/+$/, '') || ''
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    return buildPostcardData({
+      name: 'Tips from trips',
+      username: null,
+      catalog: catalogMerged,
+      routes: routesQuery.data ?? [],
+      transit: transitCountries,
+      locale,
+      mapUrl: `${origin}${base}/`,
+    })
+  }, [catalogMerged, countryCount, locale, routesQuery.data, transitCountries])
 
   const handleToggleTransit = useCallback(
     async (code: string) => {
@@ -390,10 +408,15 @@ function App() {
             onChange={setFilter}
             catalog={catalogMerged}
           />
-          {countryCount > 0 ? (
-            <p className="map-passport nums-tabular">
+          {postcardData ? (
+            <button
+              type="button"
+              className="map-passport nums-tabular"
+              onClick={() => setPostcardOpen(true)}
+              aria-label={t('postcard.openAria', { percent: worldPercent })}
+            >
               {t('userMap.passportChip', { percent: worldPercent })}
-            </p>
+            </button>
           ) : null}
           {canEditShowcase ? (
             <MapEditorActions
@@ -543,6 +566,12 @@ function App() {
         <AdminUsersModal
           onClose={() => setAdminUsersOpen(false)}
           onOpenProfile={(username) => { setAdminUsersOpen(false); navigate(`/${username}`); }}
+        />
+      ) : null}
+      {postcardOpen && postcardData ? (
+        <PostcardModal
+          data={postcardData}
+          onClose={() => setPostcardOpen(false)}
         />
       ) : null}
       {accountOpen && currentUser ? (

@@ -9,7 +9,7 @@ import { AddCityModal } from '../components/AddCityModal';
 import { AddPlaceModal } from '../components/AddPlaceModal';
 import { AddRouteModal } from '../components/AddRouteModal';
 import { ManagerModal } from '../components/ManagerModal';
-import { countedCountryCodes, placesForFilter } from '../data/selectors';
+import { countedCountryCodes, placesForFilter, suggestedTipCity } from '../data/selectors';
 import {
   parseTransitCodes,
   toggleTransitCode,
@@ -24,7 +24,7 @@ import {
   userPostRoute, userDeleteRoute,
   userUploadPhotos,
 } from '../lib/apiUserCatalog';
-import { useT } from '../i18n/LocaleContext';
+import { useLocale, useT } from '../i18n/LocaleContext';
 import { useAdminMode } from '../hooks/useAdminMode';
 import { useCanEditMap } from '../hooks/useCanEditMap';
 import { useCurrentUser } from '../hooks/useCurrentUser';
@@ -48,12 +48,17 @@ import type { UserApiResult } from '../lib/apiUserCatalog';
 import { usePageMeta } from '../lib/pageMeta';
 import { mapPageUrl } from '../lib/shareUrl';
 import { requestMapFollow, type FollowStatus } from '../lib/apiFollow';
+import { FirstTripWizard } from '../components/FirstTripWizard';
+import { PostcardModal } from '../components/PostcardModal';
+import { buildPostcardData } from '../lib/postcard';
+import { isFirstTripDismissed, isHintSeen, markHintSeen } from '../lib/onboardingStore';
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] };
 
 export function UserMapPage() {
   const { username } = useParams<{ username: string }>();
   const t = useT();
+  const { locale } = useLocale();
   const navigate = useNavigate();
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser();
   const [favoritesOpen, setFavoritesOpen] = useState(false);
@@ -76,6 +81,11 @@ export function UserMapPage() {
   const [addPlaceOpen, setAddPlaceOpen] = useState(false);
   const [addRouteOpen, setAddRouteOpen] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [firstTripOpen, setFirstTripOpen] = useState(false);
+  const [postcardOpen, setPostcardOpen] = useState(false);
+  const [postcardAfterTrip, setPostcardAfterTrip] = useState(false);
+  const [placeCityId, setPlaceCityId] = useState<string | undefined>();
+  const firstTripAutoOpened = useRef(false);
   const [transitCodes, setTransitCodes] = useState<string[]>([]);
   const transitBusy = useRef(false);
 
@@ -209,6 +219,30 @@ export function UserMapPage() {
     mapRef.current?.flyToLngLat(lng, lat);
   }, []);
 
+  const dismissFirstTrip = useCallback(() => {
+    markHintSeen('firstTripWizard');
+    setFirstTripOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (firstTripAutoOpened.current) return;
+    if (!canEditMap || loading || accountOpen || mapRestricted) return;
+    if (!currentUser?.username) return;
+    if (catalog.cities.length > 0 || catalog.places.length > 0 || routes.length > 0) return;
+    if (isFirstTripDismissed()) return;
+    firstTripAutoOpened.current = true;
+    setFirstTripOpen(true);
+  }, [
+    canEditMap,
+    loading,
+    accountOpen,
+    mapRestricted,
+    currentUser?.username,
+    catalog.cities.length,
+    catalog.places.length,
+    routes.length,
+  ]);
+
   const handleRequestAccess = useCallback(async () => {
     if (!username) return;
     setFollowBusy(true);
@@ -239,6 +273,32 @@ export function UserMapPage() {
     [catalog, transitCountries],
   );
   const worldPercent = worldCoveragePercent(countryCount);
+  const tipCity = useMemo(
+    () => suggestedTipCity(catalog, routes),
+    [catalog, routes],
+  );
+  const postcardData = useMemo(() => {
+    if (countryCount === 0) return null;
+    const handle = profileUser?.username || username || null;
+    return buildPostcardData({
+      name: profileUser?.name || handle || 'Tips from trips',
+      username: handle,
+      catalog,
+      routes,
+      transit: transitCountries,
+      locale,
+      mapUrl: handle ? mapPageUrl(handle) : window.location.href,
+    });
+  }, [
+    catalog,
+    countryCount,
+    locale,
+    profileUser?.name,
+    profileUser?.username,
+    routes,
+    transitCountries,
+    username,
+  ]);
 
   const handleToggleTransit = useCallback(
     async (code: string) => {
@@ -398,13 +458,24 @@ export function UserMapPage() {
                   routes: routes.length,
                 })}
               </p>
-              <button
-                type="button"
-                className="map-story__list"
-                onClick={() => setManagerOpen(true)}
-              >
-                {t('userMap.openList')}
-              </button>
+              <div className="map-story__actions">
+                <button
+                  type="button"
+                  className="map-story__list"
+                  onClick={() => setManagerOpen(true)}
+                >
+                  {t('userMap.openList')}
+                </button>
+                {postcardData ? (
+                  <button
+                    type="button"
+                    className="map-story__postcard"
+                    onClick={() => setPostcardOpen(true)}
+                  >
+                    {t('userMap.storyPostcard')}
+                  </button>
+                ) : null}
+              </div>
             </div>
           ) : null}
           <MapSearchBar
@@ -413,10 +484,15 @@ export function UserMapPage() {
             onSearchSelect={() => onboardingNotify('searchUsed')}
           />
           <CategoryTabs value={filter} onChange={setFilter} catalog={catalog} />
-          {countryCount > 0 && mapMode !== 'sharedMap' ? (
-            <p className="map-passport nums-tabular">
+          {postcardData && mapMode !== 'sharedMap' ? (
+            <button
+              type="button"
+              className="map-passport nums-tabular"
+              onClick={() => setPostcardOpen(true)}
+              aria-label={t('postcard.openAria', { percent: worldPercent })}
+            >
               {t('userMap.passportChip', { percent: worldPercent })}
-            </p>
+            </button>
           ) : null}
           {canEditMap ? (
             <MapEditorActions
@@ -447,6 +523,13 @@ export function UserMapPage() {
           isLoggedIn={!!currentUser}
           username={currentUser?.username}
           onAddCity={() => setAddCityOpen(true)}
+          onStartTrip={() => setFirstTripOpen(true)}
+          onAddPlace={() => {
+            setPlaceCityId(tipCity?.id);
+            setAddPlaceOpen(true);
+          }}
+          firstTipCity={tipCity?.name ?? null}
+          hideFirstTip={postcardOpen || firstTripOpen || addPlaceOpen}
           onboarding={onboarding}
           hideHelpControls
         />
@@ -497,6 +580,45 @@ export function UserMapPage() {
         uploadPhotos={canEditMap ? userUploadPhotos : undefined}
       />
 
+      {firstTripOpen && canEditMap ? (
+        <FirstTripWizard
+          onClose={dismissFirstTrip}
+          saveCity={async (city) => {
+            const r = await userPostCity(city);
+            if (!r.ok) handleUserApiError(r);
+            return r;
+          }}
+          saveRoute={async (route) => {
+            const r = await userPostRoute(route);
+            if (!r.ok) handleUserApiError(r);
+            return r;
+          }}
+          onComplete={async (fromCity, toCity, route) => {
+            markHintSeen('firstTripWizard');
+            setFirstTripOpen(false);
+            setCatalog((prev) => {
+              const byId = new Map(prev.cities.map((c) => [c.id, c]));
+              byId.set(fromCity.id, fromCity);
+              byId.set(toCity.id, toCity);
+              return { ...prev, cities: [...byId.values()] };
+            });
+            setRoutes((prev) =>
+              prev.some((r) => r.id === route.id) ? prev : [...prev, route],
+            );
+            mapRef.current?.fitTrip([fromCity, toCity]);
+            if (!isHintSeen('firstPostcard')) {
+              markHintSeen('firstPostcard');
+              setPostcardAfterTrip(true);
+              setPostcardOpen(true);
+            }
+            await loadCatalog();
+            await refreshUsage();
+            onboardingNotify('cityAdded');
+            onboardingNotify('routeAdded');
+          }}
+        />
+      ) : null}
+
       {addCityOpen && (
         <AddCityModal
           catalog={catalog}
@@ -518,7 +640,11 @@ export function UserMapPage() {
       {addPlaceOpen && (
         <AddPlaceModal
           catalog={catalog}
-          onClose={() => setAddPlaceOpen(false)}
+          initialCityId={placeCityId}
+          onClose={() => {
+            setAddPlaceOpen(false);
+            setPlaceCityId(undefined);
+          }}
           uploadPhotos={userUploadPhotos}
           onSaved={handlePlaceSaved}
         />
@@ -589,10 +715,29 @@ export function UserMapPage() {
         />
       ) : null}
 
+      {postcardOpen && postcardData ? (
+        <PostcardModal
+          data={postcardData}
+          kicker={postcardAfterTrip ? t('postcard.firstKicker') : undefined}
+          onClose={() => {
+            setPostcardOpen(false);
+            setPostcardAfterTrip(false);
+          }}
+        />
+      ) : null}
+
       {accountOpen && currentUser ? (
         <AccountModal
           user={currentUser}
           onClose={() => setAccountOpen(false)}
+          onOpenPostcard={
+            canEditMap && postcardData
+              ? () => {
+                  setAccountOpen(false);
+                  setPostcardOpen(true);
+                }
+              : undefined
+          }
           onUserUpdated={(updated) => {
             void refetchUser();
             void refreshUsage();

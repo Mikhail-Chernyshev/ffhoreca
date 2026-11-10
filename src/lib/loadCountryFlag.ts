@@ -24,7 +24,11 @@ export function loadCountryFlag(
   const code = flagCdnCode(iso);
   const cached = images.get(code);
   if (cached) return cached;
-  if (inflight.has(code)) return null;
+  const pending = inflight.get(code);
+  if (pending) {
+    if (onReady) void pending.then((img) => { if (img) onReady(); });
+    return null;
+  }
 
   const promise = new Promise<HTMLImageElement | null>((resolve) => {
     const img = new Image();
@@ -44,4 +48,13 @@ export function loadCountryFlag(
   });
   inflight.set(code, promise);
   return null;
+}
+
+export function loadCountryFlagAsync(iso: string): Promise<HTMLImageElement | null> {
+  const cached = getCachedFlagImage(iso);
+  if (cached) return Promise.resolve(cached);
+  const pending = inflight.get(flagCdnCode(iso));
+  if (pending) return pending;
+  loadCountryFlag(iso);
+  return inflight.get(flagCdnCode(iso)) ?? Promise.resolve(null);
 }

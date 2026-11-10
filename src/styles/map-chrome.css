@@ -109,6 +109,11 @@
   width: min(28rem, 100%);
 }
 
+.map-chrome__notices .onboarding-tour-overlay {
+  width: auto;
+  max-width: none;
+}
+
 .map-chrome__bottom {
   margin-top: auto;
   display: flex;
@@ -164,7 +169,9 @@
 }
 
 .map-page .app-brand {
-  padding: var(--space-1) var(--space-3);
+  width: fit-content;
+  max-width: 100%;
+  padding: var(--space-1) 0.7rem;
   margin: 0;
   border-radius: var(--radius-pill);
   color: var(--text-h);
@@ -269,26 +276,49 @@
   line-height: var(--leading-snug);
 }
 
-.map-story__list {
+.map-story__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.45rem;
   margin-top: var(--space-3);
+}
+
+.map-story__list,
+.map-story__postcard {
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
   padding: 0.4rem 0.9rem;
-  border: none;
   border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.map-story__list {
+  border: none;
   background: var(--accent);
   color: var(--text-inverse);
-  cursor: pointer;
 }
 
 .map-story__list:hover {
   background: var(--accent-hover);
 }
 
+.map-story__postcard {
+  border: 1px solid var(--border);
+  background: var(--glass);
+  color: var(--text-h);
+}
+
+.map-story__postcard:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
 .map-passport {
   margin: 0;
   padding: 0.4rem 0.85rem;
+  font: inherit;
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: var(--tracking-tight);
@@ -299,6 +329,15 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   box-shadow: var(--shadow-md);
+}
+
+button.map-passport {
+  cursor: pointer;
+}
+
+button.map-passport:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
 /* Search */
@@ -678,4 +717,138 @@
   .map-page .app-header__right > * {
     transition: none;
   }
+}
+
+/* Shareable boarding-pass postcard */
+.postcard-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--overlay);
+  backdrop-filter: blur(6px);
+}
+
+.postcard-modal {
+  width: min(28rem, 100%);
+  max-height: min(92dvh, 52rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem 1rem 1.1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--glass-solid);
+  box-shadow: var(--shadow-lg);
+}
+
+.postcard-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.postcard-modal__kicker {
+  margin: 0 0 0.2rem;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.postcard-modal__title {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-h);
+}
+
+.postcard-modal__close {
+  font: inherit;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-h);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.postcard-modal__preview {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+}
+
+.postcard-modal__canvas {
+  width: min(100%, 22rem);
+  height: auto;
+  max-height: min(62dvh, 34rem);
+  border-radius: 18px;
+  box-shadow: var(--shadow-md);
+  background: #f6f1e8;
+}
+
+.postcard-modal__canvas--busy {
+  opacity: 0.55;
+}
+
+.postcard-modal__status {
+  position: absolute;
+  inset: auto 0 1rem;
+  margin: 0;
+  text-align: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.postcard-modal__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.postcard-modal__btn {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.postcard-modal__btn--primary {
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.postcard-modal__btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.postcard-modal__btn--ghost {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+}
+
+.postcard-modal__btn--ghost:hover:not(:disabled) {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.postcard-modal__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
