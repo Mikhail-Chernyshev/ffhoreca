@@ -62,9 +62,18 @@
 
 /* Тёмная тема отключена до отдельной доработки дизайна. */
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 #root {
   min-height: 100svh;
+  min-height: 100dvh;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 body {

@@ -36,6 +36,7 @@ import {
   TRANSIT_LAYOVER_COUNTRY_CODES,
   visitedCountryCodes,
 } from '../data/selectors';
+import { CountryFlagFillLayer } from '../lib/countryFlagFillLayer';
 import {
   fixGeojsonAntimeridian,
   sanitizeMapFillGeometry,
@@ -83,6 +84,7 @@ function countriesVisitedGeoJson(
       geometry,
       properties: {
         ...prev,
+        iso: alpha2 ?? null,
         visited: isVisited,
         transitLayover,
       },
@@ -95,7 +97,7 @@ function countriesVisitedGeoJson(
   return { type: 'FeatureCollection', features };
 }
 
-const LAYER_ATLAS_COUNTRIES_FILL = 'atlas-countries-fill';
+const LAYER_COUNTRY_FLAG_FILLS = 'country-flag-fills';
 const LAYER_CITY_BOUNDARIES_FILL = 'city-boundaries-fill';
 const LAYER_CITY_BOUNDARIES_LINE = 'city-boundaries-line';
 
@@ -211,6 +213,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   zoomRef.current = zoom;
   const [globeMode, setGlobeMode] = useState(false);
   const [fillBeforeId, setFillBeforeId] = useState<string | undefined>();
+  const [mapReady, setMapReady] = useState(false);
   const mapThemeDark = false;
 
   const visited = useMemo(() => visitedCountryCodes(catalog), [catalog]);
@@ -243,25 +246,24 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     return countriesVisitedGeoJson(visited, countriesTopology);
   }, [visited, countriesTopology]);
 
-  const countryFillPaint = useMemo(
-    () => ({
-      'fill-antialias': false,
-      'fill-color': [
-        'case',
-        ['==', ['get', 'transitLayover'], true],
-        mapThemeDark ? 'rgba(218, 175, 48, 0.44)' : 'rgba(255, 224, 102, 0.55)',
-        ['==', ['get', 'visited'], true],
-        mapThemeDark ? 'rgba(62, 107, 74, 0.32)' : 'rgba(95, 165, 115, 0.3)',
-        'rgba(0, 0, 0, 0)',
-      ],
-    }),
-    [mapThemeDark],
+  const visitedFeaturesRef = useRef(countriesGeo.features);
+  visitedFeaturesRef.current = countriesGeo.features;
+
+  const flagFillLayer = useMemo(
+    () =>
+      new CountryFlagFillLayer({
+        id: LAYER_COUNTRY_FLAG_FILLS,
+        getFeatures: () => visitedFeaturesRef.current,
+        maxZoom: COUNTRY_FILL_LAYER_MAX_ZOOM,
+      }),
+    [],
   );
 
   const handleMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
     setFillBeforeId(firstSymbolLayerId(map));
+    setMapReady(true);
     applyMapProjection(map, globeMode);
   }, [globeMode]);
 
@@ -277,6 +279,41 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
       map.off('styledata', run);
     };
   }, [globeMode]);
+
+  useEffect(() => {
+    const el = mapWrapRef.current;
+    if (!el) return;
+    const resize = () => {
+      mapRef.current?.getMap()?.resize();
+    };
+    const ro = new ResizeObserver(resize);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    const map = mapRef.current?.getMap();
+    if (!map?.isStyleLoaded()) return;
+
+    if (!map.getLayer(LAYER_COUNTRY_FLAG_FILLS)) {
+      map.addLayer(flagFillLayer, fillBeforeId);
+    } else if (fillBeforeId && map.getLayer(fillBeforeId)) {
+      map.moveLayer(LAYER_COUNTRY_FLAG_FILLS, fillBeforeId);
+    }
+    map.triggerRepaint();
+
+    return () => {
+      if (map.getLayer(LAYER_COUNTRY_FLAG_FILLS)) {
+        map.removeLayer(LAYER_COUNTRY_FLAG_FILLS);
+      }
+    };
+  }, [mapReady, fillBeforeId, flagFillLayer]);
+
+  useEffect(() => {
+    if (!mapReady) return;
+    mapRef.current?.getMap()?.triggerRepaint();
+  }, [countriesGeo, mapReady]);
 
   useImperativeHandle(
     ref,
@@ -562,16 +599,6 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           attributionControl={false}
         >
           <AttributionControl compact position='bottom-right' />
-
-          <Source id='atlas-countries' type='geojson' data={countriesGeo}>
-            <Layer
-              id={LAYER_ATLAS_COUNTRIES_FILL}
-              type='fill'
-              maxzoom={COUNTRY_FILL_LAYER_MAX_ZOOM}
-              beforeId={fillBeforeId}
-              paint={countryFillPaint as never}
-            />
-          </Source>
 
           <UserRoutes
             routes={userRoutes}
