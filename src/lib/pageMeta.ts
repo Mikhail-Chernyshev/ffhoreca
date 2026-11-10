@@ -24,19 +24,29 @@ export type PageMeta = {
   title?: string;
   description?: string;
   url?: string;
+  image?: string;
 };
+
+function defaultOgImage(): string {
+  if (typeof window === 'undefined') return './og-share.png';
+  const base = import.meta.env.BASE_URL.replace(/\/+$/, '') || '';
+  return `${window.location.origin}${base}/og-share.png`;
+}
 
 export function applyPageMeta(meta: PageMeta): void {
   const title = meta.title ?? DEFAULT.title;
   const description = meta.description ?? DEFAULT.description;
+  const image = meta.image ?? defaultOgImage();
   document.title = title;
   upsertMeta('description', 'name', description);
   upsertMeta('og:type', 'property', 'website');
   upsertMeta('og:title', 'property', title);
   upsertMeta('og:description', 'property', description);
-  upsertMeta('twitter:card', 'name', 'summary');
+  upsertMeta('og:image', 'property', image);
+  upsertMeta('twitter:card', 'name', 'summary_large_image');
   upsertMeta('twitter:title', 'name', title);
   upsertMeta('twitter:description', 'name', description);
+  upsertMeta('twitter:image', 'name', image);
   if (meta.url) {
     upsertMeta('og:url', 'property', meta.url);
   }
@@ -51,5 +61,5 @@ export function usePageMeta(meta: PageMeta | null): void {
     if (meta) applyPageMeta(meta);
     else resetPageMeta();
     return () => resetPageMeta();
-  }, [meta?.title, meta?.description, meta?.url]);
+  }, [meta?.title, meta?.description, meta?.url, meta?.image]);
 }

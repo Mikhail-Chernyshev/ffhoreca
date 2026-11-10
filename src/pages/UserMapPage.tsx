@@ -9,7 +9,13 @@ import { AddCityModal } from '../components/AddCityModal';
 import { AddPlaceModal } from '../components/AddPlaceModal';
 import { AddRouteModal } from '../components/AddRouteModal';
 import { ManagerModal } from '../components/ManagerModal';
-import { placesForFilter } from '../data/selectors';
+import { countedCountryCodes, placesForFilter } from '../data/selectors';
+import {
+  parseTransitCodes,
+  toggleTransitCode,
+  transitSet,
+} from '../lib/transitCountries';
+import { worldCoveragePercent } from '../lib/travelPassport';
 import type { Catalog, CategoryFilter, City, Place, TravelRoute } from '../data/types';
 import { apiBaseUrl, apiFetch } from '../lib/apiBase';
 import {
@@ -23,8 +29,7 @@ import { useAdminMode } from '../hooks/useAdminMode';
 import { useCanEditMap } from '../hooks/useCanEditMap';
 import { useCurrentUser } from '../hooks/useCurrentUser';
 import { MapEditorActions } from '../components/MapEditorActions';
-import { AppHeader } from '../components/AppHeader';
-import { AppFooter } from '../components/AppFooter';
+import { MapPageLayout } from '../components/MapPageLayout';
 import { AuthButton } from '../components/AuthButton';
 import { FavoritesModal } from '../components/FavoritesModal';
 import { AdminUsersModal } from '../components/AdminUsersModal';
@@ -38,7 +43,7 @@ import { useUserUsage } from '../hooks/useUserUsage';
 import { useFreemiumWarnings } from '../hooks/useFreemiumWarnings';
 import { useToast } from '../components/ToastProvider';
 import { limitReachedMessage } from '../lib/limitMessages';
-import { authHeaders, type AuthUser } from '../lib/apiAuth';
+import { authHeaders, updateAccountSettings, type AuthUser } from '../lib/apiAuth';
 import type { UserApiResult } from '../lib/apiUserCatalog';
 import { usePageMeta } from '../lib/pageMeta';
 import { mapPageUrl } from '../lib/shareUrl';
@@ -71,6 +76,8 @@ export function UserMapPage() {
   const [addPlaceOpen, setAddPlaceOpen] = useState(false);
   const [addRouteOpen, setAddRouteOpen] = useState(false);
   const [managerOpen, setManagerOpen] = useState(false);
+  const [transitCodes, setTransitCodes] = useState<string[]>([]);
+  const transitBusy = useRef(false);
 
   const mapRef = useRef<WorldMapRef>(null);
 
@@ -151,6 +158,7 @@ export function UserMapPage() {
     setFollowStatus('none');
     setFollowError(null);
     setProfileUser(null);
+    setTransitCodes([]);
 
     apiFetch(`${base}/api/users/${username}`, { headers: authHeaders() })
       .then(async (r) => {
@@ -170,7 +178,11 @@ export function UserMapPage() {
           setNotFound(true);
           return;
         }
-        setProfileUser(data.user);
+        setProfileUser({
+          ...data.user,
+          transit_countries: parseTransitCodes(data.user.transit_countries),
+        });
+        setTransitCodes(parseTransitCodes(data.user.transit_countries));
         setFollowStatus(data.follow_status ?? 'none');
         const restricted = data.map_access === 'restricted';
         setMapRestricted(restricted);
@@ -221,6 +233,40 @@ export function UserMapPage() {
   }, [onboardingNotify]);
 
   const visiblePlaces = useMemo(() => placesForFilter(catalog, filter), [catalog, filter]);
+  const transitCountries = useMemo(() => transitSet(transitCodes), [transitCodes]);
+  const countryCount = useMemo(
+    () => countedCountryCodes(catalog, transitCountries).size,
+    [catalog, transitCountries],
+  );
+  const worldPercent = worldCoveragePercent(countryCount);
+
+  const handleToggleTransit = useCallback(
+    async (code: string) => {
+      if (transitBusy.current) return;
+      transitBusy.current = true;
+      const prev = transitCodes;
+      const next = toggleTransitCode(prev, code);
+      setTransitCodes(next);
+      try {
+        const data = await updateAccountSettings({ transit_countries: next });
+        const saved = parseTransitCodes(data.user.transit_countries);
+        setTransitCodes(saved);
+        setProfileUser((u) => (u ? { ...u, transit_countries: saved } : u));
+        await refetchUser();
+        await refreshUsage();
+      } catch (e) {
+        setTransitCodes(prev);
+        showAlert(
+          t('placeModal.alertGenericError', {
+            message: e instanceof Error ? e.message : String(e),
+          }),
+        );
+      } finally {
+        transitBusy.current = false;
+      }
+    },
+    [transitCodes, refetchUser, refreshUsage, showAlert, t],
+  );
 
   const pageMeta = useMemo(() => {
     if (!profileUser?.username || mapRestricted) return null;
@@ -230,13 +276,14 @@ export function UserMapPage() {
       description: t('userMap.pageDescription', {
         username: un,
         name: profileUser.name,
+        countries: countryCount,
         cities: catalog.cities.length,
         places: catalog.places.length,
         routes: routes.length,
       }),
       url: mapPageUrl(un),
     };
-  }, [profileUser, mapRestricted, catalog.cities.length, catalog.places.length, routes.length, t]);
+  }, [profileUser, mapRestricted, countryCount, catalog.cities.length, catalog.places.length, routes.length, t]);
 
   usePageMeta(pageMeta);
 
@@ -313,93 +360,124 @@ export function UserMapPage() {
   }
 
   return (
-    <div className="user-map-page">
-      <AppHeader
-        leftBelow={
-          mapMode !== 'sharedMap' ? (
-            <OnboardingHelpControls
-              onOpenTour={() => setTourOpen(true)}
-              onSkip={skipAll}
-              showSkip={canEditMap && !skipped}
+    <MapPageLayout
+      className={mapMode === 'sharedMap' ? 'user-map-page map-page--story' : 'user-map-page'}
+      headerLeftBelow={
+        mapMode !== 'sharedMap' ? (
+          <OnboardingHelpControls
+            onOpenTour={() => setTourOpen(true)}
+            onSkip={skipAll}
+            showSkip={canEditMap && !skipped}
+          />
+        ) : null
+      }
+      headerRight={
+        <AuthButton
+          user={currentUser}
+          loading={authLoading}
+          onLogout={handleLogout}
+          onOpenFavorites={() => setFavoritesOpen(true)}
+          onOpenAccount={() => setAccountOpen(true)}
+          isAdmin={adminMode}
+          onOpenAdminUsers={() => setAdminUsersOpen(true)}
+        />
+      }
+      tools={
+        <>
+          {mapMode === 'sharedMap' && !mapRestricted && profileUser ? (
+            <div className="map-story">
+              <p className="map-story__kicker">{t('userMap.storyKicker')}</p>
+              <p className="map-story__title">{profileUser.name}</p>
+              <p className="map-story__handle">@{profileUser.username}</p>
+              <p className="map-story__stats nums-tabular">
+                {t('userMap.storyStats', {
+                  countries: countryCount,
+                  percent: worldPercent,
+                  cities: catalog.cities.length,
+                  places: catalog.places.length,
+                  routes: routes.length,
+                })}
+              </p>
+              <button
+                type="button"
+                className="map-story__list"
+                onClick={() => setManagerOpen(true)}
+              >
+                {t('userMap.openList')}
+              </button>
+            </div>
+          ) : null}
+          <MapSearchBar
+            catalog={catalog}
+            onFlyTo={flyToOnMap}
+            onSearchSelect={() => onboardingNotify('searchUsed')}
+          />
+          <CategoryTabs value={filter} onChange={setFilter} catalog={catalog} />
+          {countryCount > 0 && mapMode !== 'sharedMap' ? (
+            <p className="map-passport nums-tabular">
+              {t('userMap.passportChip', { percent: worldPercent })}
+            </p>
+          ) : null}
+          {canEditMap ? (
+            <MapEditorActions
+              onAddCity={() => setAddCityOpen(true)}
+              onAddPlace={() => setAddPlaceOpen(true)}
+              onAddRoute={() => setAddRouteOpen(true)}
+              onOpenManager={() => setManagerOpen(true)}
             />
-          ) : null
-        }
-        tagline={t('app.tagline')}
-        right={
-          <AuthButton
-            user={currentUser}
-            loading={authLoading}
-            onLogout={handleLogout}
-            onOpenFavorites={() => setFavoritesOpen(true)}
-            onOpenAccount={() => setAccountOpen(true)}
-            isAdmin={adminMode}
-            onOpenAdminUsers={() => setAdminUsersOpen(true)}
-          />
-        }
-      />
-
-      <MapOnboarding
-        mode={mapMode}
-        canEdit={canEditMap}
-        catalog={catalog}
-        routes={routes}
-        isLoggedIn={!!currentUser}
-        username={currentUser?.username}
-        onAddCity={() => setAddCityOpen(true)}
-        onboarding={onboarding}
-        hideHelpControls
-      />
-
-      <CategoryTabs value={filter} onChange={setFilter} catalog={catalog} />
-
-      {canEditMap ? (
-        <MapEditorActions
-          onAddCity={() => setAddCityOpen(true)}
-          onAddPlace={() => setAddPlaceOpen(true)}
-          onAddRoute={() => setAddRouteOpen(true)}
-          onOpenManager={() => setManagerOpen(true)}
-        />
-      ) : !mapRestricted ? (
-        <div className="app-admin-actions">
-          <button
-            type="button"
-            className="app-admin-add"
-            onClick={() => setManagerOpen(true)}
-          >
-            {t('userMap.openList')}
-          </button>
-        </div>
-      ) : null}
-
-      <MapSearchBar
-        catalog={catalog}
-        onFlyTo={flyToOnMap}
-        onSearchSelect={() => onboardingNotify('searchUsed')}
-      />
-
-      <div className={mapRestricted ? 'map-shell map-shell--restricted' : 'map-shell'}>
-        <WorldMap
-          ref={mapRef}
+          ) : !mapRestricted ? (
+            <div className="app-admin-actions">
+              <button
+                type="button"
+                className="app-admin-add"
+                onClick={() => setManagerOpen(true)}
+              >
+                {t('userMap.openList')}
+              </button>
+            </div>
+          ) : null}
+        </>
+      }
+      notices={
+        <MapOnboarding
+          mode={mapMode}
+          canEdit={canEditMap}
           catalog={catalog}
-          filter={filter}
-          places={visiblePlaces}
-          userRoutes={routes}
-          onPlaceClick={handlePlaceClick}
-          onCityClick={setSelectedCity}
-          ownerUsername={username}
-          isOwnMap={canEditMap && !!currentUser}
+          routes={routes}
+          isLoggedIn={!!currentUser}
+          username={currentUser?.username}
+          onAddCity={() => setAddCityOpen(true)}
+          onboarding={onboarding}
+          hideHelpControls
         />
-        {mapRestricted && profileUser ? (
-          <MapRestrictedOverlay
-            ownerName={profileUser.name}
-            isLoggedIn={!!currentUser}
-            followStatus={followStatus}
-            requestBusy={followBusy}
-            requestError={followError}
-            onRequestAccess={() => void handleRequestAccess()}
+      }
+      map={
+        <div className={mapRestricted ? 'map-shell map-shell--restricted' : 'map-shell'}>
+          <WorldMap
+            ref={mapRef}
+            catalog={catalog}
+            filter={filter}
+            places={visiblePlaces}
+            userRoutes={routes}
+            onPlaceClick={handlePlaceClick}
+            onCityClick={setSelectedCity}
+            ownerUsername={username}
+            isOwnMap={canEditMap && !!currentUser}
+            transitCountries={transitCountries}
           />
-        ) : null}
-      </div>
+          {mapRestricted && profileUser ? (
+            <MapRestrictedOverlay
+              ownerName={profileUser.name}
+              isLoggedIn={!!currentUser}
+              followStatus={followStatus}
+              requestBusy={followBusy}
+              requestError={followError}
+              onRequestAccess={() => void handleRequestAccess()}
+            />
+          ) : null}
+        </div>
+      }
+    >
 
       <PlaceModal
         key={selectedPlace?.id ?? 'closed'}
@@ -491,6 +569,8 @@ export function UserMapPage() {
           onDeletePlace={canEditMap ? handlePlaceDeleted : undefined}
           deleteRouteApi={canEditMap ? userDeleteRoute : undefined}
           deleteCityApi={canEditMap ? userDeleteCity : undefined}
+          transitCountries={transitCountries}
+          onToggleTransit={canEditMap ? handleToggleTransit : undefined}
         />
       )}
 
@@ -530,7 +610,6 @@ export function UserMapPage() {
           }}
         />
       ) : null}
-      <AppFooter />
-    </div>
+    </MapPageLayout>
   );
 }

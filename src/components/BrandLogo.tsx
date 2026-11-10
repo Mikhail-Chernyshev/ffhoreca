@@ -30,8 +30,8 @@ function IconMark({
     >
       <defs>
         <linearGradient id={gradientId} x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#8b5cf6" />
-          <stop offset="1" stopColor="#6d28d9" />
+          <stop stopColor="#e46a3a" />
+          <stop offset="1" stopColor="#b84422" />
         </linearGradient>
       </defs>
       <rect width="32" height="32" rx="8" fill={`url(#${gradientId})`} />
@@ -84,8 +84,8 @@ export function BrandLogo({
           y2="36"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stopColor="#8b5cf6" />
-          <stop offset="1" stopColor="#6d28d9" />
+          <stop stopColor="#e46a3a" />
+          <stop offset="1" stopColor="#b84422" />
         </linearGradient>
       </defs>
 

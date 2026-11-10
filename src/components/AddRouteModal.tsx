@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type DragEvent, type FormEvent } from 'react';
 import type { Catalog, City, Place, RouteWaypoint, TravelRoute, UserRouteMode } from '../data/types';
 import {
   airportsForRoutePicker,
@@ -29,6 +29,12 @@ type Props = {
 };
 
 const MODES: UserRouteMode[] = ['plane', 'train', 'bus', 'boat', 'car'];
+
+type WaypointRow = { key: string; id: string };
+
+function newRow(id = ''): WaypointRow {
+  return { key: `wp-${Math.random().toString(36).slice(2, 9)}`, id };
+}
 
 function cityToWaypoint(cityId: string, catalog: Catalog): RouteWaypoint | null {
   const city = catalog.cities.find((c) => c.id === cityId);
@@ -77,7 +83,8 @@ export function AddRouteModal({
   const t = useT();
   const { locale } = useLocale();
   const [mode, setMode] = useState<UserRouteMode>('plane');
-  const [waypointIds, setWaypointIds] = useState<string[]>(['', '']);
+  const [rows, setRows] = useState<WaypointRow[]>(() => [newRow(), newRow()]);
+  const dragFrom = useRef<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [pickingIndex, setPickingIndex] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -122,21 +129,32 @@ export function AddRouteModal({
   };
 
   const setWaypointAt = (index: number, value: string) => {
-    setWaypointIds((prev) => prev.map((v, i) => (i === index ? value : v)));
+    setRows((prev) => prev.map((row, i) => (i === index ? { ...row, id: value } : row)));
   };
 
   const addWaypoint = () => {
-    setWaypointIds((prev) => [...prev, '']);
+    setRows((prev) => [...prev, newRow()]);
   };
 
   const removeWaypoint = (index: number) => {
-    if (waypointIds.length <= 2) return;
-    setWaypointIds((prev) => prev.filter((_, i) => i !== index));
+    if (rows.length <= 2) return;
+    setRows((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const moveWaypoint = (from: number, to: number) => {
+    setRows((prev) => {
+      if (to < 0 || to >= prev.length || from === to) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      if (!item) return prev;
+      next.splice(to, 0, item);
+      return next;
+    });
   };
 
   const handleModeChange = (next: UserRouteMode) => {
     setMode(next);
-    setWaypointIds((prev) => prev.map(() => ''));
+    setRows((prev) => prev.map((row) => ({ ...row, id: '' })));
     setError(null);
   };
 
@@ -198,8 +216,8 @@ export function AddRouteModal({
     setError(null);
 
     const waypoints: RouteWaypoint[] = [];
-    for (let i = 0; i < waypointIds.length; i++) {
-      const id = waypointIds[i]!.trim();
+    for (let i = 0; i < rows.length; i++) {
+      const id = rows[i]!.id.trim();
       if (!id) {
         setError(t('addRoute.errorAllWaypoints'));
         return;
@@ -251,6 +269,30 @@ export function AddRouteModal({
     }
   };
 
+  const filledCount = rows.filter((row) => row.id.trim()).length;
+  const routePhase =
+    filledCount === 0 ? 'empty' : filledCount < rows.length ? 'progress' : 'ready';
+  const routeReady = routePhase === 'ready';
+
+  const onRowDragStart = (index: number) => (e: DragEvent<HTMLButtonElement>) => {
+    dragFrom.current = index;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+  };
+
+  const onRowDragOver = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const onRowDrop = (index: number) => (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const from = dragFrom.current;
+    dragFrom.current = null;
+    if (from == null) return;
+    moveWaypoint(from, index);
+  };
+
   return (
     <div
       className="modal-root"
@@ -258,7 +300,7 @@ export function AddRouteModal({
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="modal-dialog modal-dialog--wide"
+        className="modal-dialog modal-dialog--wide add-route-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="add-route-modal-title"
@@ -299,37 +341,81 @@ export function AddRouteModal({
             </div>
           </fieldset>
 
-          <div className="add-route-waypoints">
-            <div className="add-place-form__legend" style={{ marginBottom: '0.5rem' }}>
-              {t('addRoute.waypoints')}
+          <div className={`add-route-waypoints add-route-waypoints--${routePhase}`}>
+            <div className="add-route-waypoints__head">
+              <div className="add-place-form__legend">{t('addRoute.waypoints')}</div>
+              <p className={`add-route-status add-route-status--${routePhase}`} role="status">
+                {routePhase === 'empty'
+                  ? t('addRoute.statusEmpty')
+                  : routePhase === 'progress'
+                    ? t('addRoute.statusProgress')
+                    : t('addRoute.statusReady')}
+              </p>
             </div>
-            {waypointIds.map((selectedId, i) => (
-              <div key={i} className="add-route-waypoints__row">
+            {rows.map((row, i) => (
+              <div
+                key={row.key}
+                className={`add-route-waypoints__row${row.id ? ' add-route-waypoints__row--filled' : ''}`}
+                onDragOver={onRowDragOver}
+                onDrop={onRowDrop(i)}
+              >
+                <button
+                  type="button"
+                  className="add-route-waypoints__handle"
+                  draggable
+                  onDragStart={onRowDragStart(i)}
+                  onDragEnd={() => {
+                    dragFrom.current = null;
+                  }}
+                  aria-label={t('addRoute.ariaReorderWaypoint')}
+                >
+                  ⋮⋮
+                </button>
                 <span className="add-route-waypoints__letter">
                   {String.fromCharCode(65 + i)}
                 </span>
                 {mode === 'plane' ? (
                   <AirportSearchSelect
                     catalog={catalogWithSession}
-                    value={selectedId}
+                    value={row.id}
                     onPick={(pick) => handleAirportPick(i, pick)}
-                    placeholder={waypointPlaceholder(i, waypointIds.length)}
+                    placeholder={waypointPlaceholder(i, rows.length)}
                     required
                     busy={busy || pickingIndex === i}
                   />
                 ) : (
                   <CitySearchSelect
                     options={pickerOptions}
-                    value={selectedId}
+                    value={row.id}
                     onChange={(id) => setWaypointAt(i, id)}
-                    placeholder={waypointPlaceholder(i, waypointIds.length)}
+                    placeholder={waypointPlaceholder(i, rows.length)}
                     required
                     matchesQuery={(option, q) =>
                       cityOptionMatchesQuery(option, q, citiesById)
                     }
                   />
                 )}
-                {waypointIds.length > 2 && (
+                <div className="add-route-waypoints__order">
+                  <button
+                    type="button"
+                    className="add-route-waypoints__nudge"
+                    disabled={i === 0}
+                    onClick={() => moveWaypoint(i, i - 1)}
+                    aria-label={t('addRoute.ariaMoveWaypointUp')}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="add-route-waypoints__nudge"
+                    disabled={i === rows.length - 1}
+                    onClick={() => moveWaypoint(i, i + 1)}
+                    aria-label={t('addRoute.ariaMoveWaypointDown')}
+                  >
+                    ↓
+                  </button>
+                </div>
+                {rows.length > 2 && (
                   <button
                     type="button"
                     className="add-route-waypoints__remove"
@@ -343,9 +429,8 @@ export function AddRouteModal({
             ))}
             <button
               type="button"
-              className="modal-rating__add"
+              className="modal-rating__add add-route-waypoints__add"
               onClick={addWaypoint}
-              style={{ marginTop: '0.25rem' }}
             >
               {t('addRoute.addVia')}
             </button>
@@ -357,7 +442,11 @@ export function AddRouteModal({
             <button type="button" className="add-place-form__btn add-place-form__btn--ghost" onClick={onClose}>
               {t('common.cancel')}
             </button>
-            <button type="submit" className="add-place-form__btn" disabled={busy || pickingIndex != null}>
+            <button
+              type="submit"
+              className="add-place-form__btn"
+              disabled={busy || pickingIndex != null || !routeReady}
+            >
               {busy ? t('common.saving') : t('addRoute.save')}
             </button>
           </div>

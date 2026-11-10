@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useT } from '../i18n/LocaleContext';
 import { FeedbackPanel } from './FeedbackPanel';
@@ -28,6 +28,32 @@ export function AppFooter() {
     setFeedbackExpanded((v) => !v);
     setAboutExpanded(false);
   }, []);
+
+  const closePanels = useCallback(() => {
+    setAboutExpanded(false);
+    setFeedbackExpanded(false);
+  }, []);
+
+  useEffect(() => {
+    if (!aboutExpanded && !feedbackExpanded) return;
+
+    const onPointerDown = (e: PointerEvent) => {
+      const root = footerRef.current;
+      if (!root) return;
+      if (e.target instanceof Node && root.contains(e.target)) return;
+      closePanels();
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closePanels();
+    };
+
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [aboutExpanded, feedbackExpanded, closePanels]);
 
   useLayoutEffect(() => {
     if (!aboutExpanded && !feedbackExpanded) return;

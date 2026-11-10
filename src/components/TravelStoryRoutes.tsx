@@ -8,8 +8,10 @@ import {
   type TravelStoryRoute,
   type TravelVehicleMode,
 } from '../lib/travelStoryRoutes';
+import { routeLineCasingPaint, routeLineCorePaint } from '../lib/mapRouteLinePaint';
 
 export const SOURCE_TRAVEL_ARCS = 'travel-story-arcs';
+export const LAYER_TRAVEL_ARCS_CASING = 'travel-story-arcs-line-casing';
 export const LAYER_TRAVEL_ARCS_LINE = 'travel-story-arcs-line';
 
 /** На «районном» зуме линии перегружают карту — только обзор. */
@@ -220,10 +222,6 @@ export function TravelStoryRoutes({ catalog, zoom, mapThemeDark }: Props) {
 
   const showLayer = zoom <= TRAVEL_ANIM_MAX_ZOOM && routes.length > 0;
 
-  const lineColor = mapThemeDark
-    ? 'rgba(130, 190, 255, 0.55)'
-    : 'rgba(36, 92, 158, 0.45)';
-
   const vehicleColors = mapThemeDark
     ? {
         plane: '#a8d4ff',
@@ -251,17 +249,22 @@ export function TravelStoryRoutes({ catalog, zoom, mapThemeDark }: Props) {
     <>
       <Source id={SOURCE_TRAVEL_ARCS} type='geojson' data={linesGeo}>
         <Layer
+          id={LAYER_TRAVEL_ARCS_CASING}
+          type='line'
+          layout={{
+            'line-cap': 'round',
+            'line-join': 'round',
+          }}
+          paint={routeLineCasingPaint(mapThemeDark)}
+        />
+        <Layer
           id={LAYER_TRAVEL_ARCS_LINE}
           type='line'
           layout={{
             'line-cap': 'round',
             'line-join': 'round',
           }}
-          paint={{
-            'line-color': lineColor,
-            'line-width': 1.35,
-            'line-opacity': 0.42,
-          }}
+          paint={routeLineCorePaint(mapThemeDark)}
         />
       </Source>
 

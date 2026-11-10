@@ -17,6 +17,7 @@ export interface DbUser {
   avatar: string | null;
   subscription: UserSubscription;
   map_visibility: MapVisibility;
+  transit_countries?: string;
   created_at: number;
 }
 
@@ -125,10 +126,17 @@ export function openDatabase(dbPath: string): Database.Database {
       ON map_follows (owner_id, status);
     CREATE INDEX IF NOT EXISTS idx_map_follows_follower_status
       ON map_follows (follower_id, status);
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY NOT NULL,
+      value TEXT NOT NULL
+    );
+    INSERT OR IGNORE INTO app_settings (key, value)
+      VALUES ('showcase_transit_countries', '["AZ","QA"]');
   `);
   for (const col of [
     "subscription TEXT NOT NULL DEFAULT 'freemium'",
     "map_visibility TEXT NOT NULL DEFAULT 'public'",
+    "transit_countries TEXT NOT NULL DEFAULT '[]'",
   ]) {
     try {
       db.exec(`ALTER TABLE users ADD COLUMN ${col}`);
@@ -345,10 +353,65 @@ export function createUser(db: Database.Database, user: Omit<DbUser, 'created_at
   return db.prepare('SELECT * FROM users WHERE id = ?').get(user.id) as DbUser;
 }
 
+export function parseTransitCountriesJson(raw: unknown): string[] {
+  const src = Array.isArray(raw)
+    ? raw
+    : typeof raw === 'string'
+      ? (() => {
+          try {
+            const parsed = JSON.parse(raw) as unknown;
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return [];
+          }
+        })()
+      : [];
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of src) {
+    if (typeof item !== 'string') continue;
+    const code = item.trim().toUpperCase();
+    if (!/^[A-Z]{2}$/.test(code) || seen.has(code)) continue;
+    seen.add(code);
+    out.push(code);
+  }
+  return out;
+}
+
+const SHOWCASE_TRANSIT_KEY = 'showcase_transit_countries';
+const SHOWCASE_DEFAULT_TRANSIT = ['AZ', 'QA'];
+
+export function getShowcaseTransitCountries(db: Database.Database): string[] {
+  const row = db.prepare('SELECT value FROM app_settings WHERE key = ?').get(SHOWCASE_TRANSIT_KEY) as
+    | { value?: string }
+    | undefined;
+  if (row?.value == null) return [...SHOWCASE_DEFAULT_TRANSIT];
+  return parseTransitCountriesJson(row.value);
+}
+
+export function setShowcaseTransitCountries(
+  db: Database.Database,
+  codes: unknown,
+): string[] {
+  const normalized = parseTransitCountriesJson(codes);
+  db.prepare(
+    `INSERT INTO app_settings (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+  ).run(SHOWCASE_TRANSIT_KEY, JSON.stringify(normalized));
+  return normalized;
+}
+
+export function getUserTransitCountries(db: Database.Database, userId: string): string[] {
+  const row = db.prepare('SELECT transit_countries FROM users WHERE id = ?').get(userId) as
+    | { transit_countries?: string }
+    | undefined;
+  return parseTransitCountriesJson(row?.transit_countries);
+}
+
 export function updateUser(
   db: Database.Database,
   id: string,
-  updates: Partial<Pick<DbUser, 'username' | 'name' | 'avatar' | 'subscription' | 'map_visibility'>>,
+  updates: Partial<Pick<DbUser, 'username' | 'name' | 'avatar' | 'subscription' | 'map_visibility' | 'transit_countries'>>,
 ): DbUser | null {
   const fields: string[] = [];
   const values: Record<string, unknown> = { id };
@@ -357,6 +420,7 @@ export function updateUser(
   if (updates.avatar !== undefined) { fields.push('avatar = @avatar'); values.avatar = updates.avatar; }
   if (updates.subscription !== undefined) { fields.push('subscription = @subscription'); values.subscription = updates.subscription; }
   if (updates.map_visibility !== undefined) { fields.push('map_visibility = @map_visibility'); values.map_visibility = updates.map_visibility; }
+  if (updates.transit_countries !== undefined) { fields.push('transit_countries = @transit_countries'); values.transit_countries = updates.transit_countries; }
   if (fields.length === 0) return findUserById(db, id);
   db.prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = @id`).run(values);
   return findUserById(db, id);
@@ -485,15 +549,17 @@ export function countUserCities(db: Database.Database, userId: string): number {
   return row.n;
 }
 
-/** Уникальные страны по городам пользователя */
+/** Уникальные страны по городам пользователя, без транзитных пересадок */
 export function countUserCountries(db: Database.Database, userId: string): number {
+  const transit = new Set(getUserTransitCountries(db, userId));
   const rows = db.prepare(
     `SELECT json FROM cities WHERE owner_id = ?`,
   ).all(userId) as { json: string }[];
   const codes = new Set<string>();
   for (const row of rows) {
     const city = JSON.parse(row.json) as City;
-    if (city.countryCode?.trim()) codes.add(city.countryCode.toUpperCase());
+    const cc = city.countryCode?.trim().toUpperCase();
+    if (cc && !transit.has(cc)) codes.add(cc);
   }
   return codes.size;
 }

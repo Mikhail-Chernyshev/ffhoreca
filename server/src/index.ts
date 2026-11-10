@@ -25,9 +25,11 @@ import {
   requestMapFollow, acceptMapFollow, rejectMapFollow,
   listIncomingFollowRequests, listAcceptedFollowers, listOutgoingFollows, unfollowMap, getMapFollow,
   getUserUsage,
-  countUserCities,
   collectUserUploadFilenames,
   deleteUserAccount,
+  parseTransitCountriesJson,
+  getShowcaseTransitCountries,
+  setShowcaseTransitCountries,
   type DbUser,
 } from './db';
 import type { City, TravelRoute } from '../../src/data/types';
@@ -215,6 +217,7 @@ function serializePublicUser(u: DbUser) {
     avatar: u.avatar,
     subscription: normalizeSubscription(u.subscription),
     map_visibility: normalizeMapVisibility(u.map_visibility),
+    transit_countries: parseTransitCountriesJson(u.transit_countries),
   };
 }
 
@@ -371,6 +374,24 @@ app.get('/uploads/:filename', (c) => {
 
 // ---- Routes ----------------------------------------------------------------
 
+app.get('/api/transit-countries', (c) => {
+  return c.json({ transit_countries: getShowcaseTransitCountries(db) });
+});
+
+app.patch('/api/transit-countries', async (c) => {
+  if (!(await requireShowcaseAdmin(c))) return c.json({ error: 'Недостаточно прав' }, 403);
+  const rec = await parseJsonObject(c);
+  if (rec instanceof Response) return rec;
+  if (rec.transit_countries === undefined) {
+    return c.json({ error: 'Нужен transit_countries' }, 400);
+  }
+  const codes = parseTransitCountriesJson(rec.transit_countries);
+  if (codes.length > 250) {
+    return c.json({ error: 'Слишком много транзитных стран' }, 400);
+  }
+  return c.json({ transit_countries: setShowcaseTransitCountries(db, codes) });
+});
+
 app.get('/api/routes', (c) => {
   try {
     return c.json(getRoutes(db));
@@ -499,7 +520,7 @@ app.patch('/api/auth/settings', requireAuth, async (c) => {
   const user = (c as unknown as Context<HonoEnv>).get('user');
   const rec = await parseJsonObject(c);
   if (rec instanceof Response) return rec;
-  const updates: Partial<Pick<DbUser, 'map_visibility' | 'name'>> = {};
+  const updates: Partial<Pick<DbUser, 'map_visibility' | 'name' | 'transit_countries'>> = {};
   if (rec.map_visibility !== undefined) {
     const v = rec.map_visibility;
     if (v !== 'public' && v !== 'subscribers') {
@@ -519,6 +540,13 @@ app.patch('/api/auth/settings', requireAuth, async (c) => {
       return c.json({ error: `Имя не длиннее ${DISPLAY_NAME_MAX} символов` }, 400);
     }
     updates.name = name;
+  }
+  if (rec.transit_countries !== undefined) {
+    const codes = parseTransitCountriesJson(rec.transit_countries);
+    if (codes.length > 250) {
+      return c.json({ error: 'Слишком много транзитных стран' }, 400);
+    }
+    updates.transit_countries = JSON.stringify(codes);
   }
   if (Object.keys(updates).length === 0) {
     return c.json({ error: 'Нет полей для обновления' }, 400);
@@ -598,11 +626,10 @@ app.get('/share/:username', (c) => {
     return c.redirect(mapUrl, 302);
   }
 
-  const cities = countUserCities(db, user.id);
   const usage = getUserUsage(db, user.id);
   const title = `@${user.username} — Tips from trips`;
   const description =
-    `${user.name}: ${cities} cities, ${usage.places} places, ${usage.routes} routes on the travel map.`;
+    `${user.name}: ${usage.countries} countries, ${usage.cities} cities, ${usage.places} places, ${usage.routes} routes on the travel map.`;
 
   const html = buildSharePageHtml({
     title,
@@ -1040,6 +1067,8 @@ function feedbackUserHint(viewer: DbUser | null): string | undefined {
 
 console.log(`ffhoreca API http://localhost:${PORT}`);
 console.log('  GET  /api/catalog');
+  console.log('  GET  /api/transit-countries');
+  console.log('  PATCH /api/transit-countries');
 console.log('  POST /api/cities         { token, city }');
 console.log('  DELETE /api/cities/:id   X-Admin-Token header');
 console.log('  POST /api/places         { token, place }');

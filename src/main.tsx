@@ -12,10 +12,12 @@ import { ToastProvider } from './components/ToastProvider';
 import { AlertProvider } from './components/AlertProvider';
 import { bootstrapAuthFromUrl } from './lib/bootstrapAuth';
 import { createAppQueryClient } from './lib/queryClient';
+import { installSuitcaseCursorPress } from './lib/suitcaseCursor';
 
 const queryClient = createAppQueryClient();
 
 async function main() {
+  installSuitcaseCursorPress();
   await bootstrapAuthFromUrl();
 
   createRoot(document.getElementById('root')!).render(

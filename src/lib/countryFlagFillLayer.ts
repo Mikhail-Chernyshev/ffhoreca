@@ -284,6 +284,11 @@ export class CountryFlagFillLayer implements CustomLayerInterface {
           ctx.fillStyle = FALLBACK_FILL;
           ctx.fill();
         }
+        if (props.transitLayover === true) {
+          ctx.globalAlpha = 0.38;
+          ctx.fillStyle = 'rgba(255, 224, 102, 0.72)';
+          ctx.fill();
+        }
         ctx.restore();
       }
     }

@@ -6,9 +6,11 @@ import { resolveRouteWaypointCoords } from '../data/selectors';
 import { greatCircleArc, type LngLatDeg } from '../lib/greatCircle';
 import { fetchOsrmRoadRoute, usesRoadRouting } from '../lib/osrmRoute';
 import { positionAndBearingOneWayOnArc } from '../lib/travelStoryRoutes';
+import { routeLineCasingPaint, routeLineCorePaint } from '../lib/mapRouteLinePaint';
 import { RouteModeIcon } from './RouteModeIcon';
 
 const SOURCE_USER_ROUTES = 'user-routes';
+const LAYER_USER_ROUTES_CASING = 'user-routes-line-casing';
 const LAYER_USER_ROUTES_LINE = 'user-routes-line';
 const PLANE_VISUAL_SPEED_KMH = 900;
 /** ~12 fps достаточно для иконок на карте; 60 fps только грузит React. */
@@ -287,7 +289,6 @@ export function UserRoutes({ routes, catalog, mapThemeDark }: Props) {
   }), [segments]);
 
   const colors = mapThemeDark ? MODE_COLORS_DARK : MODE_COLORS_LIGHT;
-  const lineColor = mapThemeDark ? 'rgba(251, 113, 133, 0.82)' : 'rgba(219, 39, 119, 0.72)';
 
   if (segments.length === 0) return null;
 
@@ -295,10 +296,16 @@ export function UserRoutes({ routes, catalog, mapThemeDark }: Props) {
     <>
       <Source id={SOURCE_USER_ROUTES} type='geojson' data={linesGeo}>
         <Layer
+          id={LAYER_USER_ROUTES_CASING}
+          type='line'
+          layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+          paint={routeLineCasingPaint(mapThemeDark)}
+        />
+        <Layer
           id={LAYER_USER_ROUTES_LINE}
           type='line'
           layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-          paint={{ 'line-color': lineColor, 'line-width': 1.5, 'line-opacity': 0.58 }}
+          paint={routeLineCorePaint(mapThemeDark)}
         />
       </Source>
       <VehicleMarkers segments={segments} colors={colors} />

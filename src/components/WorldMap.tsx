@@ -33,7 +33,6 @@ import {
   citiesForMapMarkers,
   markerColorClass,
   placeCoordinates,
-  TRANSIT_LAYOVER_COUNTRY_CODES,
   visitedCountryCodes,
 } from '../data/selectors';
 import { CountryFlagFillLayer } from '../lib/countryFlagFillLayer';
@@ -54,6 +53,7 @@ const EMPTY_COUNTRIES_GEO: FeatureCollection<Geometry, GeoJsonProperties> = {
 
 function countriesVisitedGeoJson(
   visited: Set<string>,
+  transit: ReadonlySet<string>,
   worldTopology: CountriesTopology,
 ): FeatureCollection<Geometry, GeoJsonProperties> {
   const raw = feature(
@@ -67,7 +67,7 @@ function countriesVisitedGeoJson(
     });
     const isVisited = alpha2 != null && visited.has(alpha2);
     const transitLayover =
-      isVisited && alpha2 != null && TRANSIT_LAYOVER_COUNTRY_CODES.has(alpha2);
+      isVisited && alpha2 != null && transit.has(alpha2);
     const prev =
       f.properties != null && typeof f.properties === 'object'
         ? (f.properties as GeoJsonProperties)
@@ -169,6 +169,8 @@ type Props = {
   isOwnMap?: boolean;
   /** Пока грузятся данные — мягкий shimmer поверх карты */
   loading?: boolean;
+  /** ISO-коды стран, отмеченных как транзит / пересадка */
+  transitCountries?: ReadonlySet<string>;
 };
 
 export type WorldMapRef = {
@@ -189,6 +191,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     ownerUsername,
     isOwnMap,
     loading = false,
+    transitCountries,
   },
   ref,
 ) {
@@ -217,6 +220,10 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const mapThemeDark = false;
 
   const visited = useMemo(() => visitedCountryCodes(catalog), [catalog]);
+  const transit = useMemo(
+    () => transitCountries ?? new Set<string>(),
+    [transitCountries],
+  );
 
   const [countriesTopology, setCountriesTopology] =
     useState<CountriesTopology | null>(null);
@@ -243,8 +250,8 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
 
   const countriesGeo = useMemo(() => {
     if (countriesTopology == null) return EMPTY_COUNTRIES_GEO;
-    return countriesVisitedGeoJson(visited, countriesTopology);
-  }, [visited, countriesTopology]);
+    return countriesVisitedGeoJson(visited, transit, countriesTopology);
+  }, [visited, transit, countriesTopology]);
 
   const visitedFeaturesRef = useRef(countriesGeo.features);
   visitedFeaturesRef.current = countriesGeo.features;
@@ -258,6 +265,10 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
       }),
     [],
   );
+
+  useEffect(() => {
+    mapRef.current?.getMap()?.triggerRepaint();
+  }, [countriesGeo]);
 
   const handleMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
@@ -595,7 +606,6 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           dragRotate={globeMode}
           pitchWithRotate={globeMode}
           touchPitch={false}
-          cursor='grab'
           attributionControl={false}
         >
           <AttributionControl compact position='bottom-right' />

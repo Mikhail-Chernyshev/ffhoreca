@@ -1,5 +1,6 @@
 import { apiBaseUrl, apiFetch } from './apiBase';
 import type { MapVisibility, UserSubscription } from '../data/subscription';
+import { parseTransitCodes } from './transitCountries';
 
 export interface UserUsage {
   countries: number;
@@ -16,6 +17,7 @@ export interface AuthUser {
   email: string | null;
   subscription: UserSubscription;
   map_visibility: MapVisibility;
+  transit_countries: string[];
 }
 
 export interface AuthAccount {
@@ -59,6 +61,7 @@ function parseAuthUser(u: Partial<AuthUser>): AuthUser {
     subscription: u.subscription === 'premium' ? 'premium' : 'freemium',
     map_visibility:
       u.map_visibility === 'subscribers' ? 'subscribers' : 'public',
+    transit_countries: parseTransitCodes(u.transit_countries),
   };
 }
 
@@ -165,6 +168,7 @@ export async function fetchAuthAccount(): Promise<AuthAccount | null> {
 export async function updateAccountSettings(patch: {
   map_visibility?: MapVisibility;
   name?: string;
+  transit_countries?: string[];
 }): Promise<AuthAccount> {
   const res = await apiFetch(`${apiBaseUrl()}/api/auth/settings`, {
     method: 'PATCH',

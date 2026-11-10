@@ -29,6 +29,12 @@ import { useT } from '../i18n/LocaleContext';
 import { mapShareUrl } from '../lib/shareUrl';
 import { isReservedUsername } from '../lib/reservedUsernames';
 import { ConfirmModal } from './ConfirmModal';
+import {
+  PASSPORT_STAMPS,
+  WORLD_COUNTRY_COUNT,
+  type StampId,
+  worldCoveragePercent,
+} from '../lib/travelPassport';
 
 const DISPLAY_NAME_MAX = 80;
 
@@ -327,6 +333,10 @@ export function AccountModal({
               ) : null}
             </div>
           </div>
+
+          {!loading && usage ? (
+            <PassportPanel countries={usage.countries} t={t} />
+          ) : null}
 
           <section className='account-modal__section'>
             <h3 className='account-modal__section-title'>
@@ -800,6 +810,82 @@ function FollowPersonCard({
   return <div className='account-follow-requests__who'>{inner}</div>;
 }
 
+const STAMP_I18N: Record<StampId, string> = {
+  first: 'account.stampFirst',
+  five: 'account.stampFive',
+  ten: 'account.stampTen',
+  twentyFive: 'account.stampTwentyFive',
+  fifty: 'account.stampFifty',
+  world10: 'account.stampWorld10',
+  world25: 'account.stampWorld25',
+  world50: 'account.stampWorld50',
+};
+
+function PassportPanel({
+  countries,
+  t,
+}: {
+  countries: number;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+}) {
+  const percent = worldCoveragePercent(countries);
+  return (
+    <section className="account-modal__section passport">
+      <h3 className="account-modal__section-title">{t('account.passportTitle')}</h3>
+      <div className="passport__hero">
+        <p className="passport__pct nums-tabular">{percent}%</p>
+        <p className="passport__world">{t('account.passportWorld')}</p>
+        <p className="passport__meta">
+          {t('account.passportMeta', { count: countries, total: WORLD_COUNTRY_COUNT })}
+        </p>
+        <span className="passport__bar" aria-hidden>
+          <span className="passport__bar-fill" style={{ width: `${percent}%` }} />
+        </span>
+      </div>
+      <ul className="passport__stamps">
+        {PASSPORT_STAMPS.map((stamp) => {
+          const on = countries >= stamp.minCountries;
+          return (
+            <li
+              key={stamp.id}
+              className={on ? 'passport__stamp passport__stamp--on' : 'passport__stamp'}
+            >
+              {t(STAMP_I18N[stamp.id])}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function UsageStat({
+  label,
+  used,
+  max,
+}: {
+  label: string;
+  used: number;
+  max?: number;
+}) {
+  const pct =
+    max != null && max > 0 ? Math.min(100, Math.round((used / max) * 100)) : null;
+  return (
+    <div className="account-stat">
+      <p className="account-stat__nums nums-tabular">
+        <span className="account-stat__value">{used}</span>
+        {max != null ? <span className="account-stat__max">/{max}</span> : null}
+      </p>
+      <p className="account-stat__label">{label}</p>
+      {pct != null ? (
+        <span className="account-stat__bar" aria-hidden>
+          <span className="account-stat__bar-fill" style={{ width: `${pct}%` }} />
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 function PlanCard({
   plan,
   active,
@@ -840,45 +926,28 @@ function PlanCard({
         </ul>
       )}
       {active && isFreemium && usage && !loading ? (
-        <ul className='account-plan__features'>
-          {limitsActive ? (
-            <>
-              <li>
-                {t('account.usageCountries', {
-                  used: usage.countries,
-                  max: FREEMIUM_LIMITS.countries,
-                })}
-              </li>
-              <li>
-                {t('account.usageCities', {
-                  used: usage.cities,
-                  max: FREEMIUM_LIMITS.cities,
-                })}
-              </li>
-              <li>
-                {t('account.usageRoutes', {
-                  used: usage.routes,
-                  max: FREEMIUM_LIMITS.routes,
-                })}
-              </li>
-              <li>
-                {t('account.usagePlaces', {
-                  used: usage.places,
-                  max: FREEMIUM_LIMITS.places,
-                })}
-              </li>
-            </>
-          ) : (
-            <>
-              <li>
-                {t('account.usageCountriesOnly', { used: usage.countries })}
-              </li>
-              <li>{t('account.usageCitiesOnly', { used: usage.cities })}</li>
-              <li>{t('account.usageRoutesOnly', { used: usage.routes })}</li>
-              <li>{t('account.usagePlacesOnly', { used: usage.places })}</li>
-            </>
-          )}
-        </ul>
+        <div className="account-stats">
+          <UsageStat
+            label={t('account.statCountries')}
+            used={usage.countries}
+            max={limitsActive ? FREEMIUM_LIMITS.countries : undefined}
+          />
+          <UsageStat
+            label={t('account.statCities')}
+            used={usage.cities}
+            max={limitsActive ? FREEMIUM_LIMITS.cities : undefined}
+          />
+          <UsageStat
+            label={t('account.statRoutes')}
+            used={usage.routes}
+            max={limitsActive ? FREEMIUM_LIMITS.routes : undefined}
+          />
+          <UsageStat
+            label={t('account.statPlaces')}
+            used={usage.places}
+            max={limitsActive ? FREEMIUM_LIMITS.places : undefined}
+          />
+        </div>
       ) : null}
       {!isFreemium ? (
         <button type='button' className='account-plan__cta' disabled>

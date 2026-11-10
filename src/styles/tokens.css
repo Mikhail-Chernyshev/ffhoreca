@@ -1,0 +1,233 @@
+/**
+ * Tips from trips — design tokens.
+ * Use these variables; do not invent one-off colors, radii, or timings.
+ *
+ * Theme: html[data-theme="dark"]. Auto prefers-color-scheme is off until
+ * screens are migrated off hardcoded hex in App.css.
+ */
+
+:root {
+  /* --- Neutral (warm paper) --- */
+  --neutral-0: #fffcf8;
+  --neutral-50: #f6f1ea;
+  --neutral-100: #ece4d8;
+  --neutral-200: #ddd3c6;
+  --neutral-300: #c9bdb0;
+  --neutral-400: #9c9084;
+  --neutral-500: #7a7268;
+  --neutral-600: #5c554c;
+  --neutral-700: #3f3a34;
+  --neutral-800: #2a2622;
+  --neutral-900: #1c1915;
+  --neutral-950: #12100e;
+
+  /* --- Accent: terracotta copper --- */
+  --accent-50: #fdeee7;
+  --accent-100: #f8d4c4;
+  --accent-200: #f0a888;
+  --accent-400: #e46a3a;
+  --accent-500: #d4532c;
+  --accent-600: #b84422;
+  --accent-700: #93371c;
+
+  /* --- Semantic --- */
+  --success-500: #2f7a52;
+  --success-bg: rgba(47, 122, 82, 0.12);
+  --warn-500: #c26b16;
+  --warn-bg: rgba(194, 107, 22, 0.12);
+  --error-500: #c0392b;
+  --error-bg: rgba(192, 57, 43, 0.1);
+
+  /* --- Surfaces --- */
+  --bg: var(--neutral-50);
+  --bg-deep: #efe8de;
+  --surface: var(--neutral-0);
+  --surface-elevated: #fffdfb;
+  --surface-muted: rgba(255, 252, 248, 0.78);
+  --border: rgba(28, 25, 21, 0.1);
+  --border-strong: rgba(28, 25, 21, 0.16);
+  --code-bg: var(--neutral-100);
+
+  --text: var(--neutral-600);
+  --text-h: var(--neutral-900);
+  --text-muted: var(--neutral-500);
+  --text-inverse: var(--neutral-0);
+
+  --accent: var(--accent-500);
+  --accent-hover: var(--accent-600);
+  --accent-bg: rgba(212, 83, 44, 0.12);
+  --accent-border: rgba(212, 83, 44, 0.42);
+
+  --focus-ring: var(--accent-500);
+  --overlay: rgba(18, 16, 14, 0.46);
+  --glass: rgba(255, 252, 248, 0.64);
+  --glass-solid: rgba(255, 250, 244, 0.92);
+  --glass-blur: 18px;
+
+  /* --- Map --- */
+  --map-ocean: #d5e4f2;
+  --map-country-default: #efe8de;
+  --map-country-hover: #e5ddd2;
+  --map-country-visited: #d4c4a8;
+  --map-country-visited-hover: #c4b090;
+  --map-geo-stroke: rgba(255, 252, 248, 0.7);
+  --map-city: var(--accent-500);
+  --map-city-zone-fill: rgba(212, 83, 44, 0.34);
+  --map-city-zone-fill-hover: rgba(212, 83, 44, 0.48);
+  --map-city-zone-stroke: rgba(184, 68, 34, 0.92);
+  --map-lake-fill: #bcd4f0;
+  --map-lake-stroke: rgba(60, 100, 155, 0.42);
+  --map-river-stroke: rgba(45, 85, 145, 0.78);
+
+  --marker-lodging: #5b6bb0;
+  --marker-food: var(--accent-500);
+  --marker-bar: #8a3d9a;
+  --marker-airport: #2a7a82;
+  --marker-attraction: var(--accent-500);
+
+  /* --- Type --- */
+  --font: 'Inter', system-ui, 'Segoe UI', sans-serif;
+  --sans: var(--font);
+  --heading: var(--font);
+  --font-numeric: tabular-nums;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --text-4xl: 2.75rem;
+
+  --leading-tight: 1.2;
+  --leading-snug: 1.35;
+  --leading-body: 1.45;
+  --tracking-tight: -0.03em;
+  --tracking-normal: -0.011em;
+  --tracking-wide: 0.06em;
+
+  /* --- Space (4 / 8 grid) --- */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* --- Radius --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+  --radius-control: var(--radius-sm);
+  --radius-surface: var(--radius-md);
+
+  /* --- Shadow --- */
+  --shadow-sm:
+    rgba(28, 25, 21, 0.05) 0 1px 2px,
+    rgba(28, 25, 21, 0.06) 0 4px 12px;
+  --shadow-md:
+    rgba(28, 25, 21, 0.07) 0 8px 24px,
+    rgba(28, 25, 21, 0.04) 0 2px 6px;
+  --shadow-lg:
+    rgba(28, 25, 21, 0.1) 0 18px 40px -12px,
+    rgba(28, 25, 21, 0.06) 0 8px 16px -8px;
+
+  /* --- Motion --- */
+  --duration-fast: 160ms;
+  --duration-normal: 200ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  color-scheme: light;
+}
+
+html[data-theme='dark'] {
+  --neutral-0: #1c1915;
+  --neutral-50: #161310;
+  --neutral-100: #221e1a;
+  --neutral-200: #2f2a25;
+  --neutral-300: #4a433c;
+  --neutral-400: #8a8076;
+  --neutral-500: #b4a99d;
+  --neutral-600: #d4cbc1;
+  --neutral-700: #e8e0d6;
+  --neutral-800: #f3eee6;
+  --neutral-900: #faf6f1;
+  --neutral-950: #fffdfb;
+
+  --accent-50: #3a1c14;
+  --accent-100: #5a2a1c;
+  --accent-400: #f08a5c;
+  --accent-500: #e56b42;
+  --accent-600: #f07a52;
+  --accent-700: #ffc2a8;
+
+  --success-500: #5dba86;
+  --success-bg: rgba(93, 186, 134, 0.14);
+  --warn-500: #e0a04a;
+  --warn-bg: rgba(224, 160, 74, 0.14);
+  --error-500: #e07068;
+  --error-bg: rgba(224, 112, 104, 0.14);
+
+  --bg: var(--neutral-50);
+  --bg-deep: #100e0c;
+  --surface: var(--neutral-100);
+  --surface-elevated: #2a2520;
+  --surface-muted: rgba(34, 30, 26, 0.82);
+  --border: rgba(250, 246, 241, 0.1);
+  --border-strong: rgba(250, 246, 241, 0.16);
+  --code-bg: var(--neutral-200);
+
+  --text: var(--neutral-600);
+  --text-h: var(--neutral-900);
+  --text-muted: var(--neutral-400);
+  --text-inverse: #161310;
+
+  --accent: var(--accent-500);
+  --accent-hover: var(--accent-600);
+  --accent-bg: rgba(229, 107, 66, 0.16);
+  --accent-border: rgba(229, 107, 66, 0.5);
+
+  --overlay: rgba(8, 6, 5, 0.62);
+  --glass: rgba(34, 30, 26, 0.64);
+  --glass-solid: rgba(28, 25, 21, 0.92);
+  --glass-blur: 18px;
+
+  --map-ocean: #1a2836;
+  --map-country-default: #2a2622;
+  --map-country-hover: #342f2a;
+  --map-country-visited: #5a4a38;
+  --map-geo-stroke: rgba(28, 25, 21, 0.35);
+  --map-city: var(--accent-400);
+  --map-city-zone-fill: rgba(229, 107, 66, 0.32);
+  --map-city-zone-stroke: rgba(240, 138, 92, 0.9);
+
+  --shadow-sm:
+    rgba(0, 0, 0, 0.28) 0 1px 2px,
+    rgba(0, 0, 0, 0.18) 0 4px 12px;
+  --shadow-md:
+    rgba(0, 0, 0, 0.35) 0 8px 24px,
+    rgba(0, 0, 0, 0.2) 0 2px 6px;
+  --shadow-lg:
+    rgba(0, 0, 0, 0.45) 0 18px 40px -12px,
+    rgba(0, 0, 0, 0.25) 0 8px 16px -8px;
+
+  color-scheme: dark;
+}
+
+.nums-tabular {
+  font-variant-numeric: var(--font-numeric);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+  }
+}

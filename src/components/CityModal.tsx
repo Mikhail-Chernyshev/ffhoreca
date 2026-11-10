@@ -157,7 +157,11 @@ export function CityModal({
       }}
     >
       <div
-        className="modal-dialog"
+        className={
+          hasPhotos && !cardEditing
+            ? 'modal-dialog modal-dialog--place-view modal-dialog--has-hero'
+            : 'modal-dialog modal-dialog--place-view'
+        }
         role="dialog"
         aria-modal="true"
         aria-labelledby="city-modal-title"
@@ -167,6 +171,10 @@ export function CityModal({
         </button>
 
         <div className="modal-dialog__scroll">
+          {hasPhotos && !cardEditing ? (
+            <ModalPhotoCarousel key={city.id} photos={photos} variant="hero" />
+          ) : null}
+
           <h2 id="city-modal-title" className="modal-title">
             {city.name}
           </h2>
@@ -252,8 +260,6 @@ export function CityModal({
                   {editable ? t('cityModal.emptySummaryHintEdit') : t('cityModal.emptySummaryHint')}
                 </p>
               )}
-
-              {hasPhotos && <ModalPhotoCarousel key={city.id} photos={photos} />}
 
               {hasStory ? (
                 <>

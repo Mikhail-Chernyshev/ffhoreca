@@ -35,6 +35,8 @@ type Props = {
   /** Если заданы — используются вместо дефолтных admin-API (для карт пользователей) */
   deleteRouteApi?: (id: string) => Promise<{ ok: boolean; message: string }>;
   deleteCityApi?: (id: string) => Promise<{ ok: boolean; message: string }>;
+  transitCountries?: ReadonlySet<string>;
+  onToggleTransit?: (code: string) => void;
 };
 
 type ConfirmState = {
@@ -159,10 +161,14 @@ function CityRow({
 function CountryRow({
   country,
   name,
+  transit,
+  onToggleTransit,
   onShowOnMap,
 }: {
   country: CatalogCountryRow;
   name: string;
+  transit?: boolean;
+  onToggleTransit?: () => void;
   onShowOnMap?: () => void;
 }) {
   const t = useT();
@@ -177,10 +183,28 @@ function CountryRow({
             cities: country.citiesCount,
             places: country.placesCount,
           })}
+          {transit ? ` · ${t('manager.transit')}` : ''}
         </span>
       </div>
-      {onShowOnMap ? (
-        <div className="manager-row__actions">
+      <div className="manager-row__actions">
+        {onToggleTransit ? (
+          <button
+            type="button"
+            className={
+              transit
+                ? 'manager-row__transit manager-row__transit--on'
+                : 'manager-row__transit'
+            }
+            onClick={onToggleTransit}
+            aria-pressed={transit}
+            aria-label={t('manager.ariaTransit', { name })}
+          >
+            {t('manager.transit')}
+          </button>
+        ) : transit ? (
+          <span className="manager-row__transit-badge">{t('manager.transit')}</span>
+        ) : null}
+        {onShowOnMap ? (
           <button
             type="button"
             className="manager-row__map"
@@ -189,8 +213,8 @@ function CountryRow({
           >
             {t('manager.showOnMap')}
           </button>
-        </div>
-      ) : null}
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -296,6 +320,8 @@ export function ManagerModal({
   onShowOnMap,
   deleteRouteApi,
   deleteCityApi,
+  transitCountries,
+  onToggleTransit,
 }: Props) {
   const t = useT();
   const { showAlert } = useAlert();
@@ -599,6 +625,12 @@ export function ManagerModal({
                           key={country.code}
                           country={country}
                           name={countryName(country.code, locale)}
+                          transit={transitCountries?.has(country.code.toUpperCase())}
+                          onToggleTransit={
+                            onToggleTransit
+                              ? () => onToggleTransit(country.code)
+                              : undefined
+                          }
                           onShowOnMap={
                             country.lat != null && country.lng != null
                               ? () => showOnMap(country.lng!, country.lat!)
@@ -619,7 +651,6 @@ export function ManagerModal({
             <aside className="manager-boarding-pass__stub" aria-hidden>
               <div className="manager-boarding-pass__stub-brand">TFT</div>
               <div className="manager-boarding-pass__barcode" />
-              {/* <div className="manager-boarding-pass__stub-class">{t('manager.boardingPassClass')}</div> */}
               <div className="manager-boarding-pass__stub-icons">✈</div>
             </aside>
           </div>

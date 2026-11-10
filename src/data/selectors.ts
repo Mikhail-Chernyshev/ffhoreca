@@ -43,13 +43,25 @@ export function atlasCountryAlpha2(g: {
 
 export function visitedCountryCodes(catalog: Catalog): Set<string> {
   const s = new Set<string>();
-  for (const c of catalog.cities) s.add(c.countryCode);
-  for (const p of catalog.places) s.add(p.countryCode);
+  for (const c of catalog.cities) s.add(c.countryCode.trim().toUpperCase());
+  for (const p of catalog.places) s.add(p.countryCode.trim().toUpperCase());
+  s.delete('');
+  return s;
+}
+
+/** Посещённые страны без транзитных пересадок — для счётчика / паспорта. */
+export function countedCountryCodes(
+  catalog: Catalog,
+  transit: ReadonlySet<string>,
+): Set<string> {
+  const s = visitedCountryCodes(catalog);
+  for (const code of transit) s.delete(code.trim().toUpperCase());
   return s;
 }
 
 /**
- * Страны, где были только транзитом / пересадкой — на карте отдельный (жёлтый) тон заливки.
+ * Дефолт витрины: страны, где были только транзитом / пересадкой.
+ * На пользовательских картах список задаётся в менеджере.
  */
 export const TRANSIT_LAYOVER_COUNTRY_CODES: ReadonlySet<string> = new Set([
   'AZ',

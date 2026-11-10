@@ -12,9 +12,17 @@ import { PlaceModal } from './components/PlaceModal'
 import { WorldMap, type WorldMapRef } from './components/WorldMap'
 import { catalog } from './data/catalog'
 import {
+  countedCountryCodes,
   mergeCatalogWithAdminPlaces,
   placesForFilter,
 } from './data/selectors'
+import {
+  SHOWCASE_DEFAULT_TRANSIT,
+  toggleTransitCode,
+  transitSet,
+} from './lib/transitCountries'
+import { fetchShowcaseTransit, patchShowcaseTransit } from './lib/apiTransit'
+import { worldCoveragePercent } from './lib/travelPassport'
 import type { Catalog, CategoryFilter, City, Place } from './data/types'
 import { postCity } from './lib/apiCities'
 import { fetchRoutes } from './lib/apiRoutes'
@@ -37,8 +45,7 @@ import {
   loadDeletedPlaceIds,
   saveDeletedPlaceIds,
 } from './lib/adminDeletedPlaceIdsStorage'
-import { AppHeader } from './components/AppHeader'
-import { AppFooter } from './components/AppFooter'
+import { MapPageLayout } from './components/MapPageLayout'
 import { MapEditorActions } from './components/MapEditorActions'
 import { useCanEditMap } from './hooks/useCanEditMap'
 import { AuthButton } from './components/AuthButton'
@@ -53,7 +60,6 @@ import { useCurrentUser } from './hooks/useCurrentUser'
 import { useT } from './i18n/LocaleContext'
 import { useToast } from './components/ToastProvider'
 import { consumeAuthBootstrapError } from './lib/bootstrapAuth'
-import './App.css'
 
 const EMPTY_CATALOG: Catalog = { cities: [], places: [] }
 
@@ -76,7 +82,11 @@ function App() {
   const [addPlaceOpen, setAddPlaceOpen] = useState(false)
   const [addRouteOpen, setAddRouteOpen] = useState(false)
   const [managerOpen, setManagerOpen] = useState(false)
+  const [localTransit, setLocalTransit] = useState<string[]>(() => [
+    ...SHOWCASE_DEFAULT_TRANSIT,
+  ])
   const mapRef = useRef<WorldMapRef>(null)
+  const transitBusy = useRef(false)
   const queryClient = useQueryClient()
   const { user: currentUser, loading: authLoading, logout: handleLogout, refetch: refetchUser } = useCurrentUser()
   const { showAlert } = useAlert()
@@ -124,6 +134,11 @@ function App() {
     queryFn: fetchRoutes,
     enabled: apiConfigured,
   })
+  const transitQuery = useQuery({
+    queryKey: queryKeys.showcaseTransit,
+    queryFn: fetchShowcaseTransit,
+    enabled: apiConfigured,
+  })
 
   const remoteCatalog = catalogQuery.data ?? null
   const catalogLoadError = catalogQuery.isError
@@ -169,6 +184,48 @@ function App() {
   const visiblePlaces = useMemo(
     () => placesForFilter(catalogMerged, filter),
     [catalogMerged, filter],
+  )
+  const transitCodes = useMemo(
+    () =>
+      apiConfigured
+        ? (transitQuery.data ?? SHOWCASE_DEFAULT_TRANSIT)
+        : localTransit,
+    [apiConfigured, transitQuery.data, localTransit],
+  )
+  const transitCountries = useMemo(() => transitSet(transitCodes), [transitCodes])
+  const countryCount = useMemo(
+    () => countedCountryCodes(catalogMerged, transitCountries).size,
+    [catalogMerged, transitCountries],
+  )
+  const worldPercent = worldCoveragePercent(countryCount)
+
+  const handleToggleTransit = useCallback(
+    async (code: string) => {
+      if (transitBusy.current) return
+      transitBusy.current = true
+      const prev = transitCodes
+      const next = toggleTransitCode(prev, code)
+      if (!apiConfigured) {
+        setLocalTransit(next)
+        transitBusy.current = false
+        return
+      }
+      queryClient.setQueryData(queryKeys.showcaseTransit, next)
+      try {
+        const saved = await patchShowcaseTransit(next)
+        queryClient.setQueryData(queryKeys.showcaseTransit, saved)
+      } catch (e) {
+        queryClient.setQueryData(queryKeys.showcaseTransit, prev)
+        showAlert(
+          t('placeModal.alertGenericError', {
+            message: e instanceof Error ? e.message : String(e),
+          }),
+        )
+      } finally {
+        transitBusy.current = false
+      }
+    },
+    [apiConfigured, transitCodes, queryClient, showAlert, t],
   )
 
   const flyToOnMap = useCallback((lng: number, lat: number) => {
@@ -298,86 +355,107 @@ function App() {
   );
 
   return (
-    <div className={`app${splashVisible ? ' app--splash' : ''}`}>
-      {splashVisible ? (
-        <LoadingLetterSplash onAnimationComplete={onAnimationComplete} />
-      ) : null}
-      <div className="app-content" aria-hidden={splashVisible}>
-      {catalogLoadError && apiConfigured ? (
-        <p className="app-banner app-banner--warn" role="alert">
-          {t('app.catalogLoadError')}
-        </p>
-      ) : null}
-      {routesLoadError && apiConfigured ? (
-        <p className="app-banner app-banner--warn" role="alert">
-          {t('app.routesLoadError')}
-        </p>
-      ) : null}
-
-      <AppHeader
-        leftBelow={
-          onboardingEnabled ? (
-            <OnboardingHelpControls onOpenTour={() => setTourOpen(true)} />
-          ) : null
-        }
-        tagline={t('app.tagline')}
-        right={
-          <AuthButton
-            user={currentUser}
-            loading={authLoading}
-            onLogout={handleLogout}
-            onOpenFavorites={() => setFavoritesOpen(true)}
-            onOpenAccount={() => setAccountOpen(true)}
-            isAdmin={adminMode}
-            onOpenAdminUsers={() => setAdminUsersOpen(true)}
-          />
-        }
-      />
-
-      <MapOnboarding
-        mode="showcase"
-        canEdit={canEditShowcase}
-        catalog={catalogMerged}
-        routes={userRoutes}
-        isLoggedIn={!!currentUser}
-        username={currentUser?.username}
-        onAddCity={() => setAddCityOpen(true)}
-        onboarding={onboarding}
-        hideHelpControls
-      />
-
-      <CategoryTabs
-        value={filter}
-        onChange={setFilter}
-        catalog={catalogMerged}
-      />
-
-      {canEditShowcase ? (
-        <MapEditorActions
-          onAddCity={() => setAddCityOpen(true)}
-          onAddPlace={() => setAddPlaceOpen(true)}
-          onAddRoute={() => setAddRouteOpen(true)}
-          onOpenManager={() => setManagerOpen(true)}
+    <MapPageLayout
+      splashActive={splashVisible}
+      splash={
+        splashVisible ? (
+          <LoadingLetterSplash onAnimationComplete={onAnimationComplete} />
+        ) : null
+      }
+      headerLeftBelow={
+        onboardingEnabled ? (
+          <OnboardingHelpControls onOpenTour={() => setTourOpen(true)} />
+        ) : null
+      }
+      headerRight={
+        <AuthButton
+          user={currentUser}
+          loading={authLoading}
+          onLogout={handleLogout}
+          onOpenFavorites={() => setFavoritesOpen(true)}
+          onOpenAccount={() => setAccountOpen(true)}
+          isAdmin={adminMode}
+          onOpenAdminUsers={() => setAdminUsersOpen(true)}
         />
-      ) : null}
-
-      <MapSearchBar
-        catalog={catalogMerged}
-        onFlyTo={flyToOnMap}
-        onSearchSelect={() => onboardingNotify('searchUsed')}
-      />
-
-      <WorldMap
-        ref={mapRef}
-        catalog={catalogMerged}
-        filter={filter}
-        places={visiblePlaces}
-        userRoutes={userRoutes}
-        onPlaceClick={openPlace}
-        onCityClick={openCity}
-        loading={!dataReady}
-      />
-
+      }
+      tools={
+        <>
+          <MapSearchBar
+            catalog={catalogMerged}
+            onFlyTo={flyToOnMap}
+            onSearchSelect={() => onboardingNotify('searchUsed')}
+          />
+          <CategoryTabs
+            value={filter}
+            onChange={setFilter}
+            catalog={catalogMerged}
+          />
+          {countryCount > 0 ? (
+            <p className="map-passport nums-tabular">
+              {t('userMap.passportChip', { percent: worldPercent })}
+            </p>
+          ) : null}
+          {canEditShowcase ? (
+            <MapEditorActions
+              onAddCity={() => setAddCityOpen(true)}
+              onAddPlace={() => setAddPlaceOpen(true)}
+              onAddRoute={() => setAddRouteOpen(true)}
+              onOpenManager={() => setManagerOpen(true)}
+            />
+          ) : (
+            <div className="app-admin-actions">
+              <button
+                type="button"
+                className="app-admin-add"
+                onClick={() => setManagerOpen(true)}
+              >
+                {t('userMap.openList')}
+              </button>
+            </div>
+          )}
+        </>
+      }
+      notices={
+        <>
+          {catalogLoadError && apiConfigured ? (
+            <p className="app-banner app-banner--warn" role="alert">
+              {t('app.catalogLoadError')}
+            </p>
+          ) : null}
+          {routesLoadError && apiConfigured ? (
+            <p className="app-banner app-banner--warn" role="alert">
+              {t('app.routesLoadError')}
+            </p>
+          ) : null}
+          <MapOnboarding
+            mode="showcase"
+            canEdit={canEditShowcase}
+            catalog={catalogMerged}
+            routes={userRoutes}
+            isLoggedIn={!!currentUser}
+            username={currentUser?.username}
+            onAddCity={() => setAddCityOpen(true)}
+            onboarding={onboarding}
+            hideHelpControls
+          />
+        </>
+      }
+      map={
+        <div className="map-shell">
+          <WorldMap
+            ref={mapRef}
+            catalog={catalogMerged}
+            filter={filter}
+            places={visiblePlaces}
+            userRoutes={userRoutes}
+            onPlaceClick={openPlace}
+            onCityClick={openCity}
+            loading={!dataReady}
+            transitCountries={transitCountries}
+          />
+        </div>
+      }
+    >
       <PlaceModal
         key={selectedPlace?.id ?? 'closed'}
         place={selectedPlace}
@@ -416,21 +494,26 @@ function App() {
       ) : null}
       {managerOpen ? (
         <ManagerModal
+          readOnly={!canEditShowcase}
           routes={userRoutes}
           catalog={catalogMerged}
           onClose={() => setManagerOpen(false)}
-          onRoutesChanged={() => {
+          onRoutesChanged={canEditShowcase ? () => {
             void refreshShowcaseRoutes()
-          }}
-          onCitiesChanged={() => {
+          } : undefined}
+          onCitiesChanged={canEditShowcase ? () => {
             void refreshShowcaseCatalog()
-          }}
-          onDeletePlace={handlePlaceDeleted}
+          } : undefined}
+          onDeletePlace={canEditShowcase ? handlePlaceDeleted : undefined}
           onEditPlace={(place) => { setSelectedPlace(place); }}
           onShowOnMap={(lng, lat) => {
             setFilter('all')
             flyToOnMap(lng, lat)
           }}
+          transitCountries={transitCountries}
+          onToggleTransit={
+            canEditShowcase || !apiConfigured ? handleToggleTransit : undefined
+          }
         />
       ) : null}
       {addRouteOpen ? (
@@ -482,9 +565,7 @@ function App() {
           }}
         />
       ) : null}
-      <AppFooter />
-      </div>
-    </div>
+    </MapPageLayout>
   )
 }
 

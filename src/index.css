@@ -1,53 +1,13 @@
+@import './styles/tokens.css';
+@import './App.css';
+@import './styles/map-chrome.css';
+@import './styles/sheets.css';
+
 :root {
-  --text: #5c5566;
-  --text-h: #08060d;
-  --text-muted: #7a7285;
-  --bg: #f6f5f8;
-  --surface: #fff;
-  --surface-elevated: #fff;
-  --border: #e2dfe8;
-  --code-bg: #f0eef5;
-  --accent: #7c3aed;
-  --accent-bg: rgba(124, 58, 237, 0.12);
-  --accent-border: rgba(124, 58, 237, 0.45);
-  --shadow-sm:
-    rgba(15, 23, 42, 0.06) 0 4px 12px,
-    rgba(15, 23, 42, 0.04) 0 2px 4px;
-  --shadow-lg:
-    rgba(15, 23, 42, 0.12) 0 24px 48px -12px,
-    rgba(15, 23, 42, 0.08) 0 12px 24px -8px;
-
-  --map-ocean: #d4e4f4;
-  /* непосещённые: чуть теплее и контрастнее к океану, чем серая «плоская» версия */
-  --map-country-default: #eef4f0;
-  --map-country-hover: #e5ebe7;
-  --map-country-visited: #a5d6a7;
-  --map-country-visited-hover: #81c784;
-  --map-geo-stroke: rgba(255, 255, 255, 0.68);
-  --map-city: #e65100;
-  --map-city-zone-fill: rgba(255, 152, 0, 0.38);
-  --map-city-zone-fill-hover: rgba(255, 152, 0, 0.52);
-  --map-city-zone-stroke: rgba(230, 81, 0, 0.95);
-  /* Опционально для векторных подложек; карта — тайлы OSM (см. WorldMap) */
-  --map-lake-fill: #bcd4f0;
-  --map-lake-stroke: rgba(60, 100, 155, 0.42);
-  --map-river-stroke: rgba(45, 85, 145, 0.78);
-
-  --marker-lodging: #5c6bc0;
-  --marker-food: #e64a19;
-  --marker-bar: #8e24aa;
-  --marker-airport: #00838f;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-
-  --radius-control: 10px;
-  --radius-surface: 12px;
-  --radius-pill: 999px;
-
-  font: 17px/145% var(--sans);
-  letter-spacing: 0.01em;
-  color-scheme: light;
+  /* Hotspot on the telescoping handle. 32px PNG — Safari ignores larger custom cursors. */
+  --cursor-suitcase: url('./assets/cursor-suitcase.png') 16 2, auto;
+  font: var(--text-base) / var(--leading-body) var(--font);
+  letter-spacing: var(--tracking-normal);
   color: var(--text);
   background: var(--bg);
   font-synthesis: none;
@@ -60,12 +20,38 @@
   }
 }
 
-/* Тёмная тема отключена до отдельной доработки дизайна. */
+html[data-suitcase-press] {
+  --cursor-suitcase: url('./assets/cursor-suitcase-press.png') 16 2, auto;
+}
 
 html,
 body,
 #root {
   height: 100%;
+  cursor: var(--cursor-suitcase);
+}
+
+a,
+button,
+[role='button'],
+[role='tab'],
+[role='option'],
+[role='menuitem'],
+summary,
+select,
+label[for] {
+  cursor: pointer;
+}
+
+input:not([type='button'], [type='submit'], [type='reset'], [type='checkbox'], [type='radio'], [type='file']),
+textarea,
+[contenteditable='true'] {
+  cursor: text;
+}
+
+:disabled,
+[aria-disabled='true'] {
+  cursor: not-allowed;
 }
 
 #root {
@@ -84,8 +70,15 @@ h1,
 h2,
 h3 {
   font-family: var(--heading);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-h);
 }
 
 p {
   margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }

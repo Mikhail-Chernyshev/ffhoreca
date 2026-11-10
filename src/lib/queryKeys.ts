@@ -9,4 +9,5 @@ export const queryKeys = {
   followers: ['follow', 'followers'] as const,
   showcaseCatalog: ['showcase', 'catalog'] as const,
   showcaseRoutes: ['showcase', 'routes'] as const,
+  showcaseTransit: ['showcase', 'transit'] as const,
 };

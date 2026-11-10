@@ -37,12 +37,22 @@ type Props = {
   uploadPhotos?: (files: File[]) => Promise<string[]>;
 };
 
-export function ModalPhotoCarousel({ photos }: { photos: string[] }) {
+export function ModalPhotoCarousel({
+  photos,
+  variant = 'inline',
+}: {
+  photos: string[];
+  variant?: 'inline' | 'hero';
+}) {
   const t = useT();
   const [photoIndex, setPhotoIndex] = useState(0);
 
   return (
-    <div className='modal-carousel'>
+    <div
+      className={
+        variant === 'hero' ? 'modal-carousel modal-carousel--hero' : 'modal-carousel'
+      }
+    >
       <div className='modal-carousel__viewport'>
         <img
           className='modal-carousel__img'
@@ -281,7 +291,11 @@ export function PlaceModal({
       }}
     >
       <div
-        className='modal-dialog modal-dialog--place-view'
+        className={
+          hasPhotos && !cardEditing
+            ? 'modal-dialog modal-dialog--place-view modal-dialog--has-hero'
+            : 'modal-dialog modal-dialog--place-view'
+        }
         role='dialog'
         aria-modal='true'
         aria-labelledby='place-modal-title'
@@ -296,6 +310,14 @@ export function PlaceModal({
         </button>
 
         <div className='modal-dialog__scroll'>
+        {hasPhotos && photoUrls && !cardEditing ? (
+          <ModalPhotoCarousel
+            key={`${place.id}:${photoUrls.join('|')}`}
+            photos={photoUrls}
+            variant='hero'
+          />
+        ) : null}
+
         <h2 id='place-modal-title' className='modal-title'>
           {place.name}
         </h2>
@@ -423,22 +445,20 @@ export function PlaceModal({
 
             <p className="modal-summary modal-summary--place-lead">{place.summary}</p>
 
-            <div className="modal-rating modal-rating--block">
-              <span className="modal-rating__label">{t('placeModal.ratingLabel')}</span>
-              <strong className="modal-rating__value">{ratingLabel}</strong>
+            <div className="modal-card-meta">
+              <div className="modal-rating modal-rating--block">
+                <span className="modal-rating__label">{t('placeModal.ratingLabel')}</span>
+                <strong className="modal-rating__value">{ratingLabel}</strong>
+              </div>
+              <a
+                className="modal-maps-btn"
+                href={googleMapsSearchUrl(place)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('placeModal.openInGoogleMaps')}
+              </a>
             </div>
-            <a
-              className="modal-maps-btn"
-              href={googleMapsSearchUrl(place)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {t('placeModal.openInGoogleMaps')}
-            </a>
-
-            {hasPhotos && photoUrls ? (
-              <ModalPhotoCarousel key={`${place.id}:${photoUrls.join('|')}`} photos={photoUrls} />
-            ) : null}
 
             <div className="modal-story">
               <h3 className="modal-story__heading">{t('placeModal.ourImpressions')}</h3>
