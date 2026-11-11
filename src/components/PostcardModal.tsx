@@ -9,23 +9,13 @@ import {
   type PostcardData,
 } from '../lib/postcard';
 import { mapShareUrl } from '../lib/shareUrl';
+import { canSharePostcardFile, sharePostcard } from '../lib/webShare';
 
 type Props = {
   data: PostcardData;
   onClose: () => void;
   kicker?: string;
 };
-
-function canShareFile(file: File): boolean {
-  const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
-  if (typeof nav.share !== 'function') return false;
-  if (typeof nav.canShare !== 'function') return true;
-  try {
-    return nav.canShare({ files: [file] });
-  } catch {
-    return false;
-  }
-}
 
 async function flagsForCodes(
   codes: string[],
@@ -91,7 +81,7 @@ export function PostcardModal({ data, onClose, kicker }: Props) {
           const file = new File([blob], postcardFilename(data.username), {
             type: 'image/png',
           });
-          setShareReady(canShareFile(file));
+          setShareReady(canSharePostcardFile(file));
         }
       } catch {
         if (!cancelled) setReady(true);
@@ -130,20 +120,26 @@ export function PostcardModal({ data, onClose, kicker }: Props) {
     const file = new File([blob], postcardFilename(data.username), {
       type: 'image/png',
     });
+    const url = data.username ? mapShareUrl(data.username) : data.mapUrl;
     setBusy('share');
     try {
-      await navigator.share({
-        files: [file],
+      const result = await sharePostcard({
+        file,
         title: t('postcard.title'),
         text: t('postcard.shareText', {
           name: data.name,
           percent: data.percent,
         }),
-        url: data.username ? mapShareUrl(data.username) : data.mapUrl,
+        url,
       });
-    } catch (e) {
-      if (e instanceof DOMException && e.name === 'AbortError') return;
-      push(t('postcard.shareError'), 'error');
+      if (result === 'aborted') return;
+    } catch {
+      try {
+        await navigator.clipboard.writeText(url);
+        push(t('postcard.copiedLink'));
+      } catch {
+        push(t('postcard.shareError'), 'error');
+      }
     } finally {
       setBusy(null);
     }

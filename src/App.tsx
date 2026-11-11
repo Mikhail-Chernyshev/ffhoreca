@@ -407,6 +407,7 @@ function App() {
             value={filter}
             onChange={setFilter}
             catalog={catalogMerged}
+            routes={userRoutes}
           />
           {postcardData ? (
             <button

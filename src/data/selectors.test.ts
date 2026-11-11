@@ -7,6 +7,7 @@ import {
   catalogCityIdFromPhotonHints,
   cityById,
   cityLabelForPlace,
+  categoryTabCounts,
   citiesForMapMarkers,
   formatTabCount,
   geoIdToAlpha2,
@@ -18,8 +19,10 @@ import {
   placesForFilter,
   resolvePlaceCityId,
   resolveRouteWaypointCoords,
+  routesVisibleOnMap,
   visitedCountryCodes,
 } from './selectors';
+import type { TravelRoute } from './types';
 import { catalog, city, place } from '../test/fixtures';
 
 const tbilisi = city({ id: 'ge-tbilisi', name: 'Tbilisi', countryCode: 'GE' });
@@ -139,14 +142,24 @@ describe('canonicalCity / cityLabelForPlace / placesCountForCity', () => {
   });
 });
 
+const planeRoute: TravelRoute = {
+  id: 'r-plane',
+  mode: 'plane',
+  waypoints: [
+    { cityId: 'ge-tbilisi', name: 'Tbilisi', lat: 41.7, lng: 44.8, placeId: 'p-air' },
+    { cityId: 'ru-moscow', name: 'Moscow', lat: 55.7, lng: 37.6 },
+  ],
+};
+
 describe('placesForFilter', () => {
   it('таб places показывает только attraction', () => {
     expect(placesForFilter(full, 'places').map((p) => p.id)).toEqual(['p-attr']);
   });
 
-  it('таб food показывает еду, cities не показывает места', () => {
+  it('таб food показывает еду, cities и routes не показывают места', () => {
     expect(placesForFilter(full, 'food').map((p) => p.id)).toEqual(['p-food', 'p-th']);
     expect(placesForFilter(full, 'cities')).toEqual([]);
+    expect(placesForFilter(full, 'routes')).toEqual([]);
     expect(placesForFilter(full, 'all')).toHaveLength(4);
   });
 });
@@ -161,6 +174,27 @@ describe('citiesForMapMarkers', () => {
   it('на табе категории оставляет города видимых мест', () => {
     const ids = citiesForMapMarkers(full, 'airport', [airport]).map((c) => c.id);
     expect(ids).toEqual(['ge-tbilisi']);
+  });
+
+  it('на табе маршрутов показывает города waypoints', () => {
+    const ids = citiesForMapMarkers(full, 'routes', [], [planeRoute]).map((c) => c.id);
+    expect(ids).toEqual(['ge-tbilisi', 'ru-moscow']);
+  });
+});
+
+describe('routesVisibleOnMap / categoryTabCounts', () => {
+  it('линии маршрутов только на «всё» и «маршруты»', () => {
+    expect(routesVisibleOnMap('all')).toBe(true);
+    expect(routesVisibleOnMap('routes')).toBe(true);
+    expect(routesVisibleOnMap('lodging')).toBe(false);
+    expect(routesVisibleOnMap('cities')).toBe(false);
+  });
+
+  it('считает маршруты отдельным табом', () => {
+    const counts = categoryTabCounts(full, [planeRoute]);
+    expect(counts.routes).toBe(1);
+    expect(counts.cities).toBe(3);
+    expect(counts.airport).toBe(1);
   });
 });
 
@@ -241,7 +275,7 @@ describe('formatTabCount / markerColorClass / mergeCatalogWithAdminPlaces', () =
     expect(markerColorClass(place({ id: '1', name: 'H', cityId: 'x', categories: ['lodging', 'food'] }))).toBe(
       'place-dot--lodging',
     );
-    expect(markerColorClass(attraction)).toBe('place-dot--food');
+    expect(markerColorClass(attraction)).toBe('place-dot--attraction');
   });
 
   it('админские места перекрывают id и добавляют новые', () => {

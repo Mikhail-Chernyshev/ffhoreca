@@ -33,9 +33,12 @@ import {
   citiesForMapMarkers,
   markerColorClass,
   placeCoordinates,
+  placeMarkerKind,
+  routesVisibleOnMap,
   visitedCountryCodes,
 } from '../data/selectors';
 import { CountryFlagFillLayer } from '../lib/countryFlagFillLayer';
+import { MapCategoryGlyph } from './MapCategoryGlyph';
 import {
   fixGeojsonAntimeridian,
   sanitizeMapFillGeometry,
@@ -218,9 +221,10 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     [catalog],
   );
   const citiesOnMap = useMemo(
-    () => citiesForMapMarkers(catalog, filter, places),
-    [catalog, filter, places],
+    () => citiesForMapMarkers(catalog, filter, places, userRoutes),
+    [catalog, filter, places, userRoutes],
   );
+  const showRoutes = routesVisibleOnMap(filter);
 
   const showCityLayer = citiesForBoundaries.length > 0;
   const { geography: cityBoundaryGeo } = useCityBoundaryGeography(
@@ -515,12 +519,29 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
   const { airportPlaces, otherPlaces } = useMemo(() => {
     const airports: Place[] = [];
     const rest: Place[] = [];
+    const seen = new Set<string>();
     for (const place of places) {
-      if (place.categories.includes('airport')) airports.push(place);
-      else rest.push(place);
+      if (place.categories.includes('airport')) {
+        airports.push(place);
+        seen.add(place.id);
+      } else {
+        rest.push(place);
+      }
+    }
+    if (showRoutes) {
+      for (const route of userRoutes) {
+        if (route.mode !== 'plane') continue;
+        for (const wp of route.waypoints) {
+          if (!wp.placeId || seen.has(wp.placeId)) continue;
+          const place = catalog.places.find((p) => p.id === wp.placeId);
+          if (!place?.categories.includes('airport')) continue;
+          airports.push(place);
+          seen.add(place.id);
+        }
+      }
     }
     return { airportPlaces: airports, otherPlaces: rest };
-  }, [places]);
+  }, [places, showRoutes, userRoutes, catalog.places]);
 
   const renderPlaceMarker = (place: Place, opts: { showLabel: boolean; labelHigh: boolean }) => {
     const [lng, lat] = placeCoordinates(catalog, place);
@@ -549,7 +570,9 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           }}
         >
           <span className='world-map-place-marker__halo' aria-hidden />
-          <span className={dotClass} />
+          <span className={dotClass}>
+            <MapCategoryGlyph kind={placeMarkerKind(place)} size={12} />
+          </span>
           {opts.showLabel ? (
             <span
               className={
@@ -690,11 +713,13 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         >
           <AttributionControl compact position='bottom-right' />
 
-          <UserRoutes
-            routes={userRoutes}
-            catalog={catalog}
-            mapThemeDark={mapThemeDark}
-          />
+          {showRoutes ? (
+            <UserRoutes
+              routes={userRoutes}
+              catalog={catalog}
+              mapThemeDark={mapThemeDark}
+            />
+          ) : null}
 
           {showCityBoundaries ? (
             <Source
@@ -725,47 +750,47 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
             </Source>
           ) : null}
 
-          {showCityLayer
-            ? citiesOnMap.map((city) => (
-                <Marker
-                  key={city.id}
-                  longitude={city.lng}
-                  latitude={city.lat}
-                  anchor='center'
-                >
-                  <button
-                    type='button'
-                    className='world-map-city-marker'
-                    aria-label={t('map.ariaCityMarker', { name: city.name })}
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCityClick(city);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        handleCityClick(city);
-                      }
-                    }}
+          {citiesOnMap.map((city) => (
+            <Marker
+              key={city.id}
+              longitude={city.lng}
+              latitude={city.lat}
+              anchor='center'
+            >
+              <button
+                type='button'
+                className='world-map-city-marker'
+                aria-label={t('map.ariaCityMarker', { name: city.name })}
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCityClick(city);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleCityClick(city);
+                  }
+                }}
+              >
+                <span className='world-map-city-marker__hit' aria-hidden />
+                <span className='world-map-city-marker__dot'>
+                  <MapCategoryGlyph kind='city' size={11} />
+                </span>
+                {zoom >= CITY_LABEL_MIN_ZOOM ? (
+                  <span
+                    className={
+                      zoom >= CITY_LABEL_COMPACT_ZOOM
+                        ? 'world-map-city-marker__label world-map-city-marker__label--compact'
+                        : 'world-map-city-marker__label'
+                    }
                   >
-                    <span className='world-map-city-marker__hit' aria-hidden />
-                    <span className='world-map-city-marker__dot' />
-                    {zoom >= CITY_LABEL_MIN_ZOOM ? (
-                      <span
-                        className={
-                          zoom >= CITY_LABEL_COMPACT_ZOOM
-                            ? 'world-map-city-marker__label world-map-city-marker__label--compact'
-                            : 'world-map-city-marker__label'
-                        }
-                      >
-                        {city.name}
-                      </span>
-                    ) : null}
-                  </button>
-                </Marker>
-              ))
-            : null}
+                    {city.name}
+                  </span>
+                ) : null}
+              </button>
+            </Marker>
+          ))}
 
           {airportPlaces.map((place) =>
             renderPlaceMarker(place, {

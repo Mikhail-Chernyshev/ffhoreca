@@ -246,14 +246,50 @@ export function citiesForMapBoundaries(catalog: Catalog): City[] {
   return allCatalogCitiesForMap(catalog);
 }
 
-/** Метки городов: на «Всё»/«Города» — без подрайонов; на табах категорий — только с видимыми местами */
+/** Города с маршрутов, которых может не быть в отфильтрованном списке меток. */
+export function mergeRouteCities(
+  cities: City[],
+  catalog: Catalog,
+  routes: TravelRoute[],
+): City[] {
+  const byId = new Map(cities.map((c) => [c.id, c]));
+  const known = new Map(catalog.cities.map((c) => [c.id, c]));
+  for (const route of routes) {
+    for (const wp of route.waypoints) {
+      if (!wp.cityId || byId.has(wp.cityId)) continue;
+      const fromCatalog = known.get(wp.cityId);
+      if (fromCatalog) {
+        byId.set(fromCatalog.id, fromCatalog);
+        continue;
+      }
+      if (typeof wp.lat !== 'number' || typeof wp.lng !== 'number') continue;
+      const cc = wp.cityId.split('-')[0]?.toUpperCase() ?? '';
+      byId.set(wp.cityId, {
+        id: wp.cityId,
+        name: wp.name,
+        countryCode: cc.length === 2 ? cc : '??',
+        lat: wp.lat,
+        lng: wp.lng,
+      });
+    }
+  }
+  return [...byId.values()];
+}
+
+/** Метки городов: на «Всё»/«Города» — без подрайонов; на «Маршруты» — точки путей; иначе — города видимых мест */
 export function citiesForMapMarkers(
   catalog: Catalog,
   filter: CategoryFilter,
   visiblePlaces: Place[],
+  routes: TravelRoute[] = [],
 ): City[] {
   if (filter === 'cities' || filter === 'all') return allCatalogCitiesForMap(catalog);
+  if (filter === 'routes') return mergeRouteCities([], catalog, routes);
   return citiesFromVisiblePlaces(catalog, visiblePlaces);
+}
+
+export function routesVisibleOnMap(filter: CategoryFilter): boolean {
+  return filter === 'all' || filter === 'routes';
 }
 
 function normalizeCityToken(s: string): string {
@@ -434,7 +470,7 @@ export function placeCoordinates(
 }
 
 function placeMatchesFilter(place: Place, filter: CategoryFilter): boolean {
-  if (filter === 'cities') return false;
+  if (filter === 'cities' || filter === 'routes') return false;
   if (filter === 'all') return true;
   if (filter === 'places') return place.categories.includes('attraction');
   return place.categories.includes(filter as PlaceCategory);
@@ -514,11 +550,13 @@ export function resolveRouteWaypointCoords(
 /** Счётчики для табов фильтра карты (что показывается при выборе таба). */
 export function categoryTabCounts(
   catalog: Catalog,
+  routes: TravelRoute[] = [],
 ): Record<CategoryFilter, number> {
   return {
     all: catalog.places.length,
     places: placesForFilter(catalog, 'places').length,
     cities: allCatalogCitiesForMap(catalog).length,
+    routes: routes.length,
     lodging: placesForFilter(catalog, 'lodging').length,
     food: placesForFilter(catalog, 'food').length,
     bar: placesForFilter(catalog, 'bar').length,
@@ -544,12 +582,14 @@ export function mergeCatalogWithAdminPlaces(
   return { ...base, places: [...mergedFromBase, ...newOnly] };
 }
 
-export function markerColorClass(place: Place): string {
+export function placeMarkerKind(place: Place): PlaceCategory {
   const order: PlaceCategory[] = ['lodging', 'food', 'bar', 'airport'];
   for (const c of order) {
-    if (place.categories.includes(c)) {
-      return `place-dot--${c}`;
-    }
+    if (place.categories.includes(c)) return c;
   }
-  return 'place-dot--food';
+  return 'attraction';
+}
+
+export function markerColorClass(place: Place): string {
+  return `place-dot--${placeMarkerKind(place)}`;
 }

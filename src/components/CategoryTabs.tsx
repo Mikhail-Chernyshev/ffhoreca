@@ -3,13 +3,14 @@ import {
   categoryTabCounts,
   formatTabCount,
 } from '../data/selectors'
-import type { Catalog, CategoryFilter } from '../data/types'
+import type { Catalog, CategoryFilter, TravelRoute } from '../data/types'
 import { useT } from '../i18n/LocaleContext'
 
 const TAB_IDS: CategoryFilter[] = [
   'all',
   'places',
   'cities',
+  'routes',
   'lodging',
   'food',
   'bar',
@@ -20,11 +21,12 @@ type Props = {
   value: CategoryFilter
   onChange: (v: CategoryFilter) => void
   catalog: Catalog
+  routes?: TravelRoute[]
 }
 
-export function CategoryTabs({ value, onChange, catalog }: Props) {
+export function CategoryTabs({ value, onChange, catalog, routes = [] }: Props) {
   const t = useT()
-  const counts = useMemo(() => categoryTabCounts(catalog), [catalog])
+  const counts = useMemo(() => categoryTabCounts(catalog, routes), [catalog, routes])
 
   return (
     <div className="category-tabs" role="tablist" aria-label={t('category.ariaTablist')}>

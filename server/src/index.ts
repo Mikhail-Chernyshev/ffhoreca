@@ -25,6 +25,8 @@ import {
   requestMapFollow, acceptMapFollow, rejectMapFollow,
   listIncomingFollowRequests, listAcceptedFollowers, listOutgoingFollows, unfollowMap, getMapFollow,
   getUserUsage,
+  getUserTransitCountries,
+  userCountryCodes,
   collectUserUploadFilenames,
   deleteUserAccount,
   parseTransitCountriesJson,
@@ -63,6 +65,8 @@ import { sendFeedbackEmail } from './feedbackMail';
 import { isValidReportReason, sendPlaceReportEmail } from './reportMail';
 import { rateLimitOrResponse } from './rateLimit';
 import { buildSharePageHtml, isLinkPreviewCrawler } from './sharePage';
+import { latestShareRouteLeg, shareOgEtag, shareOgPngCached } from './shareOg';
+import { worldCoveragePercent } from '../../src/lib/travelPassport';
 import {
   jsonBodyLimitMiddleware,
   readJsonBody,
@@ -117,9 +121,6 @@ function redirectWithAuthParams(
   return url.toString();
 }
 const OG_IMAGE_PATH = path.resolve(process.cwd(), 'public/og-share.png');
-const OG_IMAGE_VERSION = fs.existsSync(OG_IMAGE_PATH)
-  ? String(Math.floor(fs.statSync(OG_IMAGE_PATH).mtimeMs / 1000))
-  : '1';
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || 'newmishach@gmail.com').trim().toLowerCase();
 
 const USERNAME_RE = /^[a-z0-9][a-z0-9_-]{2,29}$/i;
@@ -593,17 +594,71 @@ function publicOrigin(c: Context): string {
   return `${proto}://${host}`;
 }
 
+function genericOgPng(): Buffer | null {
+  if (!fs.existsSync(OG_IMAGE_PATH)) return null;
+  return fs.readFileSync(OG_IMAGE_PATH);
+}
+
+function shareOgPayload(user: DbUser) {
+  const transit = new Set(getUserTransitCountries(db, user.id));
+  const countryCodes = [...userCountryCodes(db, user.id)]
+    .filter((code) => !transit.has(code))
+    .sort();
+  const routes = getUserRoutes(db, user.id);
+  const leg = latestShareRouteLeg(routes);
+  const usage = getUserUsage(db, user.id);
+  return {
+    name: user.name.trim() || user.username || 'Tips from trips',
+    username: user.username ?? '',
+    countryCodes,
+    cities: usage.cities,
+    routes: usage.routes,
+    routeFrom: leg?.from ?? null,
+    routeTo: leg?.to ?? null,
+    usage,
+  };
+}
+
 app.get('/og-share.png', (c) => {
-  if (!fs.existsSync(OG_IMAGE_PATH)) {
-    return c.text('Not found', 404);
-  }
-  const body = fs.readFileSync(OG_IMAGE_PATH);
+  const body = genericOgPng();
+  if (!body) return c.text('Not found', 404);
   return new Response(body, {
     headers: {
       'Content-Type': 'image/png',
       'Cache-Control': 'public, max-age=31536000, immutable',
     },
   });
+});
+
+app.get('/share/:username/og.png', async (c) => {
+  const username = (c.req.param('username') ?? '').trim().toLowerCase();
+  const user = username ? findUserByUsername(db, username) : null;
+  if (!user?.username) {
+    const fallback = genericOgPng();
+    if (!fallback) return c.text('Not found', 404);
+    return new Response(fallback, {
+      headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=300' },
+    });
+  }
+  try {
+    const { png, etag } = await shareOgPngCached(shareOgPayload(user));
+    if (c.req.header('if-none-match') === etag) {
+      return new Response(null, { status: 304, headers: { ETag: etag } });
+    }
+    return new Response(png, {
+      headers: {
+        'Content-Type': 'image/png',
+        ETag: etag,
+        'Cache-Control': 'public, max-age=300',
+      },
+    });
+  } catch {
+    const fallback = genericOgPng();
+    if (!fallback) return c.text('Not found', 404);
+    return new Response(fallback, {
+      headers: { 'Content-Type': 'image/png', 'Cache-Control': 'public, max-age=60' },
+    });
+  }
 });
 
 app.get('/share/:username', (c) => {
@@ -615,7 +670,6 @@ app.get('/share/:username', (c) => {
     : frontendBase;
   const origin = publicOrigin(c);
   const shareUrl = `${origin}/share/${encodeURIComponent(username)}`;
-  const imageUrl = `${origin}/og-share.png?v=${OG_IMAGE_VERSION}`;
 
   if (!user) {
     return c.redirect(mapUrl, 302);
@@ -626,10 +680,12 @@ app.get('/share/:username', (c) => {
     return c.redirect(mapUrl, 302);
   }
 
-  const usage = getUserUsage(db, user.id);
-  const title = `@${user.username} — Tips from trips`;
+  const payload = shareOgPayload(user);
+  const percent = worldCoveragePercent(payload.countryCodes.length);
+  const title = `@${user.username} — ${percent}% of the world`;
   const description =
-    `${user.name}: ${usage.countries} countries, ${usage.cities} cities, ${usage.places} places, ${usage.routes} routes on the travel map.`;
+    `${user.name}: ${payload.countryCodes.length} countries · ${payload.cities} cities · ${payload.usage.places} places · ${payload.routes} routes`;
+  const imageUrl = `${origin}/share/${encodeURIComponent(user.username)}/og.png?v=${shareOgEtag(payload)}`;
 
   const html = buildSharePageHtml({
     title,

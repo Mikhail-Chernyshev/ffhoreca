@@ -483,7 +483,7 @@ export function UserMapPage() {
             onFlyTo={flyToOnMap}
             onSearchSelect={() => onboardingNotify('searchUsed')}
           />
-          <CategoryTabs value={filter} onChange={setFilter} catalog={catalog} />
+          <CategoryTabs value={filter} onChange={setFilter} catalog={catalog} routes={routes} />
           {postcardData && mapMode !== 'sharedMap' ? (
             <button
               type="button"

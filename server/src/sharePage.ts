@@ -40,6 +40,7 @@ export function buildSharePageHtml(p: SharePageParams): string {
   <meta property="og:description" content="${escapeHtml(p.description)}" />
   <meta property="og:url" content="${escapeHtml(p.shareUrl)}" />
   <meta property="og:image" content="${escapeHtml(p.imageUrl)}" />
+  <meta property="og:image:type" content="image/png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta name="twitter:card" content="summary_large_image" />

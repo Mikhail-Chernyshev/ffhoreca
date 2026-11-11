@@ -3,6 +3,7 @@ export type CategoryFilter =
   | 'all'
   | 'places'
   | 'cities'
+  | 'routes'
   | 'lodging'
   | 'food'
   | 'bar'
