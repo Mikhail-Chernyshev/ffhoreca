@@ -1,0 +1,50 @@
+.test-page {
+  min-height: 100vh;
+  padding: 1.5rem 1rem 2.5rem;
+  background: var(--bg, #f6f1ea);
+}
+
+.test-page__inner {
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.test-page__back {
+  display: inline-block;
+  margin-bottom: 1rem;
+  font-size: 0.88rem;
+  color: var(--accent, #d4532c);
+  text-decoration: none;
+}
+
+.test-page__back:hover {
+  text-decoration: underline;
+}
+
+.test-page__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.45rem;
+}
+
+.test-page__hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-muted, #7a7268);
+}
+
+.test-page__hint code {
+  font-size: 0.84em;
+}
+
+.test-page__out {
+  margin: 0;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border, #ddd3c6);
+  border-radius: 12px;
+  background: var(--surface-elevated, #fffcf8);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}

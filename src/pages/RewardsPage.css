@@ -1,0 +1,312 @@
+.rewards-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 12% -8%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 26rem),
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--map-ocean) 28%, transparent), transparent 22rem),
+    var(--bg);
+}
+
+.rewards-page .app-header {
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.rewards-page__back {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.rewards-page__main {
+  flex: 1;
+  width: min(62rem, calc(100% - 2rem));
+  margin: 0 auto 2.5rem;
+  padding: 0.5rem 0 2rem;
+}
+
+.rewards-page__title {
+  margin: 0 0 0.4rem;
+  font-size: var(--text-2xl);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-h);
+}
+
+.rewards-page__intro {
+  margin: 0 0 1rem;
+  max-width: 38rem;
+  font-size: var(--text-sm);
+  line-height: var(--leading-body);
+  color: var(--text-muted);
+}
+
+.rewards-ledger {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.85rem 1.5rem;
+  margin: 0 0 1.6rem;
+  padding: 0.9rem 1rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  box-shadow: var(--shadow-sm);
+}
+
+.rewards-page__opened {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 750;
+  color: var(--text-h);
+}
+
+.rewards-coverage {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  max-width: 22rem;
+}
+
+.rewards-coverage__meta {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.rewards-coverage__bar {
+  display: block;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--border) 80%, transparent);
+  overflow: hidden;
+}
+
+.rewards-coverage__fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.rewards-group {
+  margin: 0 0 1.7rem;
+}
+
+.rewards-group__title {
+  margin: 0 0 0.85rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.6rem, 1fr));
+  gap: 1.25rem 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reward-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.32rem;
+}
+
+.reward-seal {
+  width: 6.35rem;
+  height: 6.35rem;
+  display: grid;
+  place-items: center;
+  transform: rotate(var(--seal-tilt, 0deg));
+  filter: drop-shadow(0 1px 0 rgba(28, 25, 21, 0.04));
+}
+
+.reward-seal__svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.reward-seal__wax {
+  fill: var(--surface-elevated);
+  stroke: var(--neutral-300);
+  stroke-width: 1.15;
+}
+
+.reward-seal__disc {
+  fill: color-mix(in srgb, var(--bg-deep) 35%, var(--surface-elevated));
+}
+
+.reward-seal__track {
+  stroke: color-mix(in srgb, var(--neutral-300) 70%, transparent);
+  stroke-width: 2.1;
+}
+
+.reward-seal__arc {
+  stroke: color-mix(in srgb, var(--accent) 55%, var(--neutral-400));
+  stroke-width: 2.35;
+  stroke-linecap: round;
+}
+
+.reward-seal {
+  color: color-mix(in srgb, var(--text-muted) 78%, var(--neutral-700));
+}
+
+.reward-seal--off .reward-seal__glyph {
+  opacity: 0.46;
+}
+
+.reward-seal--on {
+  color: var(--neutral-0);
+  filter:
+    drop-shadow(0 10px 16px color-mix(in srgb, var(--accent) 22%, transparent))
+    drop-shadow(0 1px 0 rgba(28, 25, 21, 0.12));
+}
+
+.reward-seal--on .reward-seal__wax {
+  fill: var(--accent-600);
+  stroke: var(--accent-700);
+}
+
+.reward-seal--on .reward-seal__disc {
+  fill: var(--accent-500);
+}
+
+.reward-seal--on .reward-seal__track {
+  stroke: color-mix(in srgb, var(--accent-100) 42%, transparent);
+}
+
+.reward-seal--on .reward-seal__arc {
+  stroke: var(--accent-50);
+}
+
+.reward-seal__shine {
+  stroke: color-mix(in srgb, var(--neutral-0) 55%, transparent);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.reward-seal--soon {
+  color: var(--text-muted);
+}
+
+.reward-seal--soon .reward-seal__wax {
+  fill: color-mix(in srgb, var(--surface) 80%, var(--neutral-100));
+  stroke: var(--neutral-300);
+  stroke-dasharray: 3 2.4;
+}
+
+.reward-seal--soon .reward-seal__disc {
+  fill: var(--surface);
+}
+
+.reward-seal--soon .reward-seal__glyph {
+  opacity: 0.34;
+}
+
+.reward-seal__void rect {
+  fill: #2a2622;
+}
+
+.reward-seal__void text {
+  fill: #fffdfb;
+  font-size: 7.4px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: var(--heading);
+}
+
+.reward-card__name {
+  margin-top: 0.15rem;
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: var(--leading-tight);
+  color: var(--text-h);
+}
+
+.reward-card--off .reward-card__name,
+.reward-card--soon .reward-card__name {
+  color: var(--neutral-600);
+}
+
+.reward-card--on .reward-card__name {
+  color: var(--accent-700);
+}
+
+.reward-card__hint {
+  font-size: 0.75rem;
+  line-height: var(--leading-snug);
+  color: var(--text-muted);
+  max-width: 9.8rem;
+}
+
+.reward-card__progress {
+  font-size: 0.72rem;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.reward-card--on .reward-card__progress {
+  color: var(--accent);
+}
+
+.reward-card--soon .reward-card__progress {
+  color: var(--warn-500);
+}
+
+html[data-theme='dark'] .reward-seal--on {
+  color: var(--neutral-950);
+}
+
+html[data-theme='dark'] .reward-card--on .reward-card__name {
+  color: var(--accent-400);
+}
+
+html[data-theme='dark'] .reward-seal--on .reward-seal__wax {
+  fill: var(--accent-500);
+  stroke: var(--accent-700);
+}
+
+html[data-theme='dark'] .reward-seal--on .reward-seal__disc {
+  fill: var(--accent-400);
+}
+
+html[data-theme='dark'] .reward-seal--on .reward-seal__arc {
+  stroke: var(--neutral-900);
+}
+
+html[data-theme='dark'] .reward-seal--on .reward-seal__shine {
+  stroke: color-mix(in srgb, var(--neutral-900) 58%, transparent);
+}
+
+@media (max-width: 599px) {
+  .rewards-page__main {
+    width: calc(100% - 1.3rem);
+  }
+
+  .rewards-grid {
+    grid-template-columns: repeat(auto-fill, minmax(7.4rem, 1fr));
+    gap: 1.05rem 0.45rem;
+  }
+
+  .reward-seal {
+    width: 5.6rem;
+    height: 5.6rem;
+  }
+}

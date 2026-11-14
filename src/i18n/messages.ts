@@ -286,6 +286,129 @@ const ru = {
     backHome: '← На главную',
     updated: 'Обновлено: {{date}}',
   },
+  rewards: {
+    title: 'Награды',
+    intro:
+      'Штампы в паспорте карты: от первой страны до всего атласа, плюс советы, маршруты и компания.',
+    introGuest:
+      'Войдите, чтобы открывать штампы со своей карты. Пока все печати ещё пустые.',
+    opened: 'Открыто {{done}} из {{total}}',
+    progress: '{{current}} / {{target}}',
+    coverage: '{{count}} из {{total}} стран',
+    soon: 'Скоро',
+    back: '← Назад',
+    groups: {
+      countries: 'Страны',
+      regions: 'Регионы',
+      cities: 'Города',
+      places: 'Советы',
+      routes: 'Маршруты',
+      people: 'Компания',
+      soon: 'Появится позже',
+    },
+    items: {
+      firstBorder: {
+        title: 'За границей',
+        hint: 'Первая страна на карте',
+      },
+      greatStart: {
+        title: 'Отличный старт',
+        hint: '3 страны',
+      },
+      fiveBorders: {
+        title: 'Пять границ',
+        hint: '5 стран',
+      },
+      worldWanderer: {
+        title: 'Десятый штамп',
+        hint: '10 стран',
+      },
+      globetrotter: {
+        title: 'Глобетроттер',
+        hint: '25 стран',
+      },
+      fiftyNations: {
+        title: 'Полсотни',
+        hint: '50 стран',
+      },
+      longHaul: {
+        title: 'Дальний круг',
+        hint: '75 стран',
+      },
+      centuryClub: {
+        title: 'Сотня',
+        hint: '100 стран',
+      },
+      atlasAlmost: {
+        title: 'Почти вся карта',
+        hint: '150 стран',
+      },
+      wholeWorld: {
+        title: 'Весь мир',
+        hint: 'Все 195 стран',
+      },
+      schengenExpert: {
+        title: 'Шенген-эксперт',
+        hint: 'Все страны Шенгена',
+      },
+      twoContinents: {
+        title: 'Два материка',
+        hint: 'Страны на 2 континентах',
+      },
+      pangaea: {
+        title: 'Пангея',
+        hint: 'Страны на всех континентах',
+      },
+      localExpert: {
+        title: 'Локальный эксперт',
+        hint: '10 городов в одной стране',
+      },
+      cityHopper: {
+        title: 'Городской странник',
+        hint: '15 городов',
+      },
+      firstTip: {
+        title: 'Первый совет',
+        hint: 'Первое место',
+      },
+      foodie: {
+        title: 'Гурман',
+        hint: '8 мест с едой',
+      },
+      nightOwl: {
+        title: 'Ночная сова',
+        hint: '5 баров',
+      },
+      innkeeper: {
+        title: 'Ночлег',
+        hint: '5 мест жилья',
+      },
+      photographer: {
+        title: 'Плёнка',
+        hint: 'Фото у 5 мест',
+      },
+      storyteller: {
+        title: 'Почерк',
+        hint: 'История у 5 мест',
+      },
+      firstRoute: {
+        title: 'Первая нитка',
+        hint: 'Сохраните маршрут',
+      },
+      frequentFlyer: {
+        title: 'Частый пассажир',
+        hint: '3 авиамаршрута',
+      },
+      groupTourism: {
+        title: 'Групповой туризм!',
+        hint: 'Больше 5 подписчиков',
+      },
+      seaKing: {
+        title: 'Царь морей',
+        hint: '5 круизов — когда появятся',
+      },
+    },
+  },
   feedback: {
     link: 'Обратная связь',
     expand: 'Развернуть обратную связь',
@@ -364,6 +487,7 @@ const ru = {
     save: 'Сохранить',
     myMap: 'Моя карта',
     account: 'Аккаунт',
+    rewards: 'Награды',
     accountPendingAria: 'Аккаунт, заявок на подписку: {{count}}',
     logoutConfirmTitle: 'Выйти из аккаунта?',
     logoutConfirmMessage:
@@ -925,6 +1049,129 @@ const en = {
     backHome: '← Back to map',
     updated: 'Updated: {{date}}',
   },
+  rewards: {
+    title: 'Rewards',
+    intro:
+      'Passport stamps from your map — from the first country to the whole atlas, plus tips, routes and company.',
+    introGuest:
+      'Sign in to press stamps from your own map. For now every seal is still blank.',
+    opened: 'Unlocked {{done}} of {{total}}',
+    progress: '{{current}} / {{target}}',
+    coverage: '{{count}} of {{total}} countries',
+    soon: 'Soon',
+    back: '← Back',
+    groups: {
+      countries: 'Countries',
+      regions: 'Regions',
+      cities: 'Cities',
+      places: 'Tips',
+      routes: 'Routes',
+      people: 'Company',
+      soon: 'Coming later',
+    },
+    items: {
+      firstBorder: {
+        title: 'Across the border',
+        hint: 'First country on the map',
+      },
+      greatStart: {
+        title: 'Great start',
+        hint: '3 countries',
+      },
+      fiveBorders: {
+        title: 'Five borders',
+        hint: '5 countries',
+      },
+      worldWanderer: {
+        title: 'Tenth stamp',
+        hint: '10 countries',
+      },
+      globetrotter: {
+        title: 'Globetrotter',
+        hint: '25 countries',
+      },
+      fiftyNations: {
+        title: 'Fifty nations',
+        hint: '50 countries',
+      },
+      longHaul: {
+        title: 'Long haul',
+        hint: '75 countries',
+      },
+      centuryClub: {
+        title: 'Century',
+        hint: '100 countries',
+      },
+      atlasAlmost: {
+        title: 'Almost the atlas',
+        hint: '150 countries',
+      },
+      wholeWorld: {
+        title: 'The whole world',
+        hint: 'All 195 countries',
+      },
+      schengenExpert: {
+        title: 'Schengen expert',
+        hint: 'Every Schengen country',
+      },
+      twoContinents: {
+        title: 'Two continents',
+        hint: 'Countries on 2 continents',
+      },
+      pangaea: {
+        title: 'Pangaea',
+        hint: 'Countries on every continent',
+      },
+      localExpert: {
+        title: 'Local expert',
+        hint: '10 cities in one country',
+      },
+      cityHopper: {
+        title: 'City hopper',
+        hint: '15 cities',
+      },
+      firstTip: {
+        title: 'First tip',
+        hint: 'First place',
+      },
+      foodie: {
+        title: 'Foodie',
+        hint: '8 food places',
+      },
+      nightOwl: {
+        title: 'Night owl',
+        hint: '5 bars',
+      },
+      innkeeper: {
+        title: 'Lodging',
+        hint: '5 lodging places',
+      },
+      photographer: {
+        title: 'Frame',
+        hint: 'Photos on 5 places',
+      },
+      storyteller: {
+        title: 'Handwriting',
+        hint: 'Stories on 5 places',
+      },
+      firstRoute: {
+        title: 'First thread',
+        hint: 'Save a route',
+      },
+      frequentFlyer: {
+        title: 'Frequent flyer',
+        hint: '3 plane routes',
+      },
+      groupTourism: {
+        title: 'Group tourism!',
+        hint: 'More than 5 followers',
+      },
+      seaKing: {
+        title: 'King of the seas',
+        hint: '5 cruises — still on the way',
+      },
+    },
+  },
   feedback: {
     link: 'Feedback',
     expand: 'Expand feedback section',
@@ -1003,6 +1250,7 @@ const en = {
     save: 'Save',
     myMap: 'My map',
     account: 'Account',
+    rewards: 'Rewards',
     accountPendingAria: 'Account, pending follow requests: {{count}}',
     logoutConfirmTitle: 'Sign out?',
     logoutConfirmMessage:

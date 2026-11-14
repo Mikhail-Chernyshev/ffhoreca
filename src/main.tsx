@@ -6,6 +6,8 @@ import './index.css';
 import App from './App.tsx';
 import { UserMapPage } from './pages/UserMapPage.tsx';
 import { LegalPage } from './pages/LegalPage.tsx';
+import { RewardsPage } from './pages/RewardsPage.tsx';
+import { TestPage } from './pages/TestPage.jsx';
 import { LocaleProvider } from './i18n/LocaleContext';
 import { ToastProvider } from './components/ToastProvider';
 import { AlertProvider } from './components/AlertProvider';
@@ -37,6 +39,8 @@ async function main() {
                     element={<LegalPage kind='privacy' />}
                   />
                   <Route path='/terms' element={<LegalPage kind='terms' />} />
+                  <Route path='/rewards' element={<RewardsPage />} />
+                  <Route path='/test' element={<TestPage />} />
 
                   <Route path='/:username' element={<UserMapPage />} />
                 </Routes>

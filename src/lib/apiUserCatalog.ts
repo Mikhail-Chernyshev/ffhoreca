@@ -2,7 +2,7 @@
  * API-функции для редактирования СОБСТВЕННОЙ карты пользователя.
  * Все запросы используют Authorization: Bearer <jwt> вместо ADMIN_TOKEN.
  */
-import type { City, Place, TravelRoute } from '../data/types';
+import type { Catalog, City, Place, TravelRoute } from '../data/types';
 import type { LimitCode } from './limitMessages';
 import { apiBaseUrl, apiFetch } from './apiBase';
 import { authHeaders } from './apiAuth';
@@ -67,6 +67,39 @@ async function userDelete(path: string): Promise<{ ok: boolean; message: string 
     return { ok: false, message: msg || `HTTP ${res.status}` };
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+const EMPTY_TRAVEL = {
+  catalog: { cities: [] as City[], places: [] as Place[] } satisfies Catalog,
+  routes: [] as TravelRoute[],
+};
+
+/** Каталог и маршруты чужой или своей карты для страницы наград. */
+export async function fetchUserTravelData(username: string): Promise<{
+  catalog: Catalog;
+  routes: TravelRoute[];
+}> {
+  const base = apiBaseUrl();
+  if (!base || !username) return EMPTY_TRAVEL;
+  try {
+    const headers = authHeaders();
+    const [catRes, routesRes] = await Promise.all([
+      apiFetch(`${base}/api/users/${encodeURIComponent(username)}/catalog`, { headers }),
+      apiFetch(`${base}/api/users/${encodeURIComponent(username)}/routes`, { headers }),
+    ]);
+    if (!catRes.ok) return EMPTY_TRAVEL;
+    const cat = (await catRes.json()) as Partial<Catalog>;
+    const cities = Array.isArray(cat.cities) ? cat.cities : [];
+    const places = Array.isArray(cat.places) ? cat.places : [];
+    let routes: TravelRoute[] = [];
+    if (routesRes.ok) {
+      const rts = (await routesRes.json()) as unknown;
+      if (Array.isArray(rts)) routes = rts as TravelRoute[];
+    }
+    return { catalog: { cities, places }, routes };
+  } catch {
+    return EMPTY_TRAVEL;
   }
 }
 

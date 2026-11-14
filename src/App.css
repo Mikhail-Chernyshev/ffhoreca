@@ -3913,6 +3913,11 @@
   gap: 0.35rem;
 }
 
+.auth-user--guest {
+  flex-direction: row;
+  align-items: center;
+}
+
 .auth-user__row {
   display: flex;
   align-items: center;
@@ -4059,6 +4064,17 @@
 
 .auth-user__logout-label {
   white-space: nowrap;
+}
+
+.auth-user__account-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.auth-user__rewards {
+  text-decoration: none;
 }
 
 .auth-user__account {

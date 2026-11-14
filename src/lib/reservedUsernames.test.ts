@@ -5,6 +5,7 @@ describe('isReservedUsername', () => {
     expect(isReservedUsername('Privacy')).toBe(true);
     expect(isReservedUsername('  ADMIN ')).toBe(true);
     expect(isReservedUsername('share')).toBe(true);
+    expect(isReservedUsername('rewards')).toBe(true);
     expect(isReservedUsername('og-share.png')).toBe(true);
   });
 

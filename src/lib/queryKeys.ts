@@ -10,4 +10,5 @@ export const queryKeys = {
   showcaseCatalog: ['showcase', 'catalog'] as const,
   showcaseRoutes: ['showcase', 'routes'] as const,
   showcaseTransit: ['showcase', 'transit'] as const,
+  userTravel: (username: string) => ['users', username, 'travel'] as const,
 };
