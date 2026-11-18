@@ -1,0 +1,1485 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Бюджет до 2030 — Михаил</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+      :root {
+        --bg: #0f1419;
+        --card: #1a222c;
+        --border: #2a3544;
+        --text: #e8edf2;
+        --muted: #8b9aab;
+        --accent: #5fa573;
+        --accent2: #6eb5ff;
+        --warn: #e8a838;
+        --neg: #e05c5c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: 'DM Sans', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+        padding: 1.5rem 1rem 3rem;
+      }
+      .wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.65rem;
+        margin: 0 0 0.25rem;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin-bottom: 1.75rem;
+      }
+      .plan-header {
+        color: var(--muted);
+        font-size: 0.92rem;
+        margin-bottom: 1.75rem;
+        line-height: 1.65;
+      }
+      .plan-header strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      .plan-header__income {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 0.35rem 0.75rem;
+        margin-bottom: 0.65rem;
+        padding-bottom: 0.65rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .plan-header__label {
+        font-size: 0.78rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        width: 100%;
+      }
+      .plan-header__value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .plan-header__note {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.85rem;
+        margin-bottom: 1.75rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.1rem;
+      }
+      .card__label {
+        font-size: 0.78rem;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .card__value {
+        font-size: 1.55rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+        color: var(--accent);
+      }
+      .card__note {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin-top: 0.35rem;
+      }
+      .card--rent .card__schedule {
+        font-size: 0.76rem;
+        color: var(--muted);
+        margin-top: 0.45rem;
+        line-height: 1.55;
+      }
+      .card--rent .card__schedule div + div {
+        margin-top: 0.3rem;
+      }
+      .card--rent .card__schedule strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+      section {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 1.25rem 1.35rem;
+        margin-bottom: 1.25rem;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 0 0 1rem;
+      }
+      .charts {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+      }
+      @media (min-width: 800px) {
+        .charts--split {
+          grid-template-columns: 1.4fr 1fr;
+        }
+      }
+      .chart-box {
+        position: relative;
+        height: 320px;
+      }
+      .chart-box--flow {
+        height: 380px;
+      }
+      .chart-box--monthly {
+        height: 420px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.84rem;
+      }
+      th,
+      td {
+        padding: 0.5rem 0.65rem;
+        text-align: right;
+        border-bottom: 1px solid var(--border);
+      }
+      th:first-child,
+      td:first-child {
+        text-align: left;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 600;
+      }
+      tr:hover td {
+        background: rgba(95, 165, 115, 0.06);
+      }
+      .cost-table-wrap {
+        overflow-x: auto;
+        margin-top: 0.5rem;
+      }
+      .cost-table-wrap table td:last-child {
+        text-align: left;
+        color: var(--muted);
+        font-size: 0.8rem;
+      }
+      .cost-table-foot {
+        margin: 0.75rem 0 0;
+        font-size: 0.82rem;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .cost-table-foot strong {
+        color: var(--text);
+      }
+      .pos {
+        color: var(--accent);
+      }
+      .neg {
+        color: var(--neg);
+      }
+      .assumptions {
+        font-size: 0.86rem;
+        color: var(--muted);
+      }
+      .assumptions li {
+        margin-bottom: 0.4rem;
+      }
+      .milestone {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+      .pill {
+        font-size: 0.78rem;
+        padding: 0.3rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(110, 181, 255, 0.12);
+        border: 1px solid rgba(110, 181, 255, 0.35);
+        color: #b8d9ff;
+      }
+      .footer {
+        text-align: center;
+        font-size: 0.75rem;
+        color: var(--muted);
+        margin-top: 2rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Финансовый план до конца 2030</h1>
+      <p class="sub">Сценарий: бюджет вдвоём с будущей женой</p>
+      <div class="plan-header" id="plan-header"></div>
+
+      <div class="cards" id="summary-cards"></div>
+
+      <section>
+        <h2>Жизнь в Испании: аренда и быт</h2>
+        <p class="sub" style="margin: -0.5rem 0 1rem; font-size: 0.82rem">
+          Помесячные расходы на жильё (аренда) и быт. Ипотека с <strong>июля
+          2029</strong> — отдельная строка: купленная квартира, в ней можно не
+          жить; аренда продолжается.
+        </p>
+        <div class="cost-table-wrap">
+          <table id="spain-living-table">
+            <thead>
+              <tr>
+                <th>Период</th>
+                <th>Аренда</th>
+                <th>Быт</th>
+                <th>Ребёнок</th>
+                <th>Итого / мес</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="spain-living-body"></tbody>
+          </table>
+        </div>
+        <p class="cost-table-foot" id="spain-living-foot"></p>
+      </section>
+
+      <section>
+        <h2>Ключевые вехи</h2>
+        <div class="milestone" id="milestones"></div>
+      </section>
+
+      <section class="charts charts--split">
+        <div>
+          <h2>Накопления (кумулятивно)</h2>
+          <p class="sub" style="margin: -0.5rem 0 1rem; font-size: 0.82rem">
+            Помесячно: рост → <strong>июл'27</strong> (−€8k переезд) →
+            <strong>сен'27</strong> (−€6k) → <strong>окт'27</strong> (−€15k) →
+            рост → <strong>июл'29</strong> (−€50k) → рост.
+          </p>
+          <div class="chart-box"><canvas id="chartCumulative"></canvas></div>
+        </div>
+        <div>
+          <h2>Чистые накопления по годам</h2>
+          <p class="sub" style="margin: -0.5rem 0 1rem; font-size: 0.82rem">
+            2027 — Бали, РФ и Испания (налог с 2028). С 2028 — полный год в
+            Испании при <strong>€8,2k</strong>/мес дохода вдвоём.
+          </p>
+          <div class="chart-box"><canvas id="chartAnnual"></canvas></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Бюджет по месяцам</h2>
+        <p class="sub" style="margin: -0.5rem 0 1rem; font-size: 0.82rem">
+          Три столбца на каждый месяц: <strong>доход</strong>, <strong>все траты</strong>
+          (жизнь + налог + ипотека + разовое) и <strong>чистый остаток</strong> в копилку.
+          Доходы и расходы — на двоих, в €.
+        </p>
+        <div class="chart-box chart-box--monthly">
+          <canvas id="chartMonthly"></canvas>
+        </div>
+      </section>
+
+      <section>
+        <h2>Доход vs расходы (помесячно в фазах)</h2>
+        <p class="sub" style="margin: -0.5rem 0 1rem; font-size: 0.82rem">
+          По фазам жизни. Доходы и расходы — на двоих, в €.
+        </p>
+        <div class="chart-box chart-box--flow">
+          <canvas id="chartFlow"></canvas>
+        </div>
+      </section>
+
+      <section>
+        <h2>Пофазовая таблица</h2>
+        <div style="overflow-x: auto">
+          <table id="phase-table">
+            <thead>
+              <tr>
+                <th>Период</th>
+                <th>Доход</th>
+                <th>Жизнь</th>
+                <th>Разовое</th>
+                <th>Налог</th>
+                <th>Чисто +</th>
+                <th>Итого</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Допущения</h2>
+        <ul class="assumptions">
+          <li>
+            <strong>Сценарий:</strong> бюджет <strong>вдвоём</strong> (вы + жена).
+            Доходы и траты — общие.
+          </li>
+          <li>
+            <strong>Валюта плана:</strong> все суммы в <strong>€</strong>.
+          </li>
+          <li>
+            <strong>Старт плана:</strong> к <strong>01.01.2027</strong> —
+            <strong>€7 000</strong> в копилке (к концу 2025 долг закрыт, к старту
+            плана — эта сумма). Окт–дек 2026 на Бали уже заложены в пути к €7k, не
+            добавляются сверху.
+          </li>
+          <li>
+            <strong>Доход вдвоём до янв. 2027:</strong>
+            <strong>€6 500</strong>/мес.
+          </li>
+          <li>
+            <strong>Доход вдвоём (с 01.01):</strong> янв. 2027 —
+            <strong>€7 500</strong>/мес → янв. 2028 —
+            <strong>€8 200</strong>/мес → янв. 2029 —
+            <strong>€11 000</strong>/мес.
+          </li>
+          <li>
+            <strong>Бали</strong> (окт–дек 2026, янв–апр 2027):
+            <strong>€1 000</strong> жильё + <strong>€3 000</strong> остальное/мес.
+            <strong>РФ</strong> (май–июнь 2027): <strong>€4 000</strong>/мес общие
+            траты.
+          </li>
+          <li>
+            <strong>Испания</strong> с <strong>июля</strong> 2027 — см. таблицу
+            «Жизнь в Испании»; аренда вдвоём ~<strong>€1 400</strong>, быт
+            <strong>€2 500</strong>/мес; переезд в <strong>июле</strong>
+            <strong>€8 000</strong> разово.
+          </li>
+          <li>
+            <strong>Налог в Испании:</strong> 24% × <strong>€4 000</strong> =
+            <strong>€960/мес</strong> с <strong>января 2028</strong> (резиденты с
+            янв. 2028; в 2027 налог не платится, жена как иждивенец +1).
+          </li>
+          <li>
+            <strong>Проекты:</strong> ~€400/мес —
+            <em>реинвест из дохода проектов</em>, не из зарплаты.
+          </li>
+          <li>
+            <strong>Ипотека (июль 2029):</strong> взнос
+            <strong>€35 000</strong> + сопровождение и налоги
+            <strong>€15 000</strong> разово; с <strong>июля 2029</strong> —
+            <strong>€900/мес</strong> на ипотеку <em>(параллельно аренде — в
+            купленной квартире можно не жить)</em>. С <strong>ноября 2029</strong>
+            — доход от сдачи купленной квартиры <strong>€1 000/мес</strong>.
+          </li>
+          <li>
+            <strong>Обручальное кольцо (сент. 2027):</strong>
+            <strong>€6 000</strong> разово.
+          </li>
+          <li>
+            <strong>Свадьба (окт. 2027):</strong>
+            <strong>€15 000</strong> разово.
+          </li>
+          <li>
+            <strong>Авто (дек. 2027):</strong> <strong>€10 000</strong> разово.
+          </li>
+          <li>
+            <strong>Новая машина (фев. 2030):</strong> продаём старую, докладываем
+            <strong>€10 000</strong> разово.
+          </li>
+          <li>
+            <strong>Роды (нояб. 2028):</strong> ведение беременности и роды у
+            гинеколога — <strong>€10 000</strong> разово; с <strong>ноября 2028</strong>
+            — <strong>€500/мес</strong> на ребёнка.
+          </li>
+          <li>
+            <strong>Отпуска:</strong> на <strong>70%</strong> дороже базового
+            плана — 2028 <strong>€4 250</strong> (2×); 2029 и 2030 —
+            <strong>€5 100</strong> (по 2×).
+          </li>
+          <li>
+            <strong>Рост расходов в Испании:</strong> 2028
+            <strong>+15%</strong> → 2029 <strong>+5%</strong> → 2030
+            <strong>+5%</strong>.
+          </li>
+          <li>В 2027 налог Испании не учтён (резидентство с янв. 2028).</li>
+        </ul>
+      </section>
+
+      <p class="footer">
+        Оценка, не финансовая рекомендация. Откройте файл в браузере:
+        docs/budget-2030 copy.html
+      </p>
+    </div>
+
+    <script>
+      const START_BALANCE = 7000;
+      const INCOME_COUPLE = 6500;
+      const INCOME_FROM_2027 = 7500;
+      const INCOME_FROM_2028 = 8200;
+      const INCOME_FROM_2029 = 11000;
+      const BALI_RENT_MO = 1000;
+      const BALI_OTHER_MO = 3000;
+      const BALI_LIFE_MO = BALI_RENT_MO + BALI_OTHER_MO;
+      const RU_LIFE_MO = 4000;
+      const SPB_LIFE_MO = 4000;
+
+      const TAX_BASE_EUR = 4000;
+      const taxSpainMo = TAX_BASE_EUR * 0.24;
+      const ES_RENT_MO = 1400;
+      const ES_RENT_BIG_MO = 1700;
+      const RU_RENT_TO_OCT_2026 = 700;
+      const RU_RENT_NOV26_APR27 = 1000;
+      const ES_LIVING_MO = 2500;
+      const CHILD_MO = 500;
+      const esLifeBase = ES_RENT_MO + ES_LIVING_MO;
+      const esLiving2028 = ES_LIVING_MO * 1.15;
+      const esLiving2029 = esLiving2028 * 1.05;
+      const esLiving2030 = esLiving2029 * 1.05;
+      const esLifeSmall2028 = ES_RENT_MO + esLiving2028;
+      const esLifeBig2028 = ES_RENT_BIG_MO + esLiving2028;
+      const esLifeBigChild2028 = esLifeBig2028 + CHILD_MO;
+      const esLifeBig2029 = ES_RENT_BIG_MO + esLiving2029 + CHILD_MO;
+      const esLifeBig2030 = ES_RENT_BIG_MO + esLiving2030 + CHILD_MO;
+      /** Среднее за 2028: янв–сен малая кв., окт большая, ноя–дек + ребёнок */
+      const esLife2028 =
+        (9 * esLifeSmall2028 + esLifeBig2028 + 2 * esLifeBigChild2028) / 12;
+      const MOVE_ONETIME = 8000;
+      const MORTGAGE_DOWN = 35000;
+      const MORTGAGE_DEAL = 15000;
+      const MORTGAGE_ONETIME = MORTGAGE_DOWN + MORTGAGE_DEAL;
+      const MORTGAGE_MO = 900;
+      const RENTAL_INCOME_MO = 1000;
+      const RING_2027 = 6000;
+      const WEDDING_2027 = 15000;
+      const VACATION_TRIP_2028 = Math.round(2500 * 1.7);
+      const VACATION_TRIP_LATER = Math.round(3000 * 1.7);
+      const VACATION_2028 = 2 * VACATION_TRIP_2028;
+      const CAR_ONETIME = 10000;
+      const CAR_2030 = 10000;
+      const BIRTH_2028 = 10000;
+      const VACATION_2030 = 2 * VACATION_TRIP_LATER;
+
+      const incomeK = (eur) => {
+        const k = eur / 1000;
+        return '€' + (k % 1 < 0.05 ? k.toFixed(0) : k.toFixed(1)) + 'k';
+      };
+      const incomeLadder = `${incomeK(INCOME_FROM_2027)} → ${incomeK(INCOME_FROM_2028)} → ${incomeK(INCOME_FROM_2029)}`;
+      const incomeDates = 'с янв. 2027 / 2028 / 2029';
+
+      const fmt = (n) => {
+        const sign = n < 0 ? '−' : '';
+        return sign + '€' + Math.abs(Math.round(n)).toLocaleString('en-US');
+      };
+
+      const rentCardHtml = `
+      <div class="card card--rent">
+        <div class="card__label">Аренда</div>
+        <div class="card__schedule">
+          <div>РФ, до окт 2026 — <strong>${fmt(RU_RENT_TO_OCT_2026)}</strong>/мес</div>
+          <div>РФ, ноя 2026 – апр 2027 — <strong>${fmt(RU_RENT_NOV26_APR27)}</strong>/мес</div>
+          <div>РФ, апр – июл 2027 — <strong>${fmt(0)}</strong>/мес</div>
+          <div>Испания, с июл 2027 — <strong>${fmt(ES_RENT_MO)}</strong>/мес</div>
+          <div>Испания, с окт 2028 — <strong>${fmt(ES_RENT_BIG_MO)}</strong>/мес</div>
+        </div>
+      </div>`;
+
+      document.getElementById('plan-header').innerHTML =
+        `<div class="plan-header__income">` +
+        `<div class="plan-header__label">Доход / мес</div>` +
+        `<div class="plan-header__value">${incomeLadder}</div>` +
+        `<div class="plan-header__note">${incomeDates} </div>` +
+        `</div>` +
+        `Старт <strong>${fmt(START_BALANCE)}</strong> к 01.01.2027 (вдвоём). ` +
+        `До янв. 2027 доход <strong>${fmt(INCOME_COUPLE)}/мес</strong>. ` +
+        `Испания с <strong>июля 2027</strong>. ` +
+        `Налог <strong>24% × €${TAX_BASE_EUR.toLocaleString('en-US')}</strong> = ${fmt(taxSpainMo)}/мес с <strong>янв. 2028</strong> (иждивенец +1).`;
+
+      const phases = [
+        {
+          id: 'start',
+          label: 'К 01.01.2027',
+          months: 1,
+          incomeMo: 0,
+          lifeMo: 0,
+          oneTime: 0,
+          taxMo: 0,
+          netOverride: START_BALANCE,
+          note: '€7k в копилке',
+        },
+        {
+          id: 'bali',
+          label: 'Янв–апр 2027, Бали',
+          year: 2027,
+          months: 4,
+          incomeMo: INCOME_FROM_2027,
+          lifeMo: BALI_LIFE_MO,
+          oneTime: 0,
+          taxMo: 0,
+        },
+        {
+          id: 'ru',
+          label: 'Май–июнь 2027, РФ (документы)',
+          year: 2027,
+          months: 2,
+          incomeMo: INCOME_FROM_2027,
+          lifeMo: RU_LIFE_MO,
+          oneTime: 0,
+          taxMo: 0,
+        },
+        {
+          id: 'es-27',
+          label: 'Июл–дек 2027, Испания',
+          year: 2027,
+          months: 6,
+          incomeMo: INCOME_FROM_2027,
+          lifeMo: esLifeBase,
+          oneTime: MOVE_ONETIME + RING_2027 + WEDDING_2027 + CAR_ONETIME,
+          taxMo: 0,
+        },
+        {
+          id: 'y2028',
+          label: '2028, Испания',
+          year: 2028,
+          months: 12,
+          incomeMo: INCOME_FROM_2028,
+          lifeMo: esLife2028,
+          oneTime: VACATION_2028 + BIRTH_2028,
+          taxMo: taxSpainMo,
+        },
+        {
+          id: 'y2029-h1',
+          label: 'Янв–июн 2029',
+          year: 2029,
+          months: 6,
+          incomeMo: INCOME_FROM_2029,
+          lifeMo: esLifeBig2029,
+          oneTime: VACATION_TRIP_LATER,
+          taxMo: taxSpainMo,
+        },
+        {
+          id: 'y2029-h2',
+          label: 'Июл–окт 2029',
+          year: 2029,
+          months: 4,
+          incomeMo: INCOME_FROM_2029,
+          lifeMo: esLifeBig2029,
+          mortgageMo: MORTGAGE_MO,
+          oneTime: MORTGAGE_ONETIME + VACATION_TRIP_LATER,
+          taxMo: taxSpainMo,
+        },
+        {
+          id: 'y2029-h3',
+          label: 'Ноя–дек 2029',
+          year: 2029,
+          months: 2,
+          incomeMo: INCOME_FROM_2029 + RENTAL_INCOME_MO,
+          lifeMo: esLifeBig2029,
+          mortgageMo: MORTGAGE_MO,
+          oneTime: 0,
+          taxMo: taxSpainMo,
+        },
+        {
+          id: 'y2030',
+          label: '2030',
+          year: 2030,
+          months: 12,
+          incomeMo: INCOME_FROM_2029 + RENTAL_INCOME_MO,
+          lifeMo: esLifeBig2030,
+          mortgageMo: MORTGAGE_MO,
+          oneTime: VACATION_2030 + CAR_2030,
+          taxMo: taxSpainMo,
+        },
+      ];
+
+      function phaseTotals(p) {
+        const income = p.incomeMo * p.months;
+        const life = p.lifeMo * p.months;
+        const mortgage = (p.mortgageMo || 0) * (p.mortgageMonths ?? p.months);
+        const tax = p.taxMo * p.months;
+        const net =
+          p.netOverride != null
+            ? p.netOverride
+            : income - life - mortgage - tax - p.oneTime;
+        return { income, life: life + mortgage, tax, oneTime: p.oneTime, net };
+      }
+
+      let cumulative = 0;
+      const rows = phases.map((p) => {
+        const t = phaseTotals(p);
+        cumulative += t.net;
+        return { ...p, ...t, cumulative };
+      });
+
+      const finalEur = cumulative;
+
+      function findMilestoneWhen(targetEur) {
+        let run = 0;
+        for (const r of rows) {
+          const before = run;
+          run += r.net;
+          if (before < targetEur && run >= targetEur) {
+            return r.label.split(',')[0];
+          }
+        }
+        return null;
+      }
+
+      const milestoneDefs = [
+        { amountEur: START_BALANCE, title: '€7k', fixed: "01.01'27" },
+        { amountEur: 15000, title: '€15k подушка' },
+        { amountEur: 50000, title: '€50k' },
+        { amountEur: 100000, title: '€100k' },
+        { amountEur: 150000, title: '€150k' },
+      ];
+
+      const milestonePills = milestoneDefs
+        .map((m) => {
+          const when =
+            m.fixed || findMilestoneWhen(m.amountEur) || 'после 2030';
+          return `<span class="pill">${m.title} — ~${when}</span>`;
+        })
+        .join('');
+
+      const byYear = { 2026: 0, 2027: 0, 2028: 0, 2029: 0, 2030: 0 };
+      rows.forEach((r) => {
+        if (r.year) byYear[r.year] += r.net;
+      });
+
+      const cumYears = [];
+      let c = 0;
+      for (const y of [2026, 2027, 2028, 2029, 2030]) {
+        c += byYear[y];
+        cumYears.push({ year: y, cum: c, annual: byYear[y] });
+      }
+
+      const spainLivingPeriods = [
+        {
+          period: 'Июл–сент 2027',
+          rent: ES_RENT_MO,
+          living: ES_LIVING_MO,
+          child: 0,
+          note: 'переезд в июл',
+        },
+        {
+          period: 'Окт 2027 – сент 2028',
+          rent: ES_RENT_MO,
+          living: esLiving2028,
+          child: 0,
+          note: 'быт +15%',
+        },
+        {
+          period: 'Окт 2028',
+          rent: ES_RENT_BIG_MO,
+          living: esLiving2028,
+          child: 0,
+          note: 'квартира побольше',
+        },
+        {
+          period: 'Ноя 2028 – дек 2028',
+          rent: ES_RENT_BIG_MO,
+          living: esLiving2028,
+          child: CHILD_MO,
+          note: 'роды + ребёнок',
+        },
+        {
+          period: 'Янв–июн 2029',
+          rent: ES_RENT_BIG_MO,
+          living: esLiving2029,
+          child: CHILD_MO,
+          note: 'без ипотеки',
+        },
+        {
+          period: 'Июл–окт 2029',
+          rent: ES_RENT_BIG_MO,
+          living: esLiving2029,
+          child: CHILD_MO,
+          note: 'покупка в июл',
+        },
+        {
+          period: 'Ноя–дек 2029',
+          rent: ES_RENT_BIG_MO,
+          living: esLiving2029,
+          child: CHILD_MO,
+          note: 'ипотека · +€1k от сдачи',
+        },
+        {
+          period: '2030',
+          rent: ES_RENT_BIG_MO,
+          living: esLiving2030,
+          child: CHILD_MO,
+          note: 'ипотека · +€1k от сдачи',
+        },
+      ];
+
+      const spainLivingBody = document.getElementById('spain-living-body');
+      spainLivingPeriods.forEach((row) => {
+        const total = row.rent + row.living + row.child;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.period}</td>
+          <td>${fmt(row.rent)}</td>
+          <td>${fmt(row.living)}</td>
+          <td>${row.child ? fmt(row.child) : '—'}</td>
+          <td><strong>${fmt(total)}</strong></td>
+          <td>${row.note}</td>
+        `;
+        spainLivingBody.appendChild(tr);
+      });
+      document.getElementById('spain-living-foot').innerHTML =
+        `С <strong>июля 2029</strong> добавляется ипотека <strong>${fmt(MORTGAGE_MO)}/мес</strong> ` +
+        `(разово ${fmt(MORTGAGE_ONETIME)} в июле) — это не замена аренды. ` +
+        `С <strong>ноября 2029</strong> — доход от сдачи купленной квартиры <strong>${fmt(RENTAL_INCOME_MO)}/мес</strong>. ` +
+        `Налог Испании <strong>${fmt(taxSpainMo)}/мес</strong> (24% × €4 000, иждивенец +1) — с <strong>янв. 2028</strong>, в 2027 не платится.`;
+      const moShort = [
+        'янв',
+        'фев',
+        'мар',
+        'апр',
+        'май',
+        'июн',
+        'июл',
+        'авг',
+        'сен',
+        'окт',
+        'ноя',
+        'дек',
+      ];
+
+      function buildMonthlyBudget() {
+        const rows = [];
+
+        const add = (
+          year,
+          month,
+          income,
+          breakdown,
+          event,
+          oneTimeLabel,
+        ) => {
+          const {
+            rent = 0,
+            living = 0,
+            child = 0,
+            tax = 0,
+            mortgage = 0,
+            oneTime = 0,
+          } = breakdown;
+          const lifeMo = rent + living + child;
+          const expense = lifeMo + tax + mortgage + oneTime;
+          const yy = String(year).slice(2);
+          rows.push({
+            year,
+            month,
+            label: `${moShort[month - 1]}'${yy}`,
+            income,
+            rent,
+            living,
+            child,
+            tax,
+            mortgage,
+            oneTime,
+            lifeMo,
+            expense,
+            net: income - expense,
+            oneTimeLabel,
+            event,
+          });
+        };
+
+        for (let m = 1; m <= 4; m++)
+          add(
+            2027,
+            m,
+            INCOME_FROM_2027,
+            { rent: BALI_RENT_MO, living: BALI_OTHER_MO },
+            null,
+            null,
+          );
+        add(2027, 5, INCOME_FROM_2027, { living: RU_LIFE_MO }, null, null);
+        add(2027, 6, INCOME_FROM_2027, { living: RU_LIFE_MO }, null, null);
+        add(
+          2027,
+          7,
+          INCOME_FROM_2027,
+          {
+            rent: ES_RENT_MO,
+            living: ES_LIVING_MO,
+            oneTime: MOVE_ONETIME,
+          },
+          null,
+          'переезд в Испанию',
+        );
+        add(
+          2027,
+          8,
+          INCOME_FROM_2027,
+          { rent: ES_RENT_MO, living: ES_LIVING_MO },
+          null,
+          null,
+        );
+        add(
+          2027,
+          9,
+          INCOME_FROM_2027,
+          {
+            rent: ES_RENT_MO,
+            living: ES_LIVING_MO,
+            oneTime: RING_2027,
+          },
+          'ring-after',
+          'обручальное кольцо',
+        );
+        add(
+          2027,
+          10,
+          INCOME_FROM_2027,
+          {
+            rent: ES_RENT_MO,
+            living: ES_LIVING_MO,
+            oneTime: WEDDING_2027,
+          },
+          'wedding-after',
+          'свадьба',
+        );
+        add(
+          2027,
+          11,
+          INCOME_FROM_2027,
+          { rent: ES_RENT_MO, living: ES_LIVING_MO },
+          null,
+          null,
+        );
+        add(
+          2027,
+          12,
+          INCOME_FROM_2027,
+          {
+            rent: ES_RENT_MO,
+            living: ES_LIVING_MO,
+            oneTime: CAR_ONETIME,
+          },
+          null,
+          'автомобиль',
+        );
+
+        for (let m = 1; m <= 12; m++) {
+          const may = m === 5;
+          const aug = m === 8;
+          const nov = m === 11;
+          const bigFlat = m >= 10;
+          const withChild = m >= 11;
+          let oneTime = 0;
+          let label = null;
+          if (may) {
+            oneTime = VACATION_TRIP_2028;
+            label = 'отпуск';
+          } else if (aug) {
+            oneTime = VACATION_TRIP_2028;
+            label = 'отпуск';
+          } else if (nov) {
+            oneTime = BIRTH_2028;
+            label = 'роды';
+          }
+          const rent = bigFlat ? ES_RENT_BIG_MO : ES_RENT_MO;
+          const living = esLiving2028;
+          const child = withChild ? CHILD_MO : 0;
+          add(
+            2028,
+            m,
+            INCOME_FROM_2028,
+            { rent, living, child, tax: taxSpainMo, oneTime },
+            withChild && m === 11
+              ? 'child-start'
+              : bigFlat && m === 10
+                ? 'flat-bigger'
+                : null,
+            label ?? (bigFlat && m === 10 ? 'квартира побольше' : null),
+          );
+        }
+
+        for (let m = 1; m <= 12; m++) {
+          const withMortgage = m >= 7;
+          const withRental = m >= 11;
+          const income =
+            INCOME_FROM_2029 + (withRental ? RENTAL_INCOME_MO : 0);
+          const oneTime =
+            (m === 7 ? MORTGAGE_ONETIME : 0) +
+            (m === 2 || m === 10 ? VACATION_TRIP_LATER : 0);
+          add(
+            2029,
+            m,
+            income,
+            {
+              rent: ES_RENT_BIG_MO,
+              living: esLiving2029,
+              child: CHILD_MO,
+              tax: taxSpainMo,
+              mortgage: withMortgage ? MORTGAGE_MO : 0,
+              oneTime,
+            },
+            m === 6
+              ? 'mortgage-before'
+              : m === 7
+                ? 'mortgage-after'
+                : withRental && m === 11
+                  ? 'rental-start'
+                  : null,
+            m === 7
+              ? 'ипотека (взнос + сделка)'
+              : m === 2 || m === 10
+                ? 'отпуск'
+                : withRental && m === 11
+                  ? 'сдача квартиры'
+                  : null,
+          );
+        }
+
+        for (let m = 1; m <= 12; m++) {
+          const oneTime =
+            (m === 2 ? CAR_2030 : 0) +
+            (m === 3 || m === 9 ? VACATION_TRIP_LATER : 0);
+          add(
+            2030,
+            m,
+            INCOME_FROM_2029 + RENTAL_INCOME_MO,
+            {
+              rent: ES_RENT_BIG_MO,
+              living: esLiving2030,
+              child: CHILD_MO,
+              tax: taxSpainMo,
+              mortgage: MORTGAGE_MO,
+              oneTime,
+            },
+            null,
+            m === 2
+              ? 'новая машина'
+              : m === 3 || m === 9
+                ? 'отпуск'
+                : null,
+          );
+        }
+
+        return rows;
+      }
+
+      function expenseTooltipLines(r) {
+        const lines = [];
+        if (r.rent > 0) lines.push(`Аренда: ${fmt(r.rent)}`);
+        if (r.living > 0) {
+          lines.push(
+            r.rent > 0 ? `Быт: ${fmt(r.living)}` : `Жизнь: ${fmt(r.living)}`,
+          );
+        }
+        if (r.child > 0) lines.push(`Ребёнок: ${fmt(r.child)}`);
+        if (r.tax > 0) lines.push(`Налог: ${fmt(r.tax)}`);
+        if (r.mortgage > 0) lines.push(`Ипотека: ${fmt(r.mortgage)}`);
+        if (r.oneTime > 0) {
+          lines.push(
+            `Разово: ${fmt(r.oneTime)}${r.oneTimeLabel ? ` (${r.oneTimeLabel})` : ''}`,
+          );
+        }
+        return lines;
+      }
+
+      function buildMonthlyTimeline() {
+        let cum = START_BALANCE;
+        const points = [{ label: "01.01'27", cum, event: 'start' }];
+
+        for (const r of buildMonthlyBudget()) {
+          const before = cum;
+          cum += r.net;
+          points.push({
+            label: r.label,
+            cum,
+            event: r.event,
+            oneTime: r.oneTime,
+            oneTimeLabel: r.oneTimeLabel,
+            beforeOneTime: r.oneTime ? before : null,
+          });
+        }
+
+        return points;
+      }
+
+      const monthlyBudget = buildMonthlyBudget();
+
+      const cumTimeline = buildMonthlyTimeline();
+
+      const showMonthLabel = (p) =>
+        p.event === 'start' ||
+        p.event === 'ring-after' ||
+        p.event === 'wedding-after' ||
+        p.event === 'mortgage-before' ||
+        p.event === 'mortgage-after' ||
+        p.label === "дек'27" ||
+        p.label === "дек'28" ||
+        p.label === "дек'29" ||
+        p.label === "дек'30";
+
+      const pointStyle = (pt) => {
+        if (pt.event === 'ring-after') return '#d4a574';
+        if (pt.event === 'wedding-after') return '#9b59d6';
+        if (pt.event === 'mortgage-before') return '#6eb5ff';
+        if (pt.event === 'mortgage-after') return '#e85555';
+        if (pt.event === 'rental-start') return '#5fa573';
+        if (pt.event === 'start') return '#5fa573';
+        return 'rgba(95, 165, 115, 0.35)';
+      };
+
+      document.getElementById('summary-cards').innerHTML = `
+      <div class="card">
+        <div class="card__label">К 31.12.2030</div>
+        <div class="card__value">${fmt(finalEur)}</div>
+        <div class="card__note">накопления в €</div>
+      </div>
+      <div class="card">
+        <div class="card__label">Ипотека (июль 2029)</div>
+        <div class="card__value">${fmt(MORTGAGE_ONETIME)}</div>
+        <div class="card__note">${fmt(MORTGAGE_DOWN)} взнос + ${fmt(MORTGAGE_DEAL)} сделка</div>
+      </div>
+      <div class="card">
+        <div class="card__label">Ипотека / мес</div>
+        <div class="card__value">${fmt(MORTGAGE_MO)}</div>
+        <div class="card__note">с июля 2029, параллельно аренде</div>
+      </div>
+      <div class="card">
+        <div class="card__label">Доход / мес</div>
+        <div class="card__value">${incomeLadder}</div>
+        <div class="card__note">${incomeDates}</div>
+      </div>
+      <div class="card">
+        <div class="card__label">Старт (вдвоём)</div>
+        <div class="card__value">${fmt(START_BALANCE)}</div>
+        <div class="card__note">к 01.01.2027</div>
+      </div>
+      <div class="card">
+        <div class="card__label">Налог Испания / мес</div>
+        <div class="card__value">${fmt(taxSpainMo)}</div>
+        <div class="card__note">24% × €4 000 · с янв. 2028</div>
+      </div>
+      ${rentCardHtml}
+      <div class="card">
+        <div class="card__label">Проекты</div>
+        <div class="card__value">€400</div>
+        <div class="card__note">реинвест, не из зарплаты</div>
+      </div>
+    `;
+
+      document.getElementById('milestones').innerHTML = milestonePills;
+
+      const tbody = document.querySelector('#phase-table tbody');
+      rows.forEach((r) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+        <td>${r.label}</td>
+        <td>${fmt(r.income)}</td>
+        <td>${fmt(r.life)}</td>
+        <td>${fmt(r.oneTime)}</td>
+        <td>${fmt(r.tax)}</td>
+        <td class="${r.net >= 0 ? 'pos' : 'neg'}">${fmt(r.net)}</td>
+        <td class="pos"><strong>${fmt(r.cumulative)}</strong></td>
+      `;
+        tbody.appendChild(tr);
+      });
+
+      Chart.defaults.color = '#8b9aab';
+      Chart.defaults.borderColor = '#2a3544';
+      Chart.defaults.font.family = 'system-ui, sans-serif';
+
+      new Chart(document.getElementById('chartCumulative'), {
+        type: 'line',
+        data: {
+          labels: cumTimeline.map((d) => d.label),
+          datasets: [
+            {
+              label: 'Накопления (€)',
+              data: cumTimeline.map((d) => Math.round(d.cum)),
+              borderColor: '#5fa573',
+              backgroundColor: (ctx) => {
+                const { chart } = ctx;
+                const { ctx: c, chartArea } = chart;
+                if (!chartArea) return 'rgba(95, 165, 115, 0.15)';
+                const grad = c.createLinearGradient(
+                  0,
+                  chartArea.top,
+                  0,
+                  chartArea.bottom,
+                );
+                grad.addColorStop(0, 'rgba(95, 165, 115, 0.2)');
+                grad.addColorStop(1, 'rgba(224, 92, 92, 0.08)');
+                return grad;
+              },
+              fill: true,
+              tension: 0,
+              pointRadius: cumTimeline.map((d) => (d.event ? 7 : 2)),
+              pointBackgroundColor: cumTimeline.map((d) => pointStyle(d)),
+              pointBorderColor: cumTimeline.map((d) => pointStyle(d)),
+              segment: {
+                borderColor: (ctx) => {
+                  const e1 = cumTimeline[ctx.p1DataIndex]?.event;
+                  if (e1 === 'wedding-after') return '#9b59d6';
+                  if (e1 === 'ring-after') return '#d4a574';
+                  if (e1 === 'mortgage-after') return '#e85555';
+                  const y1 = ctx.p1.parsed.y;
+                  if (y1 < 0) return '#e8a838';
+                  return '#5fa573';
+                },
+                borderWidth: (ctx) => {
+                  const e1 = cumTimeline[ctx.p1DataIndex]?.event;
+                  return e1 === 'wedding-after' ||
+                    e1 === 'ring-after' ||
+                    e1 === 'mortgage-after'
+                    ? 3
+                    : 1.5;
+                },
+              },
+            },
+            {
+              label: 'Нужно на сделку (€50k)',
+              data: cumTimeline.map(() => MORTGAGE_ONETIME),
+              borderColor: '#e8a838',
+              borderDash: [6, 4],
+              pointRadius: 0,
+            },
+            {
+              label: 'Ноль',
+              data: cumTimeline.map(() => 0),
+              borderColor: 'rgba(139, 154, 171, 0.45)',
+              borderDash: [2, 4],
+              pointRadius: 0,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                afterLabel: (item) => {
+                  const pt = cumTimeline[item.dataIndex];
+                  if (pt.event === 'mortgage-before')
+                    return 'Перед покупкой квартиры';
+                  if (pt.event === 'rental-start')
+                    return `+${fmt(RENTAL_INCOME_MO)}/мес от сдачи квартиры`;
+                  if (pt.oneTime > 0 && pt.oneTimeLabel)
+                    return `−${fmt(pt.oneTime)}: ${pt.oneTimeLabel}`;
+                  return '';
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                maxRotation: 0,
+                autoSkip: true,
+                maxTicksLimit: 10,
+                callback: (_, i) =>
+                  showMonthLabel(cumTimeline[i]) ? cumTimeline[i].label : '',
+              },
+            },
+            y: {
+              ticks: { callback: (v) => '€' + v.toLocaleString() },
+              grid: {
+                color: (ctx) =>
+                  ctx.tick.value === 0 ? 'rgba(232, 168, 56, 0.55)' : '#2a3544',
+                lineWidth: (ctx) => (ctx.tick.value === 0 ? 1.5 : 1),
+              },
+            },
+          },
+        },
+      });
+
+      new Chart(document.getElementById('chartAnnual'), {
+        type: 'bar',
+        data: {
+          labels: cumYears.map((d) => d.year),
+          datasets: [
+            {
+              label: 'Чистые накопления за год (€)',
+              data: cumYears.map((d) => Math.round(d.annual)),
+              backgroundColor: [
+                '#4a8f5f',
+                '#5fa573',
+                '#5fa573',
+                '#6eb5ff',
+                '#6eb5ff',
+              ],
+              borderRadius: 6,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { ticks: { callback: (v) => '€' + v.toLocaleString() } },
+          },
+        },
+      });
+
+      const showBudgetMonthLabel = (r) =>
+        r.month === 1 || r.month === 4 || r.month === 7 || r.month === 10;
+
+      new Chart(document.getElementById('chartMonthly'), {
+        type: 'bar',
+        data: {
+          labels: monthlyBudget.map((r) => r.label),
+          datasets: [
+            {
+              label: 'Доход (€)',
+              data: monthlyBudget.map((r) => Math.round(r.income)),
+              backgroundColor: 'rgba(77, 159, 255, 0.85)',
+              borderColor: '#2b7fe0',
+              borderWidth: 1,
+              borderRadius: 3,
+            },
+            {
+              label: 'Траты (€)',
+              data: monthlyBudget.map((r) => Math.round(r.expense)),
+              backgroundColor: 'rgba(232, 85, 85, 0.8)',
+              borderColor: '#c73a3a',
+              borderWidth: 1,
+              borderRadius: 3,
+            },
+            {
+              label: 'В копилку (€)',
+              data: monthlyBudget.map((r) => Math.round(r.net)),
+              backgroundColor: monthlyBudget.map((r) =>
+                r.net >= 0 ? 'rgba(95, 165, 115, 0.9)' : 'rgba(232, 168, 56, 0.9)',
+              ),
+              borderColor: monthlyBudget.map((r) =>
+                r.net >= 0 ? '#4a8f5f' : '#c98a20',
+              ),
+              borderWidth: 1,
+              borderRadius: 3,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                afterBody: (items) => {
+                  const item = items[0];
+                  const r = monthlyBudget[item.dataIndex];
+                  if (item.datasetIndex === 1) {
+                    return expenseTooltipLines(r);
+                  }
+                  return [];
+                },
+                footer: (items) => {
+                  const r = monthlyBudget[items[0].dataIndex];
+                  if (items[0].datasetIndex === 1) {
+                    return `Итого трат: ${fmt(r.expense)}`;
+                  }
+                  return `Итого в копилку: ${fmt(r.net)}`;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                maxRotation: 0,
+                autoSkip: false,
+                callback: (_, i) =>
+                  showBudgetMonthLabel(monthlyBudget[i])
+                    ? monthlyBudget[i].label
+                    : '',
+                font: { size: 10 },
+              },
+            },
+            y: {
+              ticks: { callback: (v) => '€' + v.toLocaleString() },
+              grid: {
+                color: (ctx) =>
+                  ctx.tick.value === 0 ? 'rgba(232, 168, 56, 0.55)' : '#2a3544',
+                lineWidth: (ctx) => (ctx.tick.value === 0 ? 1.5 : 1),
+              },
+            },
+          },
+        },
+      });
+
+      const flowPhases = [
+        {
+          label: "СПб '26",
+          sub: 'июн–сен · вдвоём',
+          incomeMo: INCOME_COUPLE,
+          lifeMo: SPB_LIFE_MO,
+          taxMo: 0,
+          oneTimeMo: 0,
+        },
+        {
+          label: "Бали '26",
+          sub: 'окт–дек · €4k',
+          incomeMo: INCOME_COUPLE,
+          lifeMo: BALI_LIFE_MO,
+          taxMo: 0,
+          oneTimeMo: 0,
+        },
+        {
+          label: "Бали '27",
+          sub: 'янв–апр · €1k жильё + €3k',
+          incomeMo: INCOME_FROM_2027,
+          lifeMo: BALI_LIFE_MO,
+          taxMo: 0,
+          oneTimeMo: 0,
+        },
+        {
+          label: "РФ '27",
+          sub: 'май–июнь · €4k',
+          incomeMo: INCOME_FROM_2027,
+          lifeMo: RU_LIFE_MO,
+          taxMo: 0,
+          oneTimeMo: 0,
+        },
+        {
+          label: "ES '27",
+          sub: 'июл–дек · переезд июл · кольцо сен · свадьба окт',
+          incomeMo: INCOME_FROM_2027,
+          lifeMo: esLifeBase,
+          taxMo: 0,
+          oneTimeMo: (MOVE_ONETIME + RING_2027 + WEDDING_2027 + CAR_ONETIME) / 6,
+        },
+        {
+          label: '2028',
+          sub: 'окт — €1,7k · ноя — ребёнок',
+          incomeMo: INCOME_FROM_2028,
+          lifeMo: esLife2028,
+          mortgageMo: 0,
+          taxMo: taxSpainMo,
+          oneTimeMo: (VACATION_2028 + BIRTH_2028) / 12,
+        },
+        {
+          label: '2029 I',
+          sub: 'янв–июн',
+          incomeMo: INCOME_FROM_2029,
+          lifeMo: esLifeBig2029,
+          mortgageMo: 0,
+          taxMo: taxSpainMo,
+          oneTimeMo: VACATION_TRIP_LATER / 6,
+        },
+        {
+          label: '2029 II',
+          sub: 'июл–окт · покупка',
+          incomeMo: INCOME_FROM_2029,
+          lifeMo: esLifeBig2029,
+          mortgageMo: MORTGAGE_MO,
+          taxMo: taxSpainMo,
+          oneTimeMo: (MORTGAGE_ONETIME + VACATION_TRIP_LATER) / 4,
+        },
+        {
+          label: '2029 III',
+          sub: 'ноя–дек · +€1k от сдачи',
+          incomeMo: INCOME_FROM_2029 + RENTAL_INCOME_MO,
+          lifeMo: esLifeBig2029,
+          mortgageMo: MORTGAGE_MO,
+          taxMo: taxSpainMo,
+          oneTimeMo: 0,
+        },
+        {
+          label: '2030',
+          sub: 'фев — новая машина · отпуска',
+          incomeMo: INCOME_FROM_2029 + RENTAL_INCOME_MO,
+          lifeMo: esLifeBig2030,
+          mortgageMo: MORTGAGE_MO,
+          taxMo: taxSpainMo,
+          oneTimeMo: (VACATION_2030 + CAR_2030) / 12,
+        },
+      ];
+
+      const flowLabels = flowPhases.map((p) => p.label);
+      const flowIncome = flowPhases.map((p) => Math.round(p.incomeMo));
+      const flowOut = flowPhases.map((p) =>
+        Math.round(p.lifeMo + (p.mortgageMo || 0) + p.taxMo + p.oneTimeMo),
+      );
+      const flowNet = flowPhases.map((p) =>
+        Math.round(
+          p.incomeMo - p.lifeMo - (p.mortgageMo || 0) - p.taxMo - p.oneTimeMo,
+        ),
+      );
+
+      new Chart(document.getElementById('chartFlow'), {
+        type: 'bar',
+        data: {
+          labels: flowLabels,
+          datasets: [
+            {
+              label: 'Доход / мес (€)',
+              data: flowIncome,
+              backgroundColor: '#4d9fff',
+              borderColor: '#2b7fe0',
+              borderWidth: 1,
+              borderRadius: 5,
+              order: 2,
+            },
+            {
+              label: 'Расход+налог / мес (€)',
+              data: flowOut,
+              backgroundColor: '#e85555',
+              borderColor: '#c73a3a',
+              borderWidth: 1,
+              borderRadius: 5,
+              order: 3,
+            },
+            {
+              label: 'Остаток / мес (€)',
+              data: flowNet,
+              type: 'line',
+              borderColor: '#5fa573',
+              backgroundColor: '#5fa573',
+              borderWidth: 3,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              tension: 0.15,
+              order: 1,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                afterTitle: (items) => {
+                  const p = flowPhases[items[0].dataIndex];
+                  return p.sub;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              ticks: {
+                maxRotation: 0,
+                autoSkip: false,
+                font: { size: 11 },
+              },
+            },
+            y: {
+              ticks: { callback: (v) => '€' + v.toLocaleString() },
+            },
+          },
+        },
+      });
+    </script>
+  </body>
+</html>
