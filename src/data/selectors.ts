@@ -212,18 +212,6 @@ export function catalogCountriesListed(catalog: Catalog): CatalogCountryRow[] {
   });
 }
 
-function citiesFromVisiblePlaces(catalog: Catalog, visiblePlaces: Place[]): City[] {
-  const byId = new Map<string, City>();
-  for (const p of visiblePlaces) {
-    const coords =
-      p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : undefined;
-    const resolved =
-      parentCityForPlaceCity(catalog, p.cityId, coords) ?? cityById(catalog, p.cityId);
-    if (resolved && !isFineGrainedCity(resolved)) byId.set(resolved.id, resolved);
-  }
-  return [...byId.values()];
-}
-
 /** Название города для отображения у места (подрайон → ближайший город) */
 export function cityLabelForPlace(catalog: Catalog, place: Place): string {
   const coords =
@@ -276,16 +264,15 @@ export function mergeRouteCities(
   return [...byId.values()];
 }
 
-/** Метки городов: на «Всё»/«Города» — без подрайонов; на «Маршруты» — точки путей; иначе — города видимых мест */
+/** Метки городов только на «Всё» и «Города». Маршруты и табы мест — без городских пинов. */
 export function citiesForMapMarkers(
   catalog: Catalog,
   filter: CategoryFilter,
-  visiblePlaces: Place[],
-  routes: TravelRoute[] = [],
+  _visiblePlaces: Place[] = [],
+  _routes: TravelRoute[] = [],
 ): City[] {
   if (filter === 'cities' || filter === 'all') return allCatalogCitiesForMap(catalog);
-  if (filter === 'routes') return mergeRouteCities([], catalog, routes);
-  return citiesFromVisiblePlaces(catalog, visiblePlaces);
+  return [];
 }
 
 export function routesVisibleOnMap(filter: CategoryFilter): boolean {

@@ -151,6 +151,19 @@ const GLYPHS: Record<RewardId, ReactNode> = {
       <path d="M7.2 6.4c2.4-1.8 6.6-1.6 8.8.6 2 2 .8 5.2-.6 6.8 1.4 1.2 1.8 3.2.2 4.6-2.2 1.8-6.2 1.6-8.4-.2-2.2-1.8-2.4-5.2-.8-7.2-1.2-1.4-1-3.2.8-4.6Z" />
     </Glyph>
   ),
+  asiaExpert: (
+    <Glyph>
+      <path d="M4.6 14.2c1.8-1.4 3.6-2.2 7.4-2.2s5.6.8 7.4 2.2" />
+      <path d="M7.2 9.4 12 4.8l4.8 4.6" />
+      <path d="M9.2 9.6v4.2h5.6V9.6" />
+    </Glyph>
+  ),
+  typicalRemote: (
+    <Glyph>
+      <rect x="4.2" y="6.2" width="15.6" height="10.2" rx="1.5" />
+      <path d="M8.2 19.2h7.6M12 16.4v2.8" />
+    </Glyph>
+  ),
   localExpert: (
     <Glyph>
       <path d="M4.8 16.8V11l3.2-3.4 3.1 3.4v6" />
@@ -164,6 +177,29 @@ const GLYPHS: Record<RewardId, ReactNode> = {
       <circle cx="12" cy="14.4" r="1.15" />
       <path d="M5.2 7.2c.8-1.2 1.8-2 3.1-2.8" />
       <path d="M18.8 7.2c-.8-1.2-1.8-2-3.1-2.8" />
+    </Glyph>
+  ),
+  cityFifty: (
+    <Glyph>
+      <path d="M4.4 17.2V10.4l3.4-3.2 3.2 3.2v6.8" />
+      <path d="M11 17.2V8.6l3.6-3.4 3.6 3.4v8.6" />
+      <path d="M5.2 17.2h13.2" />
+    </Glyph>
+  ),
+  cityHundred: (
+    <Glyph>
+      <path d="M4.2 17.4V11l2.8-2.8 2.6 2.8v6.4" />
+      <path d="M9.6 17.4V9l3.2-3.2 3.2 3.2v8.4" />
+      <path d="M16 17.4v-5.2l2.4-2.2 1.6 2.2v5.2" />
+      <path d="M4.6 17.4h15.2" />
+    </Glyph>
+  ),
+  cityTwoHundred: (
+    <Glyph>
+      <path d="M3.6 18V8.8l4-3.6 3.4 3.2V18" />
+      <path d="M11 18V7.4l4.2-3.6 5.2 3.6V18" />
+      <path d="M5.2 11.4h2.2M5.2 14.2h2.2M13.2 10.4h2.4M13.2 13.2h2.4" />
+      <path d="M3.8 18h16.6" />
     </Glyph>
   ),
   firstTip: (
@@ -188,11 +224,23 @@ const GLYPHS: Record<RewardId, ReactNode> = {
       <circle cx="12" cy="16.8" r="1" fill="currentColor" stroke="none" />
     </Glyph>
   ),
+  michelin: (
+    <Glyph>
+      <path d="M12 3.8 13.9 9h5.4l-4.4 3.3 1.7 5.4L12 14.6 7.4 17.7l1.7-5.4L4.7 9h5.4z" />
+    </Glyph>
+  ),
   innkeeper: (
     <Glyph>
       <path d="M4.6 14.4h14.8v3.4H4.6z" />
       <path d="M6.2 14.4V11c0-1.6 1.4-2.8 3.2-2.8h3.4c1.8 0 3.2 1.2 3.2 2.8v3.4" />
       <path d="M4.6 17.8v1.6M19.4 17.8v1.6" />
+    </Glyph>
+  ),
+  revizorro: (
+    <Glyph>
+      <rect x="6.2" y="4.4" width="11.6" height="15.4" rx="1.4" />
+      <path d="M9 9.2h6M9 12.2h6M9 15.2h3.6" />
+      <path d="M8.4 4.4h7.2v2.2H8.4z" />
     </Glyph>
   ),
   photographer: (
@@ -218,6 +266,23 @@ const GLYPHS: Record<RewardId, ReactNode> = {
   frequentFlyer: (
     <Glyph>
       <path d="M4.4 14.2 12 11.4l8.2 2.6-8.2-7.2L10.6 4.6 9.4 7.2 4.6 9.2l3.4 1.4-3.6 3.6Z" />
+    </Glyph>
+  ),
+  routeTrail: (
+    <Glyph>
+      <circle cx="5.4" cy="17.4" r="1.4" />
+      <circle cx="12" cy="11.2" r="1.4" />
+      <circle cx="18.4" cy="5.8" r="1.4" />
+      <path d="M6.6 16.4 10.8 12.4M13.2 10.2 17.2 6.8" />
+    </Glyph>
+  ),
+  routeAtlas: (
+    <Glyph>
+      <circle cx="5.2" cy="16.8" r="1.35" />
+      <circle cx="11.2" cy="7.2" r="1.35" />
+      <circle cx="18.4" cy="13.4" r="1.35" />
+      <circle cx="18.6" cy="5.6" r="1.35" />
+      <path d="M6.4 15.8 10.2 8.4M12.4 7.8 17.2 12.4M18.4 12 18.5 7" />
     </Glyph>
   ),
   groupTourism: (

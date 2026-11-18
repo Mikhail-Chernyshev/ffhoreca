@@ -873,8 +873,8 @@
 }
 
 .world-map-city-marker__dot {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 5px;
   background: var(--map-city);
   border: 2px solid var(--surface);
@@ -915,6 +915,7 @@
   border: none;
   background: none;
   cursor: pointer;
+  overflow: visible;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -939,8 +940,8 @@
 .world-map-place-marker__core {
   position: relative;
   z-index: 1;
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-radius: 50%;
   box-sizing: border-box;
   border: 2px solid var(--map-ocean);
@@ -949,6 +950,33 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.world-map-place-marker__core--lodging {
+  border-radius: 7px;
+}
+
+.world-map-place-marker__core--food {
+  border-radius: 50%;
+}
+
+.world-map-place-marker__core--bar {
+  border-radius: 50%;
+}
+
+.world-map-place-marker__core--airport {
+  border-radius: 50%;
+}
+
+.world-map-place-marker__core--attraction {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  transform: rotate(45deg);
+}
+
+.world-map-place-marker__core--attraction .map-category-glyph {
+  transform: rotate(-45deg);
 }
 
 .map-category-glyph {

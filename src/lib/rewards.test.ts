@@ -1,10 +1,12 @@
 import { catalog, city, place } from '../test/fixtures';
 import type { TravelRoute } from '../data/types';
 import {
+  ASIA_EXPERT_TARGET,
   collectRewardStats,
   continentOf,
   CONTINENT_COUNT,
   evaluateRewards,
+  REMOTE_WORKER_COUNTRY_CODES,
   SCHENGEN_COUNTRY_CODES,
 } from './rewards';
 import { WORLD_COUNTRY_COUNT } from './travelPassport';
@@ -115,20 +117,71 @@ describe('rewards', () => {
     expect(byId.pangaea?.target).toBe(6);
   });
 
-  it('opens group tourism above 5 followers', () => {
+  it('opens group tourism at 5 followers', () => {
     const locked = Object.fromEntries(
-      evaluateRewards(collectRewardStats(catalog(), [], new Set(), { followers: 5 })).map(
+      evaluateRewards(collectRewardStats(catalog(), [], new Set(), { followers: 4 })).map(
         (r) => [r.id, r],
       ),
     );
     const open = Object.fromEntries(
-      evaluateRewards(collectRewardStats(catalog(), [], new Set(), { followers: 6 })).map(
+      evaluateRewards(collectRewardStats(catalog(), [], new Set(), { followers: 5 })).map(
         (r) => [r.id, r],
       ),
     );
     expect(locked.groupTourism?.unlocked).toBe(false);
     expect(open.groupTourism?.unlocked).toBe(true);
-    expect(open.groupTourism?.target).toBe(6);
+    expect(open.groupTourism?.target).toBe(5);
+  });
+
+  it('unlocks Asia expert at 7 Asian countries', () => {
+    const codes = ['GE', 'JP', 'TH', 'VN', 'ID', 'MY', 'KR'];
+    const cities = codes.map((cc, i) =>
+      city({ id: `${cc.toLowerCase()}-1`, name: `City ${i}`, countryCode: cc }),
+    );
+    const stats = collectRewardStats(catalog({ cities }), []);
+    expect(stats.asia).toBe(ASIA_EXPERT_TARGET);
+    const byId = Object.fromEntries(evaluateRewards(stats).map((r) => [r.id, r]));
+    expect(byId.asiaExpert?.unlocked).toBe(true);
+  });
+
+  it('unlocks typical remote worker on the five SE Asia countries', () => {
+    const cities = [...REMOTE_WORKER_COUNTRY_CODES].map((cc) =>
+      city({ id: `${cc.toLowerCase()}-1`, name: cc, countryCode: cc }),
+    );
+    const stats = collectRewardStats(catalog({ cities }), []);
+    expect(stats.nomadFive).toBe(5);
+    const byId = Object.fromEntries(evaluateRewards(stats).map((r) => [r.id, r]));
+    expect(byId.typicalRemote?.unlocked).toBe(true);
+  });
+
+  it('counts Michelin as unique food or bar places and Revizorro at 25 hotels', () => {
+    const places = [
+      place({ id: 'both', name: 'Both', cityId: 'c1', categories: ['food', 'bar'] }),
+      ...Array.from({ length: 24 }, (_, i) =>
+        place({ id: `h${i}`, name: `Hotel ${i}`, cityId: 'c1', categories: ['lodging'] }),
+      ),
+    ];
+    const stats = collectRewardStats(catalog({ places }), []);
+    expect(stats.foodOrBar).toBe(1);
+    expect(stats.lodging).toBe(24);
+    const byId = Object.fromEntries(evaluateRewards(stats).map((r) => [r.id, r]));
+    expect(byId.michelin?.unlocked).toBe(false);
+    expect(byId.revizorro?.unlocked).toBe(false);
+    expect(byId.innkeeper?.unlocked).toBe(true);
+  });
+
+  it('opens city and route ladders at 50 / 100 / 200 and 25 / 50', () => {
+    const cities = Array.from({ length: 50 }, (_, i) =>
+      city({ id: `c-${i}`, name: `City ${i}`, countryCode: 'GE' }),
+    );
+    const routes = Array.from({ length: 25 }, (_, i) => route({ id: `rt-${i}`, mode: 'train' }));
+    const stats = collectRewardStats(catalog({ cities }), routes);
+    const byId = Object.fromEntries(evaluateRewards(stats).map((r) => [r.id, r]));
+    expect(byId.cityFifty?.unlocked).toBe(true);
+    expect(byId.cityHundred?.unlocked).toBe(false);
+    expect(byId.cityTwoHundred?.unlocked).toBe(false);
+    expect(byId.routeTrail?.unlocked).toBe(true);
+    expect(byId.routeAtlas?.unlocked).toBe(false);
   });
 
   it('keeps sea king locked even with enough boat routes', () => {

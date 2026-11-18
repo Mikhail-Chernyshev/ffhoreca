@@ -171,14 +171,16 @@ describe('citiesForMapMarkers', () => {
     expect(ids).toContain('th-bangkok');
   });
 
-  it('на табе категории оставляет города видимых мест', () => {
-    const ids = citiesForMapMarkers(full, 'airport', [airport]).map((c) => c.id);
-    expect(ids).toEqual(['ge-tbilisi']);
+  it('на табах мест не рисует города — только пины категории', () => {
+    expect(citiesForMapMarkers(full, 'airport', [airport])).toEqual([]);
+    expect(citiesForMapMarkers(full, 'food', [food])).toEqual([]);
+    expect(citiesForMapMarkers(full, 'bar', [])).toEqual([]);
+    expect(citiesForMapMarkers(full, 'lodging', [])).toEqual([]);
+    expect(citiesForMapMarkers(full, 'places', [attraction])).toEqual([]);
   });
 
-  it('на табе маршрутов показывает города waypoints', () => {
-    const ids = citiesForMapMarkers(full, 'routes', [], [planeRoute]).map((c) => c.id);
-    expect(ids).toEqual(['ge-tbilisi', 'ru-moscow']);
+  it('на табе маршрутов не рисует города', () => {
+    expect(citiesForMapMarkers(full, 'routes', [], [planeRoute])).toEqual([]);
   });
 });
 

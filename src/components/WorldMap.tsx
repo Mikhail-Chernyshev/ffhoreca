@@ -513,7 +513,13 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
     };
   }, [mapReady]);
 
-  const showPlaceMarkers = zoom >= PLACE_MARKERS_MIN_ZOOM;
+  const placeCategoryFilter =
+    filter === 'lodging' ||
+    filter === 'food' ||
+    filter === 'bar' ||
+    filter === 'places';
+  /** На табе категории — сразу, как аэропорты; на «Всё» — только после приближения. */
+  const showPlaceMarkers = placeCategoryFilter || zoom >= PLACE_MARKERS_MIN_ZOOM;
   const placeLabelHigh = zoom >= PLACE_LABEL_HIGH_ZOOM;
   /** Аэропорты — на том же обзоре, что и города; остальные места — после PLACE_MARKERS_MIN_ZOOM */
   const { airportPlaces, otherPlaces } = useMemo(() => {
@@ -545,13 +551,15 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
 
   const renderPlaceMarker = (place: Place, opts: { showLabel: boolean; labelHigh: boolean }) => {
     const [lng, lat] = placeCoordinates(catalog, place);
-    const dotClass = `world-map-place-marker__core place-dot ${markerColorClass(place)}`;
+    const kind = placeMarkerKind(place);
+    const dotClass = `world-map-place-marker__core world-map-place-marker__core--${kind} place-dot ${markerColorClass(place)}`;
     return (
       <Marker
         key={place.id}
         longitude={lng}
         latitude={lat}
         anchor='center'
+        style={{ zIndex: 2 }}
       >
         <button
           type='button'
@@ -571,7 +579,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
         >
           <span className='world-map-place-marker__halo' aria-hidden />
           <span className={dotClass}>
-            <MapCategoryGlyph kind={placeMarkerKind(place)} size={12} />
+            <MapCategoryGlyph kind={kind} size={14} />
           </span>
           {opts.showLabel ? (
             <span
@@ -756,6 +764,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
               longitude={city.lng}
               latitude={city.lat}
               anchor='center'
+              style={{ zIndex: 1 }}
             >
               <button
                 type='button'
@@ -775,7 +784,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
               >
                 <span className='world-map-city-marker__hit' aria-hidden />
                 <span className='world-map-city-marker__dot'>
-                  <MapCategoryGlyph kind='city' size={11} />
+                  <MapCategoryGlyph kind='city' size={13} />
                 </span>
                 {zoom >= CITY_LABEL_MIN_ZOOM ? (
                   <span
@@ -802,7 +811,7 @@ export const WorldMap = forwardRef<WorldMapRef, Props>(function WorldMap(
           {showPlaceMarkers
             ? otherPlaces.map((place) =>
                 renderPlaceMarker(place, {
-                  showLabel: true,
+                  showLabel: zoom >= PLACE_MARKERS_MIN_ZOOM,
                   labelHigh: placeLabelHigh,
                 }),
               )

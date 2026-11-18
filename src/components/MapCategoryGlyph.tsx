@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { PlaceCategory } from '../data/types';
 
 export type MapMarkerKind = PlaceCategory | 'city';
@@ -7,8 +8,8 @@ type Props = {
   size?: number;
 };
 
-/** Белая пиктограмма внутри цветного маркера. Силуэты читаются на ~11–12px. */
-export function MapCategoryGlyph({ kind, size = 12 }: Props) {
+/** Крупный силуэт внутри маркера: читается на 13–15px. */
+export function MapCategoryGlyph({ kind, size = 14 }: Props) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -17,20 +18,60 @@ export function MapCategoryGlyph({ kind, size = 12 }: Props) {
       aria-hidden
       className="map-category-glyph"
     >
-      <path fill="currentColor" d={GLYPH_PATH[kind]} />
+      {GLYPH[kind]}
     </svg>
   );
 }
 
-/** Material-подобные силуэты: lodging/food/bar/airport/star/city. */
-const GLYPH_PATH: Record<MapMarkerKind, string> = {
-  lodging:
-    'M7 13c1.66 0 3-1.34 3-3S8.66 7 7 7s-3 1.34-3 3 1.34 3 3 3zm12-6h-8v7H3V5H1v15h2v-3h18v3h2v-9c0-2.21-1.79-4-4-4z',
-  food: 'M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z',
-  bar: 'M21 5V3H3v2l8 9v5H6v2h12v-2h-5v-5l8-9zM7.43 7 5.66 5h12.69l-1.78 2H7.43z',
-  airport:
-    'M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z',
-  attraction:
-    'M12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z',
-  city: 'M4 21V8.2L9.2 4.5 13.5 8V21H4zm9.5 0V7.2L20 4.8V21h-6.5z',
+const fill = { fill: 'currentColor' };
+
+const GLYPH: Record<MapMarkerKind, ReactNode> = {
+  lodging: (
+    <>
+      <rect x="4.2" y="7.2" width="9.2" height="5.4" rx="2.2" {...fill} />
+      <rect x="2.8" y="12.2" width="18.4" height="7.2" rx="1.4" {...fill} />
+      <rect x="2.2" y="19.2" width="19.6" height="2.1" rx="0.8" {...fill} />
+    </>
+  ),
+  food: (
+    <>
+      <rect x="4.1" y="2.4" width="2" height="7.4" rx="1" {...fill} />
+      <rect x="7" y="2.4" width="2" height="7.4" rx="1" {...fill} />
+      <rect x="9.9" y="2.4" width="2" height="7.4" rx="1" {...fill} />
+      <rect x="7" y="8.6" width="2" height="13" rx="1" {...fill} />
+      <rect x="14.6" y="2.4" width="3.6" height="10.2" rx="1.5" {...fill} />
+      <rect x="15.6" y="11.4" width="1.7" height="10.2" rx="0.85" {...fill} />
+    </>
+  ),
+  bar: (
+    <>
+      <polygon points="4.4,3.4 19.6,3.4 12,14.2" {...fill} />
+      <rect x="11.05" y="13.4" width="1.9" height="5.8" rx="0.8" {...fill} />
+      <rect x="7.4" y="19" width="9.2" height="2" rx="1" {...fill} />
+    </>
+  ),
+  airport: (
+    <path
+      {...fill}
+      d="M21 15.6v-2.1l-8.1-5V4.2A1.6 1.6 0 0 0 11.3 2.6 1.6 1.6 0 0 0 9.7 4.2v4.3L1.6 13.5v2.1l8.1-2.4v5.1l-2.1 1.6v1.6l3.7-1 3.7 1v-1.6l-2.1-1.6v-5.1l8.1 2.4z"
+    />
+  ),
+  attraction: (
+    <>
+      <rect x="8.2" y="4.6" width="7.6" height="3.2" rx="1.1" {...fill} />
+      <path
+        fill="currentColor"
+        fillRule="evenodd"
+        d="M5.4 7.8c-1.1 0-2 0.9-2 2v8.4c0 1.1.9 2 2 2h13.2c1.1 0 2-.9 2-2V9.8c0-1.1-.9-2-2-2H5.4Zm6.6 3.1a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4Z"
+      />
+    </>
+  ),
+  city: (
+    <>
+      <rect x="2.6" y="10" width="8.4" height="11.6" rx="1" {...fill} />
+      <polygon points="2.6,10 6.8,5.2 11,10" {...fill} />
+      <rect x="12.8" y="7.2" width="8.6" height="14.4" rx="1" {...fill} />
+      <polygon points="12.8,7.2 17.1,2.8 21.4,7.2" {...fill} />
+    </>
+  ),
 };

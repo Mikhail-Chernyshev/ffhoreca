@@ -15,6 +15,7 @@
     "resolveJsonModule": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "allowJs": true,
 
     /* Linting */
     "noUnusedLocals": true,

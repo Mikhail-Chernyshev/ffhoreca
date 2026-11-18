@@ -359,6 +359,14 @@ const ru = {
         title: 'Пангея',
         hint: 'Страны на всех континентах',
       },
+      asiaExpert: {
+        title: 'Знаток Азии',
+        hint: '7 стран Азии',
+      },
+      typicalRemote: {
+        title: 'Типичный удалёнщик',
+        hint: 'Индонезия, Таиланд, Вьетнам, Малайзия, Сингапур',
+      },
       localExpert: {
         title: 'Локальный эксперт',
         hint: '10 городов в одной стране',
@@ -366,6 +374,18 @@ const ru = {
       cityHopper: {
         title: 'Городской странник',
         hint: '15 городов',
+      },
+      cityFifty: {
+        title: 'Полсотни городов',
+        hint: '50 городов',
+      },
+      cityHundred: {
+        title: 'Сотня городов',
+        hint: '100 городов',
+      },
+      cityTwoHundred: {
+        title: 'Две сотни городов',
+        hint: '200 городов',
       },
       firstTip: {
         title: 'Первый совет',
@@ -379,9 +399,17 @@ const ru = {
         title: 'Ночная сова',
         hint: '5 баров',
       },
+      michelin: {
+        title: 'Michelin',
+        hint: '50 ресторанов или баров',
+      },
       innkeeper: {
         title: 'Ночлег',
         hint: '5 мест жилья',
+      },
+      revizorro: {
+        title: 'Ревизорро',
+        hint: '25 отелей',
       },
       photographer: {
         title: 'Плёнка',
@@ -399,9 +427,17 @@ const ru = {
         title: 'Частый пассажир',
         hint: '3 авиамаршрута',
       },
+      routeTrail: {
+        title: 'Сетка дорог',
+        hint: '25 маршрутов',
+      },
+      routeAtlas: {
+        title: 'Атлас путей',
+        hint: '50 маршрутов',
+      },
       groupTourism: {
         title: 'Групповой туризм!',
-        hint: 'Больше 5 подписчиков',
+        hint: '5 подписчиков',
       },
       seaKing: {
         title: 'Царь морей',
@@ -1122,6 +1158,14 @@ const en = {
         title: 'Pangaea',
         hint: 'Countries on every continent',
       },
+      asiaExpert: {
+        title: 'Asia expert',
+        hint: '7 countries in Asia',
+      },
+      typicalRemote: {
+        title: 'Typical remote worker',
+        hint: 'Indonesia, Thailand, Vietnam, Malaysia, Singapore',
+      },
       localExpert: {
         title: 'Local expert',
         hint: '10 cities in one country',
@@ -1129,6 +1173,18 @@ const en = {
       cityHopper: {
         title: 'City hopper',
         hint: '15 cities',
+      },
+      cityFifty: {
+        title: 'Fifty cities',
+        hint: '50 cities',
+      },
+      cityHundred: {
+        title: 'Hundred cities',
+        hint: '100 cities',
+      },
+      cityTwoHundred: {
+        title: 'Two hundred cities',
+        hint: '200 cities',
       },
       firstTip: {
         title: 'First tip',
@@ -1142,9 +1198,17 @@ const en = {
         title: 'Night owl',
         hint: '5 bars',
       },
+      michelin: {
+        title: 'Michelin',
+        hint: '50 restaurants or bars',
+      },
       innkeeper: {
         title: 'Lodging',
         hint: '5 lodging places',
+      },
+      revizorro: {
+        title: 'Revizorro',
+        hint: '25 hotels',
       },
       photographer: {
         title: 'Frame',
@@ -1162,9 +1226,17 @@ const en = {
         title: 'Frequent flyer',
         hint: '3 plane routes',
       },
+      routeTrail: {
+        title: 'Road grid',
+        hint: '25 routes',
+      },
+      routeAtlas: {
+        title: 'Route atlas',
+        hint: '50 routes',
+      },
       groupTourism: {
         title: 'Group tourism!',
-        hint: 'More than 5 followers',
+        hint: '5 followers',
       },
       seaKing: {
         title: 'King of the seas',

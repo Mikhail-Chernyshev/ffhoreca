@@ -83,7 +83,7 @@
   --marker-food: var(--accent-500);
   --marker-bar: #8a3d9a;
   --marker-airport: #2a7a82;
-  --marker-attraction: var(--accent-500);
+  --marker-attraction: #c48a2a;
 
   /* --- Type --- */
   --font: 'Inter', system-ui, 'Segoe UI', sans-serif;

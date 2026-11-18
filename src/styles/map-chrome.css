@@ -634,15 +634,20 @@ button.map-passport:hover {
 }
 
 .map-page .world-map-place-marker__core {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   border-color: var(--surface);
   box-shadow: 0 1px 3px rgba(28, 25, 21, 0.22);
 }
 
-.map-page .world-map-city-marker__dot {
+.map-page .world-map-place-marker__core--attraction {
   width: 18px;
   height: 18px;
+}
+
+.map-page .world-map-city-marker__dot {
+  width: 20px;
+  height: 20px;
   border-radius: 5px;
   box-shadow: 0 1px 3px rgba(28, 25, 21, 0.22);
 }

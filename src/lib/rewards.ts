@@ -16,16 +16,25 @@ export type RewardId =
   | 'schengenExpert'
   | 'twoContinents'
   | 'pangaea'
+  | 'asiaExpert'
+  | 'typicalRemote'
   | 'localExpert'
   | 'cityHopper'
+  | 'cityFifty'
+  | 'cityHundred'
+  | 'cityTwoHundred'
   | 'firstTip'
   | 'foodie'
   | 'nightOwl'
+  | 'michelin'
   | 'innkeeper'
+  | 'revizorro'
   | 'photographer'
   | 'storyteller'
   | 'firstRoute'
   | 'frequentFlyer'
+  | 'routeTrail'
+  | 'routeAtlas'
   | 'groupTourism'
   | 'seaKing';
 
@@ -41,11 +50,14 @@ export type RewardGroup =
 export type RewardStats = {
   countries: number;
   schengen: number;
+  asia: number;
+  nomadFive: number;
   cities: number;
   maxCitiesInOneCountry: number;
   places: number;
   food: number;
   bars: number;
+  foodOrBar: number;
   lodging: number;
   withPhotos: number;
   withStory: number;
@@ -84,6 +96,8 @@ export const SCHENGEN_COUNTRY_CODES: ReadonlySet<string> = splitCodes(`
 `);
 
 export const CONTINENT_COUNT = 6;
+export const ASIA_EXPERT_TARGET = 7;
+export const REMOTE_WORKER_COUNTRY_CODES: ReadonlySet<string> = splitCodes('ID TH VN MY SG');
 export const REWARD_GROUP_ORDER: readonly RewardGroup[] = [
   'countries',
   'regions',
@@ -158,20 +172,29 @@ export function collectRewardStats(
 
   const continents = new Set<string>();
   let schengen = 0;
+  let asia = 0;
+  let nomadFive = 0;
   for (const code of countries) {
     const continent = continentOf(code);
     if (continent) continents.add(continent);
+    if (continent === 'AS') asia += 1;
     if (SCHENGEN_COUNTRY_CODES.has(code)) schengen += 1;
+    if (REMOTE_WORKER_COUNTRY_CODES.has(code)) nomadFive += 1;
   }
 
   return {
     countries: countries.size,
     schengen,
+    asia,
+    nomadFive,
     cities: catalog.cities.length,
     maxCitiesInOneCountry,
     places: catalog.places.length,
     food: countByCategory(catalog.places, 'food'),
     bars: countByCategory(catalog.places, 'bar'),
+    foodOrBar: catalog.places.filter(
+      (p) => p.categories.includes('food') || p.categories.includes('bar'),
+    ).length,
     lodging: countByCategory(catalog.places, 'lodging'),
     withPhotos: catalog.places.filter((p) => (p.photos?.length ?? 0) > 0).length,
     withStory: catalog.places.filter((p) => p.story.trim().length >= 20).length,
@@ -207,17 +230,31 @@ export const REWARD_DEFS: readonly RewardDef[] = [
   },
   { id: 'twoContinents', group: 'regions', target: 2, value: (s) => s.continents },
   { id: 'pangaea', group: 'regions', target: CONTINENT_COUNT, value: (s) => s.continents },
+  { id: 'asiaExpert', group: 'regions', target: ASIA_EXPERT_TARGET, value: (s) => s.asia },
+  {
+    id: 'typicalRemote',
+    group: 'regions',
+    target: REMOTE_WORKER_COUNTRY_CODES.size,
+    value: (s) => s.nomadFive,
+  },
   { id: 'localExpert', group: 'cities', target: 10, value: (s) => s.maxCitiesInOneCountry },
   { id: 'cityHopper', group: 'cities', target: 15, value: (s) => s.cities },
+  { id: 'cityFifty', group: 'cities', target: 50, value: (s) => s.cities },
+  { id: 'cityHundred', group: 'cities', target: 100, value: (s) => s.cities },
+  { id: 'cityTwoHundred', group: 'cities', target: 200, value: (s) => s.cities },
   { id: 'firstTip', group: 'places', target: 1, value: (s) => s.places },
   { id: 'foodie', group: 'places', target: 8, value: (s) => s.food },
   { id: 'nightOwl', group: 'places', target: 5, value: (s) => s.bars },
+  { id: 'michelin', group: 'places', target: 50, value: (s) => s.foodOrBar },
   { id: 'innkeeper', group: 'places', target: 5, value: (s) => s.lodging },
+  { id: 'revizorro', group: 'places', target: 25, value: (s) => s.lodging },
   { id: 'photographer', group: 'places', target: 5, value: (s) => s.withPhotos },
   { id: 'storyteller', group: 'places', target: 5, value: (s) => s.withStory },
   { id: 'firstRoute', group: 'routes', target: 1, value: (s) => s.routes },
   { id: 'frequentFlyer', group: 'routes', target: 3, value: (s) => s.planeRoutes },
-  { id: 'groupTourism', group: 'people', target: 6, value: (s) => s.followers },
+  { id: 'routeTrail', group: 'routes', target: 25, value: (s) => s.routes },
+  { id: 'routeAtlas', group: 'routes', target: 50, value: (s) => s.routes },
+  { id: 'groupTourism', group: 'people', target: 5, value: (s) => s.followers },
   {
     id: 'seaKing',
     group: 'soon',
